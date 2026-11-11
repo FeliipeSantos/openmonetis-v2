@@ -6,7 +6,7 @@ import { DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/di
 import { Input } from "@/components/ui/input";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { cn } from "@/lib/utils";
-import { CategoryIcon, categoryIconOptions } from "../category-icons";
+import { CategoryIcon, categoryIconGroups, categoryIconOptions } from "../category-icons";
 
 export function CategoryIconPicker({
   id,
@@ -21,13 +21,17 @@ export function CategoryIconPicker({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const selected = categoryIconOptions.find((option) => option.value === value);
-  const visible = useMemo(() => {
+  const visibleGroups = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("pt-BR");
-    return query
-      ? categoryIconOptions.filter((option) =>
+    if (!query) return categoryIconGroups;
+    return categoryIconGroups
+      .map((group) => ({
+        ...group,
+        options: group.options.filter((option) =>
           option.label.toLocaleLowerCase("pt-BR").includes(query),
-        )
-      : categoryIconOptions;
+        ),
+      }))
+      .filter((group) => group.options.length > 0);
   }, [search]);
   return (
     <>
@@ -67,28 +71,40 @@ export function CategoryIconPicker({
               value={search}
             />
           </div>
-          <div
-            data-mobile-form-body
-            className="grid max-h-72 grid-cols-5 gap-2 overflow-y-auto sm:grid-cols-8"
-          >
-            {visible.map((option) => (
-              <button
-                aria-label={option.label}
-                className={cn(
-                  "grid size-11 place-items-center rounded-md border border-input bg-popover text-muted-foreground shadow-xs transition-[color,box-shadow] hover:border-brand-strong hover:text-brand-strong focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-                  option.value === value && "border-brand-strong bg-brand/10 text-brand-strong",
-                )}
-                key={option.value}
-                onClick={() => {
-                  onChange(option.value);
-                  setOpen(false);
-                }}
-                title={option.label}
-                type="button"
-              >
-                <CategoryIcon name={option.value} />
-              </button>
+          <div data-mobile-form-body className="grid max-h-72 gap-4 overflow-y-auto">
+            {visibleGroups.map((group) => (
+              <section aria-label={group.label} className="grid gap-2" key={group.label}>
+                <h3 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
+                  {group.label}
+                </h3>
+                <div className="grid grid-cols-5 gap-2 sm:grid-cols-8">
+                  {group.options.map((option) => (
+                    <button
+                      aria-label={option.label}
+                      className={cn(
+                        "grid size-11 place-items-center rounded-md border border-input bg-popover text-muted-foreground shadow-xs transition-[color,box-shadow] hover:border-brand-strong hover:text-brand-strong focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+                        option.value === value &&
+                          "border-brand-strong bg-brand/10 text-brand-strong",
+                      )}
+                      key={option.value}
+                      onClick={() => {
+                        onChange(option.value);
+                        setOpen(false);
+                      }}
+                      title={option.label}
+                      type="button"
+                    >
+                      <CategoryIcon name={option.value} />
+                    </button>
+                  ))}
+                </div>
+              </section>
             ))}
+            {visibleGroups.length === 0 ? (
+              <p className="py-6 text-center text-muted-foreground text-sm">
+                Nenhum ícone encontrado.
+              </p>
+            ) : null}
           </div>
         </DialogContent>
       </Dialog>

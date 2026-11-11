@@ -7,6 +7,13 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ## [Unreleased]
 
+### Alterado
+
+- Seletor de ícones das categorias: o catálogo passa de 92 para 203 ícones, organizados em 17
+  grupos por tema (Alimentação, Casa / Moradia, Transporte, Saúde, Financeiro, entre outros), com
+  o título de cada grupo no seletor. A busca filtra dentro dos grupos. Os ícones já salvos nas
+  categorias continuam válidos.
+
 ### Corrigido
 
 - Subcategorias passam a exibir o próprio ícone na lista de categorias e nas tendências por

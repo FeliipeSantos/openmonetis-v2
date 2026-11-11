@@ -32,6 +32,7 @@ import {
   TransactionOutputSchema,
   TransactionParamsSchema,
   TransactionRefundOutputSchema,
+  TransactionSuggestionsOutputSchema,
   UpdateRecurringRuleQuerySchema,
   UpdateTransactionInputSchema,
 } from "@openmonetis/validators/transactions";
@@ -53,6 +54,12 @@ const transactionsResponseSchema = z
   })
   .openapi("TransactionsResponse");
 
+const transactionSuggestionsResponseSchema = z
+  .object({
+    data: TransactionSuggestionsOutputSchema,
+    error: z.null(),
+  })
+  .openapi("TransactionSuggestionsResponse");
 const recentEstablishmentsResponseSchema = z
   .object({
     data: RecentEstablishmentsOutputSchema,
@@ -114,6 +121,7 @@ export function createTransactionsRoute(service: TransactionsService) {
     getRecurringRuleOccurrence,
     importTransactions,
     listRecentEstablishments,
+    listTransactionSuggestions,
     listTransactions,
     previewTransactionImport,
     renameTransactions,
@@ -239,6 +247,26 @@ export function createTransactionsRoute(service: TransactionsService) {
       },
     }),
     async (c) => c.json(ok(await listRecentEstablishments(c.get("userId"))), 200),
+  );
+
+  transactionsRoute.openapi(
+    createRoute({
+      method: "get",
+      path: "/suggestions",
+      tags: ["Transactions"],
+      responses: {
+        200: {
+          description:
+            "List descriptions used in incomes and expenses during the last year, each with the fields of its latest use",
+          content: { "application/json": { schema: transactionSuggestionsResponseSchema } },
+        },
+        401: {
+          description: "Authentication required",
+          content: { "application/json": { schema: errorSchema } },
+        },
+      },
+    }),
+    async (c) => c.json(ok(await listTransactionSuggestions(c.get("userId"))), 200),
   );
 
   transactionsRoute.openapi(

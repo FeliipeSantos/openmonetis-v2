@@ -76,6 +76,7 @@ import type {
   TransactionInput,
   TransactionOutput,
   TransactionRefundOutput,
+  TransactionSuggestionsOutput,
   UpdateRecurringRuleQuery,
   UpdateTransactionInput,
 } from "@openmonetis/validators/transactions";
@@ -117,6 +118,7 @@ export type TransactionsServiceDependencies = Pick<
   | "listImportedExternalIdsForUser"
   | "listPaidInvoicePeriodsForUser"
   | "listRecentEstablishmentNamesForUser"
+  | "listTransactionSuggestionsForUser"
   | "listRecurringOccurrencesForUser"
   | "listRecurringRulesByIdsForUser"
   | "listRecurringRulesForPeriod"
@@ -202,6 +204,8 @@ function assertBoletoPaymentDateIsNotFuture(data: TransactionInput) {
 
 const recentEstablishmentsLookbackMonths = 2;
 const recentEstablishmentsLimit = 100;
+const transactionSuggestionsLookbackMonths = 12;
+const transactionSuggestionsLimit = 300;
 
 async function translateTransferBalanceError<T>(operation: () => Promise<T>) {
   try {
@@ -360,6 +364,36 @@ export function createTransactionsService(
   }
   function listRecentEstablishments(userId: string) {
     return recentEstablishmentsService.list(userId);
+  }
+
+  /** Descriptions used in the last year, each with the fields of its latest use. */
+  async function listTransactionSuggestions(userId: string): Promise<TransactionSuggestionsOutput> {
+    const dateEnd = new Date();
+    const rows = await dependencies.listTransactionSuggestionsForUser(
+      userId,
+      subtractUtcMonths(dateEnd, transactionSuggestionsLookbackMonths),
+      dateEnd,
+      transactionSuggestionsLimit,
+    );
+    return {
+      items: rows.map((row) => ({
+        name: row.name,
+        type: row.type as TransactionSuggestionsOutput["items"][number]["type"],
+        amount: Number(row.amount),
+        categoryId: row.categoryId,
+        paymentMethod:
+          row.paymentMethod as TransactionSuggestionsOutput["items"][number]["paymentMethod"],
+        accountId: row.accountId,
+        cardId: row.cardId,
+        personId: row.personId,
+        usageCount: Number(row.usageCount),
+        // Raw aggregates come back from the driver as text, not as Date.
+        lastUsedAt:
+          row.lastUsedAt instanceof Date
+            ? toDateString(row.lastUsedAt)
+            : String(row.lastUsedAt).slice(0, 10),
+      })),
+    };
   }
 
   function getPeriodStart(period: string) {
@@ -2907,6 +2941,7 @@ export function createTransactionsService(
     getRecurringRuleOccurrence,
     importTransactions,
     listRecentEstablishments,
+    listTransactionSuggestions,
     listTransactions,
     previewTransactionImport,
     renameTransactions,

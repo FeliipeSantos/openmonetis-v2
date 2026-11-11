@@ -5,9 +5,9 @@ import {
 import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 import {
   getInstallmentOptions,
-  getRecentEstablishments,
   getRecurrenceEndDate,
   getTransaction,
+  getTransactionSuggestions,
   getTransactions,
   type TransactionsApiSearch,
 } from "./transactions.api";
@@ -16,7 +16,7 @@ export const transactionKeys = {
   all: ["transactions"] as const,
   list: (search: TransactionsApiSearch) => [...transactionKeys.all, search] as const,
   detail: (id: string) => [...transactionKeys.all, "detail", id] as const,
-  recentEstablishments: () => [...transactionKeys.all, "recent-establishments"] as const,
+  suggestions: () => [...transactionKeys.all, "suggestions"] as const,
   installmentOptions: (amount: number | null) =>
     [...transactionKeys.all, "installment-options", amount] as const,
   recurrenceEndDate: (query: RecurrenceEndDateQuery) =>
@@ -56,10 +56,10 @@ export function transactionDetailQueryOptions(id: string) {
   });
 }
 
-export function recentEstablishmentsQueryOptions() {
+export function transactionSuggestionsQueryOptions() {
   return queryOptions({
-    queryKey: transactionKeys.recentEstablishments(),
-    queryFn: getRecentEstablishments,
+    queryKey: transactionKeys.suggestions(),
+    queryFn: getTransactionSuggestions,
     staleTime: 5 * 60 * 1000,
   });
 }

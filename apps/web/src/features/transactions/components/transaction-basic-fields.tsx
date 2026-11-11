@@ -1,12 +1,20 @@
+import type { AccountOutput } from "@openmonetis/validators/accounts";
+import type { CardOutput } from "@openmonetis/validators/cards";
 import type { CategoryOutput } from "@openmonetis/validators/categories";
+import type { TransactionSuggestion } from "@openmonetis/validators/transactions";
 import type { ReactNode } from "react";
 import { MobileDatePicker as DatePicker } from "@/components/forms/mobile-date-picker";
 import { MobileSelect as Select } from "@/components/forms/mobile-select";
 import { MobileSelectContent as SelectContent } from "@/components/forms/mobile-select-content";
 import { SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getCategoryLabel } from "@/features/categories/categories.presentation";
 import { CategoryPicker } from "@/features/categories/components/category-picker";
-import { cn } from "@/lib/utils";
-import { getTransactionDateLabel, transactionTypeLabels } from "../transactions.presentation";
+import { SubcategoryPicker } from "@/features/categories/components/subcategory-picker";
+import {
+  getTransactionDateLabel,
+  getTransactionSuggestionDetail,
+  transactionTypeLabels,
+} from "../transactions.presentation";
 import type { useTransactionForm } from "../useTransactionForm";
 import { EstablishmentInput } from "./establishment-input";
 import { FieldShell } from "./transaction-field-shell";
@@ -23,8 +31,11 @@ export function TransactionBasicFields({
   handleTypeChange,
   lockType,
   showTypeSelector,
-  establishmentsLoading,
-  establishments,
+  suggestionsLoading,
+  suggestions,
+  onSelectSuggestion,
+  accounts,
+  cards,
   values,
   isSubmitting,
   isTransfer,
@@ -38,8 +49,11 @@ export function TransactionBasicFields({
   handleTypeChange: ReturnType<typeof useTransactionForm>["handleTypeChange"];
   lockType: boolean;
   showTypeSelector: boolean;
-  establishmentsLoading: boolean;
-  establishments: string[];
+  suggestionsLoading: boolean;
+  suggestions: TransactionSuggestion[];
+  onSelectSuggestion: ReturnType<typeof useTransactionForm>["applySuggestion"];
+  accounts: AccountOutput[];
+  cards: CardOutput[];
   values: TransactionFormValues;
   isSubmitting: boolean;
   isTransfer: boolean;
@@ -47,6 +61,9 @@ export function TransactionBasicFields({
   visibleCategories: CategoryOutput[];
   amountField: ReactNode;
 }) {
+  const categoryLabels = new Map(
+    visibleCategories.map((category) => [category.id, getCategoryLabel(category)]),
+  );
   return (
     <section className="grid gap-4">
       {mobile ? amountField : null}
@@ -60,10 +77,19 @@ export function TransactionBasicFields({
             label="Descrição"
           >
             <EstablishmentInput
+              describe={(suggestion) =>
+                getTransactionSuggestionDetail(suggestion, {
+                  category: categoryLabels.get(suggestion.categoryId ?? ""),
+                  card: cards.find((card) => card.id === suggestion.cardId)?.name,
+                  account: accounts.find((account) => account.id === suggestion.accountId)?.name,
+                })
+              }
               disabled={isSubmitting}
-              establishments={isTransfer ? [] : establishments}
               invalid={field.state.meta.errors.length > 0}
-              loading={!isTransfer && establishmentsLoading}
+              loading={!isTransfer && suggestionsLoading}
+              onSelectSuggestion={onSelectSuggestion}
+              suggestions={isTransfer ? [] : suggestions}
+              type={values.type}
               maxLength={160}
               onBlur={field.handleBlur}
               onChange={field.handleChange}
@@ -94,68 +120,65 @@ export function TransactionBasicFields({
         {!mobile ? amountField : null}
       </div>
 
-      {(showTypeSelector && !isSeriesEdit) || !isTransfer ? (
-        <div
-          className={cn(
-            "grid gap-4",
-            showTypeSelector && !isTransfer && !isSeriesEdit && "sm:grid-cols-2",
+      {showTypeSelector && !isSeriesEdit ? (
+        <form.Field name="type">
+          {(field) => (
+            <FieldShell
+              error={getTransactionFormErrorMessage("type", field.state.meta.errors)}
+              label="Tipo de transação"
+            >
+              <Select
+                disabled={isSubmitting || lockType}
+                onValueChange={(value) => handleTypeChange(value as TransactionFormValues["type"])}
+                value={field.state.value}
+              >
+                <SelectTrigger className="w-full" aria-invalid={field.state.meta.errors.length > 0}>
+                  <SelectValue placeholder="Selecione">
+                    <TransactionTypeOption type={field.state.value} />
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.keys(transactionTypeLabels).map((value) => (
+                    <SelectItem key={value} value={value}>
+                      <TransactionTypeOption type={value as TransactionFormValues["type"]} />
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FieldShell>
           )}
-        >
-          {showTypeSelector && !isSeriesEdit ? (
-            <form.Field name="type">
-              {(field) => (
-                <FieldShell
-                  error={getTransactionFormErrorMessage("type", field.state.meta.errors)}
-                  label="Tipo de transação"
-                >
-                  <Select
-                    disabled={isSubmitting || lockType}
-                    onValueChange={(value) =>
-                      handleTypeChange(value as TransactionFormValues["type"])
-                    }
-                    value={field.state.value}
-                  >
-                    <SelectTrigger
-                      className="w-full"
-                      aria-invalid={field.state.meta.errors.length > 0}
-                    >
-                      <SelectValue placeholder="Selecione">
-                        <TransactionTypeOption type={field.state.value} />
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.keys(transactionTypeLabels).map((value) => (
-                        <SelectItem key={value} value={value}>
-                          <TransactionTypeOption type={value as TransactionFormValues["type"]} />
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FieldShell>
-              )}
-            </form.Field>
-          ) : null}
+        </form.Field>
+      ) : null}
 
-          {!isTransfer ? (
-            <form.Field name="categoryId">
-              {(field) => (
-                <FieldShell
-                  error={getTransactionFormErrorMessage("categoryId", field.state.meta.errors)}
-                  label="Categoria"
-                >
-                  <CategoryPicker
-                    categories={visibleCategories}
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    onCreate={() => setRelatedRecord("category")}
-                    disabled={isSubmitting}
-                    invalid={field.state.meta.errors.length > 0}
-                  />
-                </FieldShell>
-              )}
-            </form.Field>
-          ) : null}
-        </div>
+      {!isTransfer ? (
+        <form.Field name="categoryId">
+          {(field) => (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FieldShell
+                error={getTransactionFormErrorMessage("categoryId", field.state.meta.errors)}
+                label="Categoria"
+              >
+                <CategoryPicker
+                  categories={visibleCategories}
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  onCreate={() => setRelatedRecord("category")}
+                  disabled={isSubmitting}
+                  invalid={field.state.meta.errors.length > 0}
+                  rootsOnly
+                />
+              </FieldShell>
+              <FieldShell label="Subcategoria">
+                <SubcategoryPicker
+                  categories={visibleCategories}
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  disabled={isSubmitting}
+                />
+              </FieldShell>
+            </div>
+          )}
+        </form.Field>
       ) : null}
     </section>
   );

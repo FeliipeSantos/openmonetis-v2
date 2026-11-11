@@ -25,6 +25,7 @@ export function CategoryPicker({
   onCreate,
   disabled,
   invalid,
+  rootsOnly = false,
 }: {
   categories: CategoryOutput[];
   value: string;
@@ -32,10 +33,16 @@ export function CategoryPicker({
   onCreate: () => void;
   disabled?: boolean;
   invalid?: boolean;
+  /** Lists only main categories; a selected subcategory shows (and checks) its main category. */
+  rootsOnly?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const selected = categories.find((category) => category.id === value);
+  const current = categories.find((category) => category.id === value);
+  const selected =
+    rootsOnly && current?.parentId
+      ? categories.find((category) => category.id === current.parentId)
+      : current;
   const groups = getCategoryGroups(categories, search);
   const showEmptyOption =
     !search.trim() || "sem categoria".includes(search.trim().toLocaleLowerCase("pt-BR"));
@@ -108,13 +115,13 @@ export function CategoryPicker({
                 <CommandItem
                   className="min-h-11 font-medium md:min-h-9"
                   value={parent.id}
-                  data-checked={parent.id === value}
+                  data-checked={parent.id === (selected?.id ?? value)}
                   onSelect={() => choose(parent.id)}
                 >
                   <CategoryIcon aria-hidden="true" className="size-4" name={parent.icon} />
                   <span className="truncate">{parent.name}</span>
                 </CommandItem>
-                {children.length > 0 ? (
+                {!rootsOnly && children.length > 0 ? (
                   <div className="ml-4 border-l pl-2">
                     {children.map((child) => (
                       <CommandItem

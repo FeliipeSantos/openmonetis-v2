@@ -5,6 +5,8 @@ import {
   getCategoryGroups,
   getCategoryLabel,
   getSubcategoryCountLabel,
+  getSubcategoryOptions,
+  getSubcategoryPlaceholder,
   sortCategoryOptions,
 } from "./categories.presentation";
 
@@ -60,4 +62,25 @@ test("describes how many subcategories a category has", () => {
   assert.equal(getSubcategoryCountLabel(3), "3 subcategorias");
   assert.equal(getSubcategoryCountLabel(2, true), "2 subcategorias na busca");
   assert.equal(getSubcategoryCountLabel(0, true), "Sem subcategorias");
+});
+
+test("subcategory options follow the main category of the chosen id", () => {
+  const fromChild = getSubcategoryOptions(categories, "light");
+  assert.equal(fromChild.parent?.id, "home");
+  assert.equal(fromChild.selected?.id, "light");
+  assert.deepEqual(
+    fromChild.options.map((option) => option.id),
+    ["water", "light"],
+  );
+  const fromParent = getSubcategoryOptions(categories, "home", "lu");
+  assert.equal(fromParent.selected, undefined);
+  assert.deepEqual(
+    fromParent.options.map((option) => option.id),
+    ["light"],
+  );
+  assert.deepEqual(getSubcategoryOptions(categories, "travel").options, []);
+  assert.equal(getSubcategoryOptions(categories, "").parent, undefined);
+  assert.equal(getSubcategoryPlaceholder(undefined, false), "Escolha a categoria");
+  assert.equal(getSubcategoryPlaceholder(root, true), "Sem subcategoria");
+  assert.equal(getSubcategoryPlaceholder(root, false), "Sem subcategorias");
 });

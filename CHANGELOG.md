@@ -9,6 +9,16 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Adicionado
 
+- Sugestões de lançamentos anteriores na descrição: ao digitar, o formulário de receita ou despesa
+  lista as descrições usadas nos últimos 12 meses (sem diferenciar maiúsculas nem acentos, as mais
+  usadas primeiro), com categoria, conta ou cartão e valor do uso mais recente. Escolher uma, com
+  clique ou com as setas e Enter, preenche valor, categoria, pessoa, forma de pagamento e conta ou
+  cartão, mantendo a data de hoje; só são usados registros que ainda existem e estão ativos. Novo
+  endpoint `GET /transactions/suggestions`. Não vale para transferências nem para a edição.
+- Formulário de lançamento com os campos **Categoria** e **Subcategoria** lado a lado: a
+  subcategoria lista só as da categoria escolhida e o lançamento continua gravando uma única
+  categoria.
+
 - Comando `pnpm db:sync-categories -- --email=<email>` (ou `--all`) que acrescenta às contas
   existentes as categorias e subcategorias padrão que estiverem faltando. Ele só insere: nada
   existente é renomeado, movido ou removido, categorias com o mesmo nome no mesmo nível são

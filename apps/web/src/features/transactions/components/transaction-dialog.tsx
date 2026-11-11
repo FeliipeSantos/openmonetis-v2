@@ -21,7 +21,7 @@ import { Dialog, DialogDescription, DialogHeader, DialogTitle } from "@/componen
 import { getTransactionPreferenceDefaults } from "@/features/preferences/preferences.presentation";
 import { userPreferencesQueryOptions } from "@/features/preferences/preferences.queries";
 import { useIsMobile } from "@/hooks/useIsMobile";
-import { recentEstablishmentsQueryOptions } from "../transactions.queries";
+import { transactionSuggestionsQueryOptions } from "../transactions.queries";
 import { TransactionForm, type TransactionFormHandle } from "./transaction-form";
 import type { TransactionCreateDefaults } from "./transaction-form.validation";
 
@@ -72,9 +72,9 @@ export function TransactionDialog({
   const [attachmentBusy, setAttachmentBusy] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
   const formRef = useRef<TransactionFormHandle>(null);
-  const recentEstablishmentsQuery = useQuery({
-    ...recentEstablishmentsQueryOptions(),
-    enabled: open,
+  const suggestionsQuery = useQuery({
+    ...transactionSuggestionsQueryOptions(),
+    enabled: open && mode !== "edit",
   });
   const preferencesQuery = useQuery({
     ...userPreferencesQueryOptions(),
@@ -156,8 +156,8 @@ export function TransactionDialog({
             defaultType={defaultType}
             defaultPeriod={defaultPeriod}
             createDefaults={effectiveCreateDefaults}
-            establishments={recentEstablishmentsQuery.data?.items ?? []}
-            establishmentsLoading={recentEstablishmentsQuery.isLoading}
+            suggestions={suggestionsQuery.data?.items ?? []}
+            suggestionsLoading={suggestionsQuery.isLoading}
             key={`${mode}-${transaction?.id ?? defaultType}-${effectiveCreateDefaults.accountId ?? ""}-${effectiveCreateDefaults.cardId ?? ""}-${effectiveCreateDefaults.categoryId ?? ""}-${effectiveCreateDefaults.paymentMethod ?? ""}`}
             allowedConditions={allowedConditions}
             lockType={lockType}

@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import type { TransactionSuggestion } from "@openmonetis/validators/transactions";
 import {
   describeBulkTransactionAction,
+  findTransactionSuggestions,
   formatBulkTransactionResult,
   formatDate,
   formatInstallmentOption,
@@ -12,11 +14,59 @@ import {
   getTransactionDateLabel,
   getTransactionSettlementAction,
   getTransactionSettlementLabel,
+  getTransactionSuggestionDetail,
   groupTransactionRows,
   labelTransactionExportFileName,
   selectBulkTransactionIds,
   validateTransactionsSearch,
 } from "./transactions.presentation";
+
+const suggestion = (
+  name: string,
+  overrides: Partial<TransactionSuggestion> = {},
+): TransactionSuggestion => ({
+  name,
+  type: "expense",
+  amount: 10,
+  categoryId: null,
+  paymentMethod: "pix",
+  accountId: null,
+  cardId: null,
+  personId: "10000000-0000-4000-8000-000000000001",
+  usageCount: 1,
+  lastUsedAt: "2026-11-01",
+  ...overrides,
+});
+
+test("suggestions match typed text ignoring case and accents, prefixes and frequent ones first", () => {
+  const suggestions = [
+    suggestion("Padaria São José", { usageCount: 2 }),
+    suggestion("Pão de Açúcar", { usageCount: 1 }),
+    suggestion("Supermercado Pão", { usageCount: 9 }),
+    suggestion("Pão de Queijo", { type: "income", usageCount: 30 }),
+  ];
+  assert.deepEqual(
+    findTransactionSuggestions(suggestions, "pao", "expense").map((item) => item.name),
+    ["Pão de Açúcar", "Supermercado Pão"],
+  );
+  assert.deepEqual(
+    findTransactionSuggestions(suggestions, "", "expense").map((item) => item.name),
+    ["Supermercado Pão", "Padaria São José", "Pão de Açúcar"],
+  );
+  assert.deepEqual(findTransactionSuggestions(suggestions, "", "transfer"), []);
+  assert.equal(findTransactionSuggestions(suggestions, "", "expense", 1).length, 1);
+});
+
+test("a suggestion describes the category, how it was paid and the amount", () => {
+  assert.equal(
+    getTransactionSuggestionDetail(suggestion("Mercado", { amount: 50 }), {
+      category: "Alimentação › Supermercado",
+      card: "Nubank",
+    }),
+    "Alimentação › Supermercado · Nubank · R$ 50,00",
+  );
+  assert.equal(getTransactionSuggestionDetail(suggestion("Ajuste", { amount: 0 }), {}), "Pix");
+});
 
 test("balance adjustments identify their internal balance correction", () => {
   assert.equal(formatPaymentMethod(null, "accountBalanceAdjustment"), "Ajuste de saldo");

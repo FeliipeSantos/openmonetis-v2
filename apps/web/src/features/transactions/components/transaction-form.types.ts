@@ -2,7 +2,11 @@ import type { AccountOutput } from "@openmonetis/validators/accounts";
 import type { CardOutput } from "@openmonetis/validators/cards";
 import type { CategoryOutput } from "@openmonetis/validators/categories";
 import type { PersonOutput } from "@openmonetis/validators/people";
-import type { TransactionInput, TransactionOutput } from "@openmonetis/validators/transactions";
+import type {
+  TransactionInput,
+  TransactionOutput,
+  TransactionSuggestion,
+} from "@openmonetis/validators/transactions";
 
 import type { ReactNode, Ref } from "react";
 
@@ -26,8 +30,8 @@ export type TransactionFormProps = {
   showTypeSelector?: boolean;
   submitLabel?: string;
   attachmentBusy?: boolean;
-  establishments?: string[];
-  establishmentsLoading?: boolean;
+  suggestions?: TransactionSuggestion[];
+  suggestionsLoading?: boolean;
   onAttachmentBusyChange?: (busy: boolean) => void;
   onCreate?: (input: TransactionInput) => Promise<TransactionOutput>;
   onCreated?: (transaction: TransactionOutput) => Promise<void> | void;

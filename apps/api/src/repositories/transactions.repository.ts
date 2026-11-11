@@ -52,6 +52,7 @@ import {
   notLike,
   or,
   type SQL,
+  type SQLWrapper,
   sql,
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
@@ -1457,6 +1458,51 @@ export async function listRecentEstablishmentNamesForUser(
     )
     .groupBy(normalizedName)
     .orderBy(desc(latestPurchaseDate), asc(normalizedName))
+    .limit(limit);
+}
+
+/**
+ * One row per description (case-insensitive) and type, carrying the fields of its most recent
+ * regular income or expense in the window and how many times the description was used.
+ */
+export async function listTransactionSuggestionsForUser(
+  userId: string,
+  dateStart: Date,
+  dateEnd: Date,
+  limit: number,
+) {
+  const normalizedName = sql<string>`lower(trim(${transactions.name}))`;
+  const latest = <T>(column: SQLWrapper) =>
+    sql<T>`(array_agg(${column} order by ${transactions.purchaseDate} desc, ${transactions.createdAt} desc))[1]`;
+  const lastUsedAt = sql<Date>`max(${transactions.purchaseDate})`;
+  const usageCount = sql<number>`count(*)::int`;
+
+  return db
+    .select({
+      name: latest<string>(sql`trim(${transactions.name})`),
+      type: transactions.type,
+      amount: latest<string>(sql`abs(${transactions.amount})`),
+      categoryId: latest<string | null>(transactions.categoryId),
+      paymentMethod: latest<string | null>(transactions.paymentMethod),
+      accountId: latest<string | null>(transactions.accountId),
+      cardId: latest<string | null>(transactions.cardId),
+      personId: latest<string>(transactions.personId),
+      usageCount,
+      lastUsedAt,
+    })
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.userId, userId),
+        inArray(transactions.type, ["income", "expense"]),
+        eq(transactions.origin, "regular"),
+        gte(transactions.purchaseDate, dateStart),
+        lte(transactions.purchaseDate, dateEnd),
+        sql`trim(${transactions.name}) <> ''`,
+      ),
+    )
+    .groupBy(transactions.type, normalizedName)
+    .orderBy(desc(usageCount), desc(lastUsedAt), asc(normalizedName))
     .limit(limit);
 }
 

@@ -4,6 +4,7 @@ import type {
   InstallmentOptionOutput,
   TransactionInput,
   TransactionOutput,
+  TransactionSuggestion,
 } from "@openmonetis/validators/transactions";
 import {
   Banknote,
@@ -606,4 +607,54 @@ export function describeBulkTransactionAction(
         ? `${copy.label} · ${availability.count} de ${availability.total}`
         : copy.label,
   };
+}
+
+const transactionSuggestionLimit = 8;
+
+function normalizeSuggestionText(value: string) {
+  return value.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLocaleLowerCase("pt-BR");
+}
+
+/**
+ * Past descriptions of the same type that contain what was typed (ignoring case and accents),
+ * those starting with it first, then the most used and most recent. Without text, the most used.
+ */
+export function findTransactionSuggestions(
+  suggestions: readonly TransactionSuggestion[],
+  query: string,
+  type: TransactionInput["type"],
+  limit = transactionSuggestionLimit,
+) {
+  const text = normalizeSuggestionText(query);
+  return suggestions
+    .filter((suggestion) => suggestion.type === type)
+    .map((suggestion) => ({ suggestion, name: normalizeSuggestionText(suggestion.name) }))
+    .filter(({ name }) => !text || name.includes(text))
+    .sort(
+      (left, right) =>
+        Number(right.name.startsWith(text)) - Number(left.name.startsWith(text)) ||
+        right.suggestion.usageCount - left.suggestion.usageCount ||
+        right.suggestion.lastUsedAt.localeCompare(left.suggestion.lastUsedAt) ||
+        left.name.localeCompare(right.name, "pt-BR"),
+    )
+    .slice(0, limit)
+    .map(({ suggestion }) => suggestion);
+}
+
+/** "Alimentação › Supermercado · Nubank · R$ 50,00": what choosing the suggestion fills in. */
+export function getTransactionSuggestionDetail(
+  suggestion: TransactionSuggestion,
+  names: {
+    category?: string | null;
+    card?: string | null;
+    account?: string | null;
+  },
+) {
+  const payment =
+    names.card ??
+    names.account ??
+    (suggestion.paymentMethod ? paymentMethodLabels[suggestion.paymentMethod] : null);
+  return [names.category, payment, suggestion.amount > 0 ? formatCurrency(suggestion.amount) : null]
+    .filter(Boolean)
+    .join(" · ");
 }

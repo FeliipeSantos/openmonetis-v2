@@ -1,4 +1,4 @@
-import type { TransactionInput } from "@openmonetis/validators/transactions";
+import type { TransactionInput, TransactionSuggestion } from "@openmonetis/validators/transactions";
 import { useForm } from "@tanstack/react-form";
 import { useImperativeHandle, useMemo, useState } from "react";
 import { useIsMobile } from "@/hooks/useIsMobile";
@@ -16,6 +16,7 @@ import { useTransactionFormSubmission } from "./useTransactionFormSubmission";
 export function useTransactionForm({
   accounts,
   cards,
+  categories,
   people,
   transaction,
   mode = transaction ? "edit" : "create",
@@ -158,6 +159,33 @@ export function useTransactionForm({
     form.setFieldValue("invoicePeriod", "");
   }
 
+  /**
+   * Fills the form from a past transaction with the same description. Only records that still
+   * exist and are active are used; date, repetition and splits keep their current values.
+   */
+  function applySuggestion(suggestion: TransactionSuggestion) {
+    form.setFieldValue("name", suggestion.name);
+    if (suggestion.amount > 0) form.setFieldValue("amount", String(suggestion.amount));
+    const category = categories.find(
+      (item) => item.id === suggestion.categoryId && item.type === form.getFieldValue("type"),
+    );
+    if (category) form.setFieldValue("categoryId", category.id);
+    if (activePeople.some((person) => person.id === suggestion.personId)) {
+      handlePersonChange(suggestion.personId);
+    }
+    const card = activeCards.find((item) => item.id === suggestion.cardId);
+    const account = activeAccounts.find((item) => item.id === suggestion.accountId);
+    if (suggestion.paymentMethod === "credit_card") {
+      if (!card) return;
+      handlePaymentMethodChange("credit_card");
+      handleCardChange(card.id);
+      return;
+    }
+    if (!suggestion.paymentMethod) return;
+    handlePaymentMethodChange(suggestion.paymentMethod);
+    if (account) form.setFieldValue("accountId", account.id);
+  }
+
   return {
     mobile,
     updateTransaction,
@@ -183,5 +211,6 @@ export function useTransactionForm({
     handlePersonChange,
     handlePaymentMethodChange,
     handleCardChange,
+    applySuggestion,
   };
 }

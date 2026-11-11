@@ -804,12 +804,33 @@ export const RecentEstablishmentsOutputSchema = z
   })
   .openapi("RecentEstablishments");
 
+export const TransactionSuggestionSchema = z
+  .object({
+    name: z.string().trim().min(1).max(160),
+    type: z.enum(["income", "expense"]),
+    amount: z.number().nonnegative(),
+    categoryId: z.string().uuid().nullable(),
+    paymentMethod: z.enum(paymentMethods).nullable(),
+    accountId: z.string().uuid().nullable(),
+    cardId: z.string().uuid().nullable(),
+    personId: z.string().uuid(),
+    usageCount: z.number().int().positive(),
+    lastUsedAt: dateSchema,
+  })
+  .openapi("TransactionSuggestion");
+
+export const TransactionSuggestionsOutputSchema = z
+  .object({ items: z.array(TransactionSuggestionSchema).max(300) })
+  .openapi("TransactionSuggestions");
+
 export type TransactionInput = z.infer<typeof TransactionInputSchema>;
 export type UpdateTransactionInput = z.infer<typeof UpdateTransactionInputSchema>;
 export type ListTransactionsQuery = z.infer<typeof ListTransactionsQuerySchema>;
 export type TransactionOutput = z.infer<typeof TransactionOutputSchema>;
 export type PaginatedTransactionsOutput = z.infer<typeof PaginatedTransactionsOutputSchema>;
 export type RecentEstablishmentsOutput = z.infer<typeof RecentEstablishmentsOutputSchema>;
+export type TransactionSuggestion = z.infer<typeof TransactionSuggestionSchema>;
+export type TransactionSuggestionsOutput = z.infer<typeof TransactionSuggestionsOutputSchema>;
 export type PreviewTransactionImportInput = z.infer<typeof PreviewTransactionImportInputSchema>;
 export type TransactionImportPreview = z.infer<typeof TransactionImportPreviewOutputSchema>;
 export type ImportTransactionsInput = z.infer<typeof ImportTransactionsInputSchema>;

@@ -9,7 +9,6 @@ import type {
   ImportTransactionsInput,
   InstallmentOptionsOutput,
   PaginatedTransactionsOutput,
-  RecentEstablishmentsOutput,
   RecurrenceEndDateOutput,
   RecurrenceEndDateQuery,
   RecurringOccurrenceActionInput,
@@ -20,6 +19,7 @@ import type {
   TransactionInput,
   TransactionOutput,
   TransactionRefundOutput,
+  TransactionSuggestionsOutput,
   UpdateTransactionInput,
 } from "@openmonetis/validators/transactions";
 import { ApiClientError, requestApi } from "@/lib/api-client";
@@ -121,8 +121,8 @@ export function getTransaction(id: string) {
   return request<TransactionOutput>(`/transactions/${id}`);
 }
 
-export function getRecentEstablishments() {
-  return request<RecentEstablishmentsOutput>("/transactions/establishments/recent");
+export function getTransactionSuggestions() {
+  return request<TransactionSuggestionsOutput>("/transactions/suggestions");
 }
 
 export function createTransaction(data: TransactionInput) {

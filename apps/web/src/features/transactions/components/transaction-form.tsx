@@ -33,8 +33,8 @@ export function TransactionForm({
   showTypeSelector = false,
   submitLabel,
   attachmentBusy = false,
-  establishments = [],
-  establishmentsLoading = false,
+  suggestions = [],
+  suggestionsLoading = false,
   onAttachmentBusyChange,
   onCreate,
   onCreated,
@@ -67,6 +67,7 @@ export function TransactionForm({
     handlePersonChange,
     handlePaymentMethodChange,
     handleCardChange,
+    applySuggestion,
   } = useTransactionForm({
     accounts,
     cards,
@@ -82,8 +83,8 @@ export function TransactionForm({
     showTypeSelector,
     submitLabel,
     attachmentBusy,
-    establishments,
-    establishmentsLoading,
+    suggestions,
+    suggestionsLoading,
     onAttachmentBusyChange,
     onCreate,
     onCreated,
@@ -157,8 +158,11 @@ export function TransactionForm({
                     handleTypeChange={handleTypeChange}
                     lockType={lockType}
                     showTypeSelector={showTypeSelector}
-                    establishmentsLoading={establishmentsLoading}
-                    establishments={establishments}
+                    suggestionsLoading={suggestionsLoading}
+                    suggestions={suggestions}
+                    onSelectSuggestion={applySuggestion}
+                    accounts={activeAccounts}
+                    cards={activeCards}
                     values={values}
                     isSubmitting={isSubmitting}
                     isTransfer={isTransfer}

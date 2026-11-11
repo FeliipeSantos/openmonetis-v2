@@ -64,6 +64,41 @@ export const categoryGroupLabels: Record<CategoryOutput["type"], string> = {
   expense: "despesas",
 };
 
+/**
+ * For a category id, the main category it belongs to, the chosen subcategory (if any) and the
+ * subcategories of that main category matching `search`, sorted by name.
+ */
+export function getSubcategoryOptions(
+  categories: readonly CategoryOutput[],
+  value: string,
+  search = "",
+) {
+  const current = categories.find((category) => category.id === value);
+  const parent = current?.parentId
+    ? categories.find((category) => category.id === current.parentId)
+    : current;
+  const selected = current?.parentId ? current : undefined;
+  const query = search.trim().toLocaleLowerCase("pt-BR");
+  const options = parent
+    ? categories
+        .filter(
+          (category) =>
+            category.parentId === parent.id &&
+            category.name.toLocaleLowerCase("pt-BR").includes(query),
+        )
+        .sort(compareCategories)
+    : [];
+  return { parent, selected, options };
+}
+
+export function getSubcategoryPlaceholder(
+  parent: CategoryOutput | undefined,
+  hasSubcategories: boolean,
+) {
+  if (!parent) return "Escolha a categoria";
+  return hasSubcategories ? "Sem subcategoria" : "Sem subcategorias";
+}
+
 export function getSubcategoryCountLabel(count: number, searching = false) {
   const label =
     count === 0

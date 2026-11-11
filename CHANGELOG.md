@@ -9,6 +9,11 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Adicionado
 
+- Criar subcategoria no lançamento: o campo **Subcategoria** ganha **+ Criar subcategoria**, que
+  abre o formulário já com a categoria principal escolhida e seleciona a nova subcategoria ao
+  salvar. Também funciona em uma categoria que ainda não tem subcategorias; categorias do sistema
+  não oferecem a opção.
+
 - Ignorar nos orçamentos: despesas ganham a opção **Ignorar nos orçamentos** (em "Orçamento,
   etiquetas, anotações e anexos"). O lançamento, ou todas as ocorrências de uma recorrência, deixa
   de contar no orçamento da categoria e continua igual no saldo, nos relatórios e na lista, onde

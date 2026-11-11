@@ -1,6 +1,9 @@
 import { invoicePaymentCategoryName } from "@openmonetis/domain/categories";
 import { MobileFormState } from "@/components/forms/mobile-form-state";
-import { sortCategoryOptions } from "@/features/categories/categories.presentation";
+import {
+  getMainCategoryId,
+  sortCategoryOptions,
+} from "@/features/categories/categories.presentation";
 import { useTransactionForm } from "../useTransactionForm";
 import { TransactionAdvancedFields } from "./transaction-advanced-fields";
 import { TransactionAmountField } from "./transaction-amount-field";
@@ -277,11 +280,14 @@ export function TransactionForm({
           onSaved={onSaved}
         />{" "}
       </form>
-      <form.Subscribe selector={(state) => state.values.type}>
-        {(type) => (
+      <form.Subscribe
+        selector={(state) => ({ type: state.values.type, categoryId: state.values.categoryId })}
+      >
+        {({ type, categoryId }) => (
           <TransactionRelatedRecordDialog
             kind={relatedRecord}
             categoryType={type === "income" ? "income" : "expense"}
+            categoryParentId={getMainCategoryId(categories, categoryId)}
             accounts={accounts}
             onClose={() => setRelatedRecord(null)}
             onCreated={(kind, id) => {

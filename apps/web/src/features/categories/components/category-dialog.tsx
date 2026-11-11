@@ -10,6 +10,7 @@ import { CategoryForm } from "./category-form";
 export function CategoryDialog({
   category,
   defaultType,
+  defaultParentId,
   lockType,
   onOpenChange,
   onSubmit,
@@ -17,6 +18,7 @@ export function CategoryDialog({
 }: {
   category: CategoryOutput | null;
   defaultType?: CreateCategoryInput["type"];
+  defaultParentId?: string;
   lockType?: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (input: CreateCategoryInput | ReplaceCategoryInput) => Promise<void>;
@@ -26,17 +28,28 @@ export function CategoryDialog({
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent guarded>
         <DialogHeader>
-          <DialogTitle>{category ? "Atualizar categoria" : "Nova categoria"}</DialogTitle>
+          <DialogTitle>
+            {category
+              ? "Atualizar categoria"
+              : defaultParentId
+                ? "Nova subcategoria"
+                : "Nova categoria"}
+          </DialogTitle>
           <DialogDescription>
             {category
               ? "Atualize os detalhes da categoria."
-              : "Crie uma categoria para organizar seus lançamentos."}
+              : defaultParentId
+                ? "Crie uma subcategoria dentro da categoria escolhida."
+                : "Crie uma categoria para organizar seus lançamentos."}
           </DialogDescription>
         </DialogHeader>
         <CategoryForm
-          key={category?.id ?? `new-category-${defaultType ?? "default"}`}
+          key={
+            category?.id ?? `new-category-${defaultType ?? "default"}-${defaultParentId ?? "root"}`
+          }
           category={category}
           defaultType={defaultType}
+          defaultParentId={defaultParentId}
           lockType={lockType}
           onCancel={() => onOpenChange(false)}
           onSubmit={onSubmit}

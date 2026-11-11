@@ -6,6 +6,7 @@ import {
   getCategoryGroups,
   getCategoryLabel,
   getCategorySelectionError,
+  getMainCategoryId,
   getSubcategoryCountLabel,
   getSubcategoryOptions,
   getSubcategoryPlaceholder,
@@ -120,4 +121,10 @@ test("moving a category reorders only its own level", () => {
       ["gas", 0],
     ],
   );
+});
+
+test("the main category of a subcategory is its parent", () => {
+  assert.equal(getMainCategoryId(categories, "light"), "home");
+  assert.equal(getMainCategoryId(categories, "home"), "home");
+  assert.equal(getMainCategoryId(categories, ""), undefined);
 });

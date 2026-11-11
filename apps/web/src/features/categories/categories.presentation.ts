@@ -133,6 +133,15 @@ export function getSubcategoryOptions(
   return { parent, selected, options };
 }
 
+/** The main category of a category id: itself when it is a main category. */
+export function getMainCategoryId(
+  categories: readonly Pick<CategoryOutput, "id" | "parentId">[],
+  categoryId: string,
+) {
+  const category = categories.find((item) => item.id === categoryId);
+  return category ? (category.parentId ?? category.id) : undefined;
+}
+
 export const missingCategoryMessage = "Selecione a categoria e a subcategoria.";
 export const missingSubcategoryMessage = "Selecione uma subcategoria.";
 

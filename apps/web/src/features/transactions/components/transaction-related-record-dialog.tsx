@@ -11,18 +11,26 @@ import { CategoryDialog } from "@/features/categories/components/category-dialog
 import { PersonDialog } from "@/features/people/components/person-dialog";
 import { useCreatePersonMutation } from "@/features/people/people.mutations";
 
-export type TransactionRelatedRecordKind = "account" | "card" | "category" | "person";
+export type TransactionRelatedRecordKind =
+  | "account"
+  | "card"
+  | "category"
+  | "subcategory"
+  | "person";
 
 export function TransactionRelatedRecordDialog({
   kind,
   accounts,
   categoryType,
+  categoryParentId,
   onClose,
   onCreated,
 }: {
   kind: TransactionRelatedRecordKind | null;
   accounts: AccountOutput[];
   categoryType?: CreateCategoryInput["type"];
+  /** Main category a new subcategory is created under. */
+  categoryParentId?: string;
   onClose: () => void;
   onCreated: (kind: TransactionRelatedRecordKind, id: string) => void;
 }) {
@@ -58,10 +66,11 @@ export function TransactionRelatedRecordDialog({
         }}
       />
     );
-  if (kind === "category")
+  if (kind === "category" || kind === "subcategory")
     return (
       <CategoryDialog
         category={null}
+        defaultParentId={kind === "subcategory" ? categoryParentId : undefined}
         defaultType={categoryType}
         lockType
         open

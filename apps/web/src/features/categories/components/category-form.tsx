@@ -26,12 +26,15 @@ import { CategoryIconPicker } from "./category-icon-picker";
 export function CategoryForm({
   category,
   defaultType = "expense",
+  defaultParentId,
   lockType = false,
   onCancel,
   onSubmit,
 }: {
   category?: CategoryOutput | null;
   defaultType?: CreateCategoryInput["type"];
+  /** Starts a new category as a subcategory of this main category. */
+  defaultParentId?: string;
   lockType?: boolean;
   onCancel: () => void;
   onSubmit: (input: CreateCategoryInput | ReplaceCategoryInput) => Promise<void>;
@@ -42,12 +45,13 @@ export function CategoryForm({
   const categoriesQuery = useQuery(categoriesQueryOptions());
   const categories = categoriesQuery.data ?? [];
   const hasChildren = categories.some((item) => item.parentId === category?.id);
+  const defaultParent = categories.find((item) => item.id === defaultParentId);
   const form = useForm({
     defaultValues: {
       name: category?.name ?? "",
       type: category?.type ?? defaultType,
-      icon: category?.icon ?? "tag",
-      parentId: category?.parentId ?? "",
+      icon: category?.icon ?? defaultParent?.icon ?? "tag",
+      parentId: category?.parentId ?? defaultParentId ?? "",
     },
     onSubmitInvalid: showInvalidFormToast,
     onSubmit: async ({ value }) => {

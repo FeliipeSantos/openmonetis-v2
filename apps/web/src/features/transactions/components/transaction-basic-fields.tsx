@@ -198,6 +198,7 @@ export function TransactionBasicFields({
                     categories={visibleCategories}
                     value={field.state.value}
                     onChange={field.handleChange}
+                    onCreate={() => setRelatedRecord("subcategory")}
                     disabled={isSubmitting}
                     invalid={Boolean(subcategoryError)}
                   />

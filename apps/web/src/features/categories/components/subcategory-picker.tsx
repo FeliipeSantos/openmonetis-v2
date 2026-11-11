@@ -1,5 +1,5 @@
 import type { CategoryOutput } from "@openmonetis/validators/categories";
-import { ChevronDown, CircleDashed } from "lucide-react";
+import { ChevronDown, CircleDashed, Plus } from "lucide-react";
 import { useState } from "react";
 import {
   MobilePicker,
@@ -28,6 +28,7 @@ export function SubcategoryPicker({
   disabled,
   invalid,
   noneLabel = "Sem subcategoria",
+  onCreate,
 }: {
   categories: CategoryOutput[];
   value: string;
@@ -36,12 +37,16 @@ export function SubcategoryPicker({
   invalid?: boolean;
   /** Label of the option that keeps only the main category. */
   noneLabel?: string;
+  /** Offers "Criar subcategoria" under the chosen main category (never under a system one). */
+  onCreate?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const { parent, selected, options } = getSubcategoryOptions(categories, value, search);
   const hasSubcategories = getSubcategoryOptions(categories, value).options.length > 0;
-  const unavailable = !parent || !hasSubcategories;
+  const canCreate = Boolean(onCreate && parent && !parent.isSystem);
+  // A main category without subcategories can still be opened to create the first one.
+  const unavailable = !parent || (!hasSubcategories && !canCreate);
   const placeholder =
     parent && hasSubcategories ? noneLabel : getSubcategoryPlaceholder(parent, hasSubcategories);
   function choose(id: string) {
@@ -127,6 +132,22 @@ export function SubcategoryPicker({
             ))}
           </CommandList>
         </Command>
+        {canCreate ? (
+          <div className="border-t p-1">
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full justify-start text-muted-foreground"
+              onClick={() => {
+                setOpen(false);
+                onCreate?.();
+              }}
+            >
+              <Plus aria-hidden="true" className="size-4" />
+              Criar subcategoria
+            </Button>
+          </div>
+        ) : null}
       </MobilePickerContent>
     </MobilePicker>
   );

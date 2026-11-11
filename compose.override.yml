@@ -1,0 +1,36 @@
+# Versão modificada (fork FeliipeSantos/openmonetis-v2, branch custom).
+#
+# O Docker Compose carrega este arquivo junto com o compose.yml: em vez de baixar as
+# imagens publicadas pelo projeto original, constrói as imagens a partir deste código.
+#
+#   docker compose build
+#   docker compose up -d
+#
+# recurring-worker usa a mesma imagem da api; o serviço opcional "ai" não é construído
+# aqui (continua com a imagem original, e só sobe com o profile "ai").
+
+services:
+  migrator:
+    image: openmonetis-custom-migrator:local
+    build:
+      context: .
+      target: migrator
+    pull_policy: build
+
+  api:
+    image: openmonetis-custom-api:local
+    build:
+      context: .
+      target: api
+    pull_policy: build
+
+  recurring-worker:
+    image: openmonetis-custom-api:local
+    pull_policy: never
+
+  web:
+    image: openmonetis-custom-web:local
+    build:
+      context: .
+      target: web
+    pull_policy: build

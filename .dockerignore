@@ -13,3 +13,5 @@
 **/*.tsbuildinfo
 coverage
 *.log
+# dumps do banco gerados na VPS (openmonetis-backup.sh): nunca entram no build
+backups

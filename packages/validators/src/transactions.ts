@@ -807,13 +807,15 @@ export const RecentEstablishmentsOutputSchema = z
 export const TransactionSuggestionSchema = z
   .object({
     name: z.string().trim().min(1).max(160),
-    type: z.enum(["income", "expense"]),
+    type: z.enum(["income", "expense", "transfer"]),
     amount: z.number().nonnegative(),
     categoryId: z.string().uuid().nullable(),
     paymentMethod: z.enum(paymentMethods).nullable(),
     accountId: z.string().uuid().nullable(),
     cardId: z.string().uuid().nullable(),
     personId: z.string().uuid(),
+    sourceAccountId: z.string().uuid().nullable(),
+    destinationAccountId: z.string().uuid().nullable(),
     usageCount: z.number().int().positive(),
     lastUsedAt: dateSchema,
   })

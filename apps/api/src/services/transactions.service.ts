@@ -366,13 +366,15 @@ export function createTransactionsService(
     return recentEstablishmentsService.list(userId);
   }
 
-  /** Descriptions used in the last year, each with the fields of its latest use. */
+  /**
+   * Descriptions used since a year ago (future dates and recurrences included), each with the
+   * fields of its latest use.
+   */
   async function listTransactionSuggestions(userId: string): Promise<TransactionSuggestionsOutput> {
     const dateEnd = new Date();
     const rows = await dependencies.listTransactionSuggestionsForUser(
       userId,
       subtractUtcMonths(dateEnd, transactionSuggestionsLookbackMonths),
-      dateEnd,
       transactionSuggestionsLimit,
     );
     return {
@@ -386,6 +388,8 @@ export function createTransactionsService(
         accountId: row.accountId,
         cardId: row.cardId,
         personId: row.personId,
+        sourceAccountId: row.sourceAccountId,
+        destinationAccountId: row.destinationAccountId,
         usageCount: Number(row.usageCount),
         // Raw aggregates come back from the driver as text, not as Date.
         lastUsedAt:

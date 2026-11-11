@@ -88,13 +88,19 @@ export function TransactionBasicFields({
                   category: categoryLabels.get(suggestion.categoryId ?? ""),
                   card: cards.find((card) => card.id === suggestion.cardId)?.name,
                   account: accounts.find((account) => account.id === suggestion.accountId)?.name,
+                  sourceAccount: accounts.find(
+                    (account) => account.id === suggestion.sourceAccountId,
+                  )?.name,
+                  destinationAccount: accounts.find(
+                    (account) => account.id === suggestion.destinationAccountId,
+                  )?.name,
                 })
               }
               disabled={isSubmitting}
               invalid={field.state.meta.errors.length > 0}
-              loading={!isTransfer && suggestionsLoading}
+              loading={suggestionsLoading}
               onSelectSuggestion={onSelectSuggestion}
-              suggestions={isTransfer ? [] : suggestions}
+              suggestions={suggestions}
               type={values.type}
               maxLength={160}
               onBlur={field.handleBlur}

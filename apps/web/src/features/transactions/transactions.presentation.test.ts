@@ -33,6 +33,8 @@ const suggestion = (
   accountId: null,
   cardId: null,
   personId: "10000000-0000-4000-8000-000000000001",
+  sourceAccountId: null,
+  destinationAccountId: null,
   usageCount: 1,
   lastUsedAt: "2026-11-01",
   ...overrides,
@@ -66,6 +68,21 @@ test("a suggestion describes the category, how it was paid and the amount", () =
     "Alimentação › Supermercado · Nubank · R$ 50,00",
   );
   assert.equal(getTransactionSuggestionDetail(suggestion("Ajuste", { amount: 0 }), {}), "Pix");
+  assert.equal(
+    getTransactionSuggestionDetail(suggestion("Reserva", { type: "transfer", amount: 100 }), {
+      sourceAccount: "Nubank",
+      destinationAccount: "Reserva",
+    }),
+    "Nubank → Reserva · R$ 100,00",
+  );
+  assert.deepEqual(
+    findTransactionSuggestions(
+      [suggestion("Reserva", { type: "transfer" })],
+      "res",
+      "transfer",
+    ).map((item) => item.name),
+    ["Reserva"],
+  );
 });
 
 test("balance adjustments identify their internal balance correction", () => {

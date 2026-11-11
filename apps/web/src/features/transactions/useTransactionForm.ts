@@ -166,6 +166,18 @@ export function useTransactionForm({
   function applySuggestion(suggestion: TransactionSuggestion) {
     form.setFieldValue("name", suggestion.name);
     if (suggestion.amount > 0) form.setFieldValue("amount", String(suggestion.amount));
+    if (suggestion.type === "transfer") {
+      // Transfers only carry the two accounts; both must still be active and different.
+      const source = activeAccounts.find((item) => item.id === suggestion.sourceAccountId);
+      const destination = activeAccounts.find(
+        (item) => item.id === suggestion.destinationAccountId,
+      );
+      if (source) form.setFieldValue("sourceAccountId", source.id);
+      if (destination && destination.id !== source?.id) {
+        form.setFieldValue("destinationAccountId", destination.id);
+      }
+      return;
+    }
     const category = categories.find(
       (item) => item.id === suggestion.categoryId && item.type === form.getFieldValue("type"),
     );

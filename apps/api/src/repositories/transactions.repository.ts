@@ -52,7 +52,6 @@ import {
   notLike,
   or,
   type SQL,
-  type SQLWrapper,
   sql,
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
@@ -1461,49 +1460,94 @@ export async function listRecentEstablishmentNamesForUser(
     .limit(limit);
 }
 
+type TransactionSuggestionRow = {
+  name: string;
+  type: "income" | "expense" | "transfer";
+  amount: string;
+  category_id: string | null;
+  payment_method: string | null;
+  account_id: string | null;
+  card_id: string | null;
+  person_id: string;
+  source_account_id: string | null;
+  destination_account_id: string | null;
+  usage_count: number;
+  last_used_at: string | Date;
+};
+
 /**
- * One row per description (case-insensitive) and type, carrying the fields of its most recent
- * regular income or expense in the window and how many times the description was used.
+ * One row per description (case-insensitive) and type, with the fields of its latest use and how
+ * many times it was used. Uses are regular incomes, expenses and transfers dated from `dateStart`
+ * on (future ones included; both sides of a transfer count once) and recurring rules that are not
+ * cancelled, so a description that only lives in a recurrence is suggested too.
  */
 export async function listTransactionSuggestionsForUser(
   userId: string,
   dateStart: Date,
-  dateEnd: Date,
   limit: number,
 ) {
-  const normalizedName = sql<string>`lower(trim(${transactions.name}))`;
-  const latest = <T>(column: SQLWrapper) =>
-    sql<T>`(array_agg(${column} order by ${transactions.purchaseDate} desc, ${transactions.createdAt} desc))[1]`;
-  const lastUsedAt = sql<Date>`max(${transactions.purchaseDate})`;
-  const usageCount = sql<number>`count(*)::int`;
-
-  return db
-    .select({
-      name: latest<string>(sql`trim(${transactions.name})`),
-      type: transactions.type,
-      amount: latest<string>(sql`abs(${transactions.amount})`),
-      categoryId: latest<string | null>(transactions.categoryId),
-      paymentMethod: latest<string | null>(transactions.paymentMethod),
-      accountId: latest<string | null>(transactions.accountId),
-      cardId: latest<string | null>(transactions.cardId),
-      personId: latest<string>(transactions.personId),
-      usageCount,
-      lastUsedAt,
-    })
-    .from(transactions)
-    .where(
-      and(
-        eq(transactions.userId, userId),
-        inArray(transactions.type, ["income", "expense"]),
-        eq(transactions.origin, "regular"),
-        gte(transactions.purchaseDate, dateStart),
-        lte(transactions.purchaseDate, dateEnd),
-        sql`trim(${transactions.name}) <> ''`,
-      ),
+  const start = dateStart.toISOString().slice(0, 10);
+  const result = await db.execute<TransactionSuggestionRow>(sql`
+    with entries as (
+      select trim(${transactions.name}) as name, ${transactions.type}::text as type,
+        abs(${transactions.amount}) as amount, ${transactions.categoryId} as category_id,
+        ${transactions.paymentMethod}::text as payment_method, ${transactions.accountId} as account_id,
+        ${transactions.cardId} as card_id, ${transactions.personId} as person_id,
+        ${transactions.sourceAccountId} as source_account_id,
+        ${transactions.destinationAccountId} as destination_account_id,
+        ${transactions.purchaseDate} as used_at, ${transactions.createdAt} as created_at,
+        coalesce(${transactions.transferId}, ${transactions.id}) as entry_id
+      from ${transactions}
+      where ${transactions.userId} = ${userId}
+        and ${transactions.type} in ('income', 'expense', 'transfer')
+        and ${transactions.origin} = 'regular'
+        and ${transactions.purchaseDate} >= ${start}
+        and trim(${transactions.name}) <> ''
+      union all
+      select trim(${recurringTransactionRules.name}), ${recurringTransactionRules.type}::text,
+        abs(${recurringTransactionRules.amount}), ${recurringTransactionRules.categoryId},
+        ${recurringTransactionRules.paymentMethod}::text, ${recurringTransactionRules.accountId},
+        ${recurringTransactionRules.cardId}, ${recurringTransactionRules.personId},
+        ${recurringTransactionRules.sourceAccountId}, ${recurringTransactionRules.destinationAccountId},
+        ${recurringTransactionRules.startDate}, ${recurringTransactionRules.createdAt},
+        ${recurringTransactionRules.id}
+      from ${recurringTransactionRules}
+      where ${recurringTransactionRules.userId} = ${userId}
+        and ${recurringTransactionRules.status} <> 'cancelled'
+        and trim(${recurringTransactionRules.name}) <> ''
     )
-    .groupBy(transactions.type, normalizedName)
-    .orderBy(desc(usageCount), desc(lastUsedAt), asc(normalizedName))
-    .limit(limit);
+    select
+      (array_agg(name order by used_at desc, created_at desc))[1] as name,
+      type,
+      (array_agg(amount order by used_at desc, created_at desc))[1] as amount,
+      (array_agg(category_id order by used_at desc, created_at desc))[1] as category_id,
+      (array_agg(payment_method order by used_at desc, created_at desc))[1] as payment_method,
+      (array_agg(account_id order by used_at desc, created_at desc))[1] as account_id,
+      (array_agg(card_id order by used_at desc, created_at desc))[1] as card_id,
+      (array_agg(person_id order by used_at desc, created_at desc))[1] as person_id,
+      (array_agg(source_account_id order by used_at desc, created_at desc))[1] as source_account_id,
+      (array_agg(destination_account_id order by used_at desc, created_at desc))[1] as destination_account_id,
+      count(distinct entry_id)::int as usage_count,
+      to_char(max(used_at), 'YYYY-MM-DD') as last_used_at
+    from entries
+    group by type, lower(name)
+    order by usage_count desc, max(used_at) desc, lower(name)
+    limit ${limit}
+  `);
+  return result.rows.map((row) => ({
+    name: row.name,
+    type: row.type,
+    amount: row.amount,
+    categoryId: row.category_id,
+    paymentMethod: row.payment_method,
+    accountId: row.account_id,
+    cardId: row.card_id,
+    personId: row.person_id,
+    sourceAccountId: row.source_account_id,
+    destinationAccountId: row.destination_account_id,
+    usageCount: row.usage_count,
+    lastUsedAt: row.last_used_at,
+  }));
 }
 
 function selectRecurringRulesForUser(userId: string) {

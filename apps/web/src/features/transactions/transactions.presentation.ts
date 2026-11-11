@@ -648,13 +648,21 @@ export function getTransactionSuggestionDetail(
     category?: string | null;
     card?: string | null;
     account?: string | null;
+    sourceAccount?: string | null;
+    destinationAccount?: string | null;
   },
 ) {
+  const amount = suggestion.amount > 0 ? formatCurrency(suggestion.amount) : null;
+  if (suggestion.type === "transfer") {
+    const route =
+      names.sourceAccount && names.destinationAccount
+        ? `${names.sourceAccount} → ${names.destinationAccount}`
+        : null;
+    return [route, amount].filter(Boolean).join(" · ");
+  }
   const payment =
     names.card ??
     names.account ??
     (suggestion.paymentMethod ? paymentMethodLabels[suggestion.paymentMethod] : null);
-  return [names.category, payment, suggestion.amount > 0 ? formatCurrency(suggestion.amount) : null]
-    .filter(Boolean)
-    .join(" · ");
+  return [names.category, payment, amount].filter(Boolean).join(" · ");
 }

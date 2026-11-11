@@ -42,6 +42,10 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Corrigido
 
+- Sugestões de lançamentos anteriores: passam a considerar também lançamentos com data futura,
+  recorrências (mesmo as que ainda não têm lançamento no passado) e transferências. Em uma nova
+  transferência, escolher a sugestão preenche valor e contas de origem e destino; os dois lados de
+  uma transferência contam como um uso.
 - Lançamentos (inclusive recorrentes) e orçamentos de uma subcategoria sem ícone mostravam o ícone
   genérico de etiqueta; agora usam o ícone da categoria principal.
 

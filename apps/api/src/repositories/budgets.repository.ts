@@ -136,6 +136,8 @@ export const budgetsRepository = {
         and(
           eq(transactions.userId, userId),
           eq(transactions.period, period),
+          // Transactions marked to stay out of budgets still count everywhere else.
+          eq(transactions.excludeFromBudget, false),
           or(
             and(isNull(transactionSplits.id), eq(transactionPeople.role, "admin")),
             eq(splitPeople.role, "admin"),
@@ -207,6 +209,7 @@ export const budgetsRepository = {
       .where(
         and(
           eq(recurringTransactionRules.userId, userId),
+          eq(recurringTransactionRules.excludeFromBudget, false),
           lte(recurringTransactionRules.startDate, new Date(periodEnd.getTime() + 32 * 86_400_000)),
           or(
             and(isNull(recurringTransactionSplits.id), eq(recurringPeople.role, "admin")),

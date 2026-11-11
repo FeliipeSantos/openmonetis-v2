@@ -9,6 +9,14 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Adicionado
 
+- Ignorar nos orçamentos: despesas ganham a opção **Ignorar nos orçamentos** (em "Orçamento,
+  etiquetas, anotações e anexos"). O lançamento, ou todas as ocorrências de uma recorrência, deixa
+  de contar no orçamento da categoria e continua igual no saldo, nos relatórios e na lista, onde
+  um círculo cinza ao lado do nome indica que está fora do orçamento (com a explicação ao passar o
+  mouse) e os detalhes mostram a linha **Orçamento: Fora do orçamento**. A migração `0033_exclude_from_budget` cria a coluna
+  `exclude_from_budget` em lançamentos e recorrências; o campo `excludeFromBudget` entra no
+  contrato de lançamentos.
+
 - Ordem das categorias e subcategorias: na tela de categorias, cada linha ganha a alça ≡ ao lado
   do menu de ações; arrastando por ela (com mouse, toque ou teclado: Espaço, setas e Espaço) a
   categoria muda de posição dentro do mesmo nível, e a nova ordem fica salva. As listas de

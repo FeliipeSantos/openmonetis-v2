@@ -126,6 +126,17 @@ export function TransactionDetailsContent({
             )
           }
         />
+        {detail.excludeFromBudget ? (
+          <DetailRow
+            label="Orçamento"
+            value={
+              <span className="inline-flex items-center gap-2">
+                <span aria-hidden="true" className="size-2 rounded-full bg-muted-foreground/60" />
+                Fora do orçamento
+              </span>
+            }
+          />
+        ) : null}
         <DetailRow
           label="Responsável"
           value={

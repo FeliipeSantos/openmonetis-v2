@@ -115,6 +115,21 @@ export function TransactionRowDescription({
                 {transaction.refundableAmount === 0 ? "Reembolsado" : "Reembolso parcial"}
               </span>
             ) : null}
+            {transaction.excludeFromBudget ? (
+              <Tooltip>
+                <TooltipTrigger
+                  aria-label="Fora do orçamento"
+                  render={
+                    <span className="inline-flex size-4 items-center justify-center" role="img" />
+                  }
+                >
+                  <span aria-hidden="true" className="size-2 rounded-full bg-muted-foreground/60" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  Fora do orçamento: este lançamento não entra nos orçamentos.
+                </TooltipContent>
+              </Tooltip>
+            ) : null}
             {transaction.anticipationId ? (
               <span className="rounded-md bg-brand/10 px-1.5 py-0.5 font-medium text-brand-strong text-xs">
                 Antecipada

@@ -1,5 +1,8 @@
 import { ChevronDown } from "lucide-react";
+import { useId } from "react";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import type { useTransactionForm } from "../useTransactionForm";
 import { TransactionAttachmentsField } from "./transaction-attachments-field";
 import { FieldShell } from "./transaction-field-shell";
@@ -33,6 +36,7 @@ export function TransactionAdvancedFields({
   values: TransactionFormValues;
   isSubmitting: boolean;
 }) {
+  const budgetId = useId();
   return (
     <details
       className="group"
@@ -44,7 +48,9 @@ export function TransactionAdvancedFields({
           aria-hidden="true"
           className="size-4 transition-transform group-open:rotate-180"
         />
-        Etiquetas, anotações e anexos
+        {values.type === "expense"
+          ? "Orçamento, etiquetas, anotações e anexos"
+          : "Etiquetas, anotações e anexos"}
         {pendingFiles.length ? (
           <span className="rounded-full bg-brand/10 px-2 py-0.5 font-medium text-brand-strong text-xs">
             {pendingFiles.length} {pendingFiles.length === 1 ? "anexo" : "anexos"}
@@ -53,6 +59,35 @@ export function TransactionAdvancedFields({
       </summary>
 
       <div className="mt-4 grid gap-4">
+        {values.type === "expense" ? (
+          <form.Field name="excludeFromBudget">
+            {(field) => (
+              <section
+                className={cn(
+                  "flex items-center justify-between gap-4 rounded-lg border border-input bg-popover px-3 py-2.5 transition-colors",
+                  field.state.value && "border-brand/30 bg-brand/5",
+                )}
+              >
+                <label className="min-w-0 cursor-pointer" htmlFor={budgetId}>
+                  <span className="block text-left font-medium text-sm">
+                    Ignorar nos orçamentos
+                  </span>
+                  <span className="block text-left text-muted-foreground text-xs">
+                    {values.condition === "recurring"
+                      ? "Nenhuma ocorrência entra no orçamento da categoria; o restante não muda."
+                      : "Não entra no orçamento da categoria; saldo, relatórios e lista não mudam."}
+                  </span>
+                </label>
+                <Switch
+                  checked={field.state.value}
+                  disabled={isSubmitting}
+                  id={budgetId}
+                  onCheckedChange={(checked) => field.handleChange(checked)}
+                />
+              </section>
+            )}
+          </form.Field>
+        ) : null}
         <TransactionTagsField form={form} disabled={isSubmitting} />
         <form.Field name="note">
           {(field) => (

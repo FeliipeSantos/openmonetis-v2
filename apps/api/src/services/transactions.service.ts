@@ -471,6 +471,7 @@ export function createTransactionsService(
       dueDate: transaction.dueDate ? toDateString(transaction.dueDate) : null,
       originalDueDate: transaction.dueDate ? toDateString(transaction.dueDate) : null,
       dueDateRuleExcluded: transaction.dueDateRuleExcluded ?? false,
+      excludeFromBudget: transaction.excludeFromBudget ?? false,
       dueDateAdjustment: transaction.dueDateAdjustment ?? null,
       boletoPaymentDate: transaction.boletoPaymentDate
         ? toDateString(transaction.boletoPaymentDate)
@@ -563,6 +564,7 @@ export function createTransactionsService(
       dueDate,
       originalDueDate: dueDate,
       dueDateRuleExcluded: actual?.dueDateRuleExcluded ?? rule.dueDateRuleExcluded ?? false,
+      excludeFromBudget: rule.excludeFromBudget ?? false,
       dueDateAdjustment: actual?.dueDateAdjustment ?? null,
       boletoPaymentDate: null,
       installmentCount: null,
@@ -689,6 +691,7 @@ export function createTransactionsService(
       destinationAccountId: isTransfer ? (data.destinationAccountId as string) : null,
       dueDate: data.dueDate ? toDate(data.dueDate) : null,
       dueDateRuleExcluded: data.dueDateRuleExcluded ?? false,
+      excludeFromBudget: data.excludeFromBudget ?? false,
       boletoPaymentDate: data.boletoPaymentDate ? toDate(data.boletoPaymentDate) : null,
       settledDate:
         !isCreditCard && !isTransfer && data.condition !== "recurring" && data.isSettled
@@ -1186,6 +1189,7 @@ export function createTransactionsService(
           destinationAccountId: base.destinationAccountId,
           dueDate: base.dueDate,
           dueDateRuleExcluded: base.dueDateRuleExcluded,
+          excludeFromBudget: base.excludeFromBudget,
           isSettled: data.paymentMethod === "credit_card" ? null : false,
           note: base.note,
           status: "active",
@@ -2085,6 +2089,7 @@ export function createTransactionsService(
           ? current.destinationAccountId
           : data.destinationAccountId,
       dueDateRuleExcluded: data.dueDateRuleExcluded ?? current.dueDateRuleExcluded,
+      excludeFromBudget: data.excludeFromBudget ?? current.excludeFromBudget,
       dueDate:
         data.dueDate === undefined
           ? current.dueDate
@@ -2610,6 +2615,7 @@ export function createTransactionsService(
           : input.recurrenceEndDate,
       tagIds: input.tagIds ?? current.tagIds,
       dueDateRuleExcluded: input.dueDateRuleExcluded ?? current.dueDateRuleExcluded,
+      excludeFromBudget: input.excludeFromBudget ?? current.excludeFromBudget,
       condition: "recurring",
       recurrenceFrequency: input.recurrenceFrequency ?? current.frequency,
       invoicePeriod: null,
@@ -2701,6 +2707,7 @@ export function createTransactionsService(
           destinationAccountId: base.destinationAccountId,
           dueDate: base.dueDate,
           dueDateRuleExcluded: base.dueDateRuleExcluded,
+          excludeFromBudget: base.excludeFromBudget,
           note: base.note,
           ...(query.scope !== "series" ? { isSettled: base.isSettled } : {}),
           ...(versions.length === 1 && query.scope === "series"

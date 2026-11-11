@@ -272,6 +272,15 @@ function MobileTransactionRow({
                   {transaction.currentInstallment}/{transaction.installmentCount}
                 </span>
               ) : null}
+              {transaction.excludeFromBudget ? (
+                <span
+                  className="inline-flex size-4 shrink-0 items-center justify-center"
+                  title="Fora do orçamento"
+                >
+                  <span aria-hidden="true" className="size-2 rounded-full bg-muted-foreground/60" />
+                  <span className="sr-only">Fora do orçamento</span>
+                </span>
+              ) : null}
             </span>
             <span className="mt-1 flex min-w-0 items-center gap-1.5 text-muted-foreground text-xs">
               {relationLogo ? (

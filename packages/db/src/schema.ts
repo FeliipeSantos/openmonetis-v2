@@ -741,6 +741,8 @@ export const recurringTransactionRules = pgTable(
     }),
     dueDate: date("due_date", { mode: "date" }),
     dueDateRuleExcluded: boolean("due_date_rule_excluded").notNull().default(false),
+    /** Left out of budget spending while still counting everywhere else. */
+    excludeFromBudget: boolean("exclude_from_budget").notNull().default(false),
     isSettled: boolean("is_settled"),
     note: text("note"),
     status: recurringRuleStatus("status").notNull().default("active"),
@@ -878,6 +880,8 @@ export const transactions = pgTable(
       onDelete: "set null",
     }),
     dueDateRuleExcluded: boolean("due_date_rule_excluded").notNull().default(false),
+    /** Left out of budget spending while still counting everywhere else. */
+    excludeFromBudget: boolean("exclude_from_budget").notNull().default(false),
     frozenDueDate: date("frozen_due_date", { mode: "date" }),
     dueDateAdjustment: jsonb("due_date_adjustment").$type<DueDateAdjustmentDetails>(),
     isSettled: boolean("is_settled"),

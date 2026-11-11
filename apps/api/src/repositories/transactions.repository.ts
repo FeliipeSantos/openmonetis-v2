@@ -131,10 +131,12 @@ export type TransactionCreateRecord = Omit<
   | "dueDateAdjustment"
   | "frozenDueDate"
   | "dueDateRuleExcluded"
+  | "excludeFromBudget"
 > & {
   dueDateAdjustment?: import("@openmonetis/domain/due-date-rules").DueDateAdjustmentDetails | null;
   frozenDueDate?: Date | null;
   dueDateRuleExcluded?: boolean;
+  excludeFromBudget?: boolean;
   settledAmount?: string | null;
   settledDate?: Date | null;
   tagIds?: string[];
@@ -148,9 +150,16 @@ type InstallmentSeriesCreateRecord = {
 };
 type RecurringRuleCreateRecord = Omit<
   RecurringTransactionRule,
-  "id" | "seriesId" | "createdAt" | "updatedAt" | "recurrenceEndDate" | "dueDateRuleExcluded"
+  | "id"
+  | "seriesId"
+  | "createdAt"
+  | "updatedAt"
+  | "recurrenceEndDate"
+  | "dueDateRuleExcluded"
+  | "excludeFromBudget"
 > & {
   dueDateRuleExcluded?: boolean;
+  excludeFromBudget?: boolean;
   tagIds?: string[];
   recurrenceEndDate?: Date | null;
 };
@@ -286,6 +295,7 @@ export type TransactionUpdateRecord = Partial<
     | "sourceAccountId"
     | "destinationAccountId"
     | "dueDateRuleExcluded"
+    | "excludeFromBudget"
     | "dueDate"
     | "boletoPaymentDate"
     | "settledDate"
@@ -404,9 +414,15 @@ async function assertSufficientTransferBalance(
 
 export type TransactionWithRelations = Omit<
   Transaction,
-  "settledAmount" | "settledDate" | "dueDateRuleExcluded" | "frozenDueDate" | "dueDateAdjustment"
+  | "settledAmount"
+  | "settledDate"
+  | "dueDateRuleExcluded"
+  | "excludeFromBudget"
+  | "frozenDueDate"
+  | "dueDateAdjustment"
 > & {
   dueDateRuleExcluded?: boolean;
+  excludeFromBudget?: boolean;
   dueDateAdjustment?: import("@openmonetis/domain/due-date-rules").DueDateAdjustmentDetails | null;
   frozenDueDate?: Date | null;
   settledAmount?: string | null;
@@ -435,9 +451,10 @@ export type TransactionWithRelations = Omit<
 
 export type RecurringRuleWithRelations = Omit<
   RecurringTransactionRule,
-  "recurrenceEndDate" | "dueDateRuleExcluded"
+  "recurrenceEndDate" | "dueDateRuleExcluded" | "excludeFromBudget"
 > & {
   dueDateRuleExcluded?: boolean;
+  excludeFromBudget?: boolean;
   occurrenceOverrides?: import("@openmonetis/domain/settlements").SettlementAwareRule["occurrenceOverrides"];
   recurrenceEndDate?: Date | null;
   configuredEndDate?: string | null;
@@ -490,6 +507,7 @@ const transactionColumns = {
   destinationAccountId: transactions.destinationAccountId,
   dueDate: transactions.dueDate,
   dueDateRuleExcluded: transactions.dueDateRuleExcluded,
+  excludeFromBudget: transactions.excludeFromBudget,
   frozenDueDate: transactions.frozenDueDate,
   dueDateAdjustment: transactions.dueDateAdjustment,
   boletoPaymentDate: transactions.boletoPaymentDate,
@@ -599,6 +617,7 @@ const recurringRuleColumns = {
   destinationAccountId: recurringTransactionRules.destinationAccountId,
   dueDate: recurringTransactionRules.dueDate,
   dueDateRuleExcluded: recurringTransactionRules.dueDateRuleExcluded,
+  excludeFromBudget: recurringTransactionRules.excludeFromBudget,
   isSettled: recurringTransactionRules.isSettled,
   note: recurringTransactionRules.note,
   status: recurringTransactionRules.status,

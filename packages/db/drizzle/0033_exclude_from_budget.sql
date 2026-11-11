@@ -1,0 +1,2 @@
+ALTER TABLE "recurring_transaction_rules" ADD COLUMN "exclude_from_budget" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "transactions" ADD COLUMN "exclude_from_budget" boolean DEFAULT false NOT NULL;

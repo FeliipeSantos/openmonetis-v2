@@ -29,6 +29,7 @@ const paidBoleto = {
   recurrenceFrequency: "monthly",
   recurrenceEndDate: "",
   dueDateRuleExcluded: false,
+  excludeFromBudget: false,
   recurrenceAnchorDate: "",
   isSettled: "true",
   note: "",
@@ -135,5 +136,17 @@ test("tag edits preserve unchanged scopes and send explicit removals", () => {
   assert.equal(
     validateTransactionForm({ value: { ...defaults, tagIds: [tagId, tagId] } })?.fields.tagIds,
     "Selecione até 20 etiquetas.",
+  );
+});
+
+test("only expenses can be left out of budgets", () => {
+  assert.equal(
+    normalizeTransactionInput({ ...paidBoleto, excludeFromBudget: true }).excludeFromBudget,
+    true,
+  );
+  assert.equal(
+    normalizeTransactionInput({ ...paidBoleto, type: "income", excludeFromBudget: true })
+      .excludeFromBudget,
+    false,
   );
 });

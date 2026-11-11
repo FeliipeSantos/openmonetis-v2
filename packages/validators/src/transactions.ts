@@ -114,6 +114,8 @@ const TransactionFieldsSchema = z.object({
     example: "3f6d2b84-6ed0-4a50-b257-8adf0b6178de",
   }),
   dueDateRuleExcluded: z.boolean().optional(),
+  /** Leaves the transaction (or every occurrence of a recurrence) out of budget spending. */
+  excludeFromBudget: z.boolean().optional(),
   dueDate: dateSchema.nullable().optional().openapi({ example: "2026-07-10" }),
   settledDate: dateSchema.nullable().optional(),
   boletoPaymentDate: dateSchema.nullable().optional().openapi({ example: "2026-07-09" }),
@@ -761,6 +763,7 @@ export const TransactionOutputSchema = z
     dueDateAdjustment: DueDateAdjustmentDetailsSchema.nullable().optional(),
     dueDateExceptionEditable: z.boolean().optional(),
     dueDateRuleExcluded: z.boolean().optional(),
+    excludeFromBudget: z.boolean(),
     boletoPaymentDate: dateSchema.nullable(),
     installmentCount: z.number().int().nullable(),
     currentInstallment: z.number().int().nullable(),

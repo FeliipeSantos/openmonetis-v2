@@ -58,3 +58,16 @@ export const categoryTypeLabels: Record<CategoryOutput["type"], string> = {
   income: "Receita",
   expense: "Despesa",
 };
+
+export const categoryGroupLabels: Record<CategoryOutput["type"], string> = {
+  income: "receitas",
+  expense: "despesas",
+};
+
+export function getSubcategoryCountLabel(count: number, searching = false) {
+  const label =
+    count === 0
+      ? "Sem subcategorias"
+      : `${count} ${count === 1 ? "subcategoria" : "subcategorias"}`;
+  return searching && count > 0 ? `${label} na busca` : label;
+}

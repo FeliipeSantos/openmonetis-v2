@@ -22,7 +22,7 @@ import {
 } from "../categories.mutations";
 import { getCategoryErrorMessage, getCategoryGroups } from "../categories.presentation";
 import { categoriesQueryOptions } from "../categories.queries";
-import { CategoriesTable } from "./categories-table";
+import { CategoriesPanels } from "./categories-panels";
 import { CategoryDialog } from "./category-dialog";
 
 export function CategoriesPage() {
@@ -33,7 +33,13 @@ export function CategoriesPage() {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<CategoryOutput | null>(null);
+  const [newType, setNewType] = useState<CategoryOutput["type"]>("expense");
   const categories = query.data ?? [];
+  function openNew(type: CategoryOutput["type"]) {
+    setEditing(null);
+    setNewType(type);
+    setOpen(true);
+  }
   function changeOpen(next: boolean) {
     setOpen(next);
     if (!next) setEditing(null);
@@ -58,12 +64,6 @@ export function CategoriesPage() {
         <Navbar />
         <section className="app-page project-container min-w-0">
           <PageHeader
-            actions={
-              <Button onClick={() => setOpen(true)}>
-                <Plus className="size-4" />
-                Nova categoria
-              </Button>
-            }
             breadcrumbs={[
               { label: "Visão geral", href: "/dashboard" },
               { label: "Organização" },
@@ -99,31 +99,33 @@ export function CategoriesPage() {
                 const groups = getCategoryGroups(items, search);
                 return (
                   <TabsContent className="min-w-0 pt-5" key={type} value={type}>
-                    <Card className="min-w-0 gap-0 p-3 sm:p-4">
-                      {groups.length ? (
-                        <div className="min-w-0 max-w-full overflow-x-auto">
-                          <CategoriesTable
-                            categories={items}
-                            search={search}
-                            onCreateSubcategory={async (input) => {
-                              await create.mutateAsync(input);
-                            }}
-                            onEdit={(category) => {
-                              setEditing(category);
-                              setOpen(true);
-                            }}
-                            onRemove={deleteOne}
-                            pendingId={remove.isPending ? remove.variables : null}
-                          />
-                        </div>
-                      ) : (
-                        <div className="grid min-h-52 place-items-center p-6 text-center">
-                          <p className="text-muted-foreground text-sm">
-                            Nenhuma categoria encontrada. Cadastre uma categoria ou revise a busca.
-                          </p>
-                        </div>
-                      )}
-                    </Card>
+                    {groups.length ? (
+                      <CategoriesPanels
+                        categories={items}
+                        search={search}
+                        type={type}
+                        onCreateCategory={() => openNew(type)}
+                        onCreateSubcategory={async (input) => {
+                          await create.mutateAsync(input);
+                        }}
+                        onEdit={(category) => {
+                          setEditing(category);
+                          setOpen(true);
+                        }}
+                        onRemove={deleteOne}
+                        pendingId={remove.isPending ? remove.variables : null}
+                      />
+                    ) : (
+                      <Card className="grid min-h-52 place-content-center justify-items-center gap-3 p-6 text-center">
+                        <p className="text-muted-foreground text-sm">
+                          Nenhuma categoria encontrada. Cadastre uma categoria ou revise a busca.
+                        </p>
+                        <Button onClick={() => openNew(type)} size="sm" variant="outline">
+                          <Plus aria-hidden="true" className="size-4" />
+                          Nova categoria
+                        </Button>
+                      </Card>
+                    )}
                   </TabsContent>
                 );
               })}
@@ -131,7 +133,13 @@ export function CategoriesPage() {
           ) : null}
         </section>
       </main>
-      <CategoryDialog category={editing} onOpenChange={changeOpen} onSubmit={save} open={open} />
+      <CategoryDialog
+        category={editing}
+        defaultType={newType}
+        onOpenChange={changeOpen}
+        onSubmit={save}
+        open={open}
+      />
     </ProtectedRoute>
   );
 }

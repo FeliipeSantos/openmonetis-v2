@@ -4,6 +4,7 @@ import type { CategoryOutput } from "@openmonetis/validators/categories";
 import {
   getCategoryGroups,
   getCategoryLabel,
+  getSubcategoryCountLabel,
   sortCategoryOptions,
 } from "./categories.presentation";
 
@@ -51,4 +52,12 @@ test("category options keep the parent before children and names include the ful
   );
   assert.equal(getCategoryLabel(light), "Casa › Luz");
   assert.equal(getCategoryLabel(root), "Casa");
+});
+
+test("describes how many subcategories a category has", () => {
+  assert.equal(getSubcategoryCountLabel(0), "Sem subcategorias");
+  assert.equal(getSubcategoryCountLabel(1), "1 subcategoria");
+  assert.equal(getSubcategoryCountLabel(3), "3 subcategorias");
+  assert.equal(getSubcategoryCountLabel(2, true), "2 subcategorias na busca");
+  assert.equal(getSubcategoryCountLabel(0, true), "Sem subcategorias");
 });

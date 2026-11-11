@@ -34,7 +34,7 @@ export function CategoryDialog({
           </DialogDescription>
         </DialogHeader>
         <CategoryForm
-          key={category?.id ?? "new-category"}
+          key={category?.id ?? `new-category-${defaultType ?? "default"}`}
           category={category}
           defaultType={defaultType}
           lockType={lockType}

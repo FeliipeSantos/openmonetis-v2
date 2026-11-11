@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import {
   type CategoryCreateDraft,
   createDefaultCategoryDrafts,
@@ -65,7 +66,7 @@ export function createSettingsService(
       await removeAttachmentObjects(userId);
       const reset = await repository.resetForUser(userId, {
         admin: createAdminPersonDraft(user),
-        categories: createDefaultCategoryDrafts(userId),
+        categories: createDefaultCategoryDrafts(userId, randomUUID),
       });
       if (!reset) throw notFound("User not found", "user_not_found");
 

@@ -351,18 +351,32 @@ export async function seedMockData(argv = process.argv.slice(2)) {
   const seededPeriods = new Set<string>();
 
   await db.transaction(async (tx) => {
-    await tx
-      .insert(categories)
-      .values(createDefaultCategoryDrafts(targetUser.id))
-      .onConflictDoNothing();
+    const [existingCategory] = await tx
+      .select({ id: categories.id })
+      .from(categories)
+      .where(eq(categories.userId, targetUser.id))
+      .limit(1);
+    if (!existingCategory) {
+      await tx.insert(categories).values(createDefaultCategoryDrafts(targetUser.id, randomUUID));
+    }
 
     const categoryRows = await tx
-      .select({ id: categories.id, name: categories.name, type: categories.type })
+      .select({
+        id: categories.id,
+        name: categories.name,
+        type: categories.type,
+        parentId: categories.parentId,
+      })
       .from(categories)
       .where(eq(categories.userId, targetUser.id));
-    const categoriesByKey = new Map(
-      categoryRows.map((category) => [`${category.type}:${category.name}`, category.id]),
-    );
+    // Subcategory names repeat across groups (e.g. "Transporte" inside "Viagens"); a main
+    // category always wins the lookup.
+    const categoriesByKey = new Map<string, string>();
+    for (const category of [...categoryRows].sort(
+      (left, right) => Number(Boolean(right.parentId)) - Number(Boolean(left.parentId)),
+    )) {
+      categoriesByKey.set(`${category.type}:${category.name}`, category.id);
+    }
     const categoryId = (type: "income" | "expense", name: string) => {
       const id = categoriesByKey.get(`${type}:${name}`);
       if (!id) throw new Error(`Categoria obrigatória não encontrada: ${type}/${name}.`);
@@ -555,11 +569,11 @@ export async function seedMockData(argv = process.argv.slice(2)) {
     summary.notes += 3;
 
     const budgetDefinitions = [
-      { category: "Mercado", amount: 1500 },
-      { category: "Restaurantes", amount: 480 },
+      { category: "Supermercado", amount: 1500 },
+      { category: "Restaurante", amount: 480 },
       { category: "Transporte", amount: 620 },
       { category: "Moradia", amount: 3200 },
-      { category: "Lazer", amount: 420 },
+      { category: "Lazer e Entretenimento", amount: 420 },
       { category: "Assinaturas", amount: 240 },
     ] as const;
     const budgetRows = periods.flatMap((period, index) =>
@@ -618,7 +632,7 @@ export async function seedMockData(argv = process.argv.slice(2)) {
         paymentMethod: "pix",
         purchaseDate: dateForPeriodDay(period, 6),
         accountId: accountIds.nubank,
-        categoryId: categoryId("expense", "Mercado"),
+        categoryId: categoryId("expense", "Supermercado"),
         personId: adminPerson.id,
         note: "Compra do mês dividida com Marina.",
         splitShares: [
@@ -677,7 +691,7 @@ export async function seedMockData(argv = process.argv.slice(2)) {
         paymentMethod: "credit_card",
         purchaseDate: dateForPeriodDay(period, 10),
         card: cardRows.itaucard,
-        categoryId: categoryId("expense", "Mercado"),
+        categoryId: categoryId("expense", "Supermercado"),
         personId: adminPerson.id,
         note: "Hortifruti e itens para a semana.",
       });
@@ -690,7 +704,7 @@ export async function seedMockData(argv = process.argv.slice(2)) {
           paymentMethod: "credit_card",
           purchaseDate: dateForPeriodDay(period, 21),
           card: cardRows.itaucard,
-          categoryId: categoryId("expense", "Lazer"),
+          categoryId: categoryId("expense", "Lazer e Entretenimento"),
           personId: adminPerson.id,
           note: "Ingressos e pipoca.",
         });
@@ -723,7 +737,7 @@ export async function seedMockData(argv = process.argv.slice(2)) {
           paymentMethod: "credit_card",
           purchaseDate: dateForPeriodDay(period, 25),
           card: cardRows.itaucard,
-          categoryId: categoryId("expense", "Restaurantes"),
+          categoryId: categoryId("expense", "Restaurante"),
           personId: adminPerson.id,
         });
       }
@@ -749,7 +763,7 @@ export async function seedMockData(argv = process.argv.slice(2)) {
       paymentMethod: "pix",
       purchaseDate: dateForPeriodDay(middlePeriod, 26),
       accountId: accountIds.nubank,
-      categoryId: categoryId("income", "Reembolso"),
+      categoryId: categoryId("income", "Reembolso de despesas"),
       personId: adminPerson.id,
     });
 
@@ -806,7 +820,7 @@ export async function seedMockData(argv = process.argv.slice(2)) {
         dueDate: dateForPeriodDay(firstPeriod, 18),
         personId: adminPerson.id,
         accountId: accountIds.itau,
-        categoryId: categoryId("expense", "Energia e água"),
+        categoryId: categoryId("expense", "Energia elétrica"),
         note: "Conta mensal de energia.",
       },
       {
@@ -1039,7 +1053,7 @@ export async function seedMockData(argv = process.argv.slice(2)) {
         installmentCount: 5,
         purchaseDate: dateForPeriodDay(thirdPeriod, 11),
         card: cardRows.ultravioleta,
-        categoryId: categoryId("expense", "Viagem"),
+        categoryId: categoryId("expense", "Viagens"),
         note: "Viagem dividida com Eduardo.",
         splitShares: [
           { personId: adminPerson.id, amount: 1498.35 },

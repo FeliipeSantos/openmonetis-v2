@@ -7,8 +7,29 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ## [Unreleased]
 
+### Adicionado
+
+- Comando `pnpm db:sync-categories -- --email=<email>` (ou `--all`) que acrescenta às contas
+  existentes as categorias e subcategorias padrão que estiverem faltando. Ele só insere: nada
+  existente é renomeado, movido ou removido, categorias com o mesmo nome no mesmo nível são
+  reaproveitadas e pode ser executado mais de uma vez. Com `--replace`, antes de completar a lista
+  ele remove as categorias que não são do sistema nem do padrão, desde que não tenham lançamentos,
+  orçamentos, recorrências ou subcategorias; as que estiverem em uso são mantidas e listadas. No
+  container da API: `node --import tsx src/scripts/sync-default-categories.ts --email=<email>`.
+
 ### Alterado
 
+- Categorias padrão: contas novas (e a redefinição de dados em Ajustes) passam a começar com 23
+  categorias principais e 153 subcategorias, organizadas por tema (Moradia, Alimentação,
+  Transporte, Financeiro, Saúde, Salário e Trabalho, Investimentos, entre outras). As categorias
+  do sistema (Ajuste de saldo, Pagamentos, Ajustes de fatura, Repasses e Transferência interna)
+  continuam iguais e sem subcategorias, e Rendimentos, Outras despesas e Outras receitas mantêm os
+  nomes usados pelos fluxos automáticos. Contas existentes recebem a lista pelo comando
+  `db:sync-categories`.
+- Tela de categorias em dois painéis: à esquerda as categorias principais, com a quantidade de
+  subcategorias; ao clicar numa delas, o painel da direita lista as subcategorias vinculadas, com
+  os botões **Nova subcategoria** e **Lançamentos**. No celular, os painéis ficam um abaixo do
+  outro e a tela rola até as subcategorias ao escolher uma categoria.
 - Seletor de ícones das categorias: o catálogo passa de 92 para 203 ícones, organizados em 17
   grupos por tema (Alimentação, Casa / Moradia, Transporte, Saúde, Financeiro, entre outros), com
   o título de cada grupo no seletor. A busca filtra dentro dos grupos. Os ícones já salvos nas

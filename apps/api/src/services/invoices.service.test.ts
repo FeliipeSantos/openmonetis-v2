@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import test from "node:test";
 import {
   createDefaultCategoryDrafts,
@@ -17,7 +18,7 @@ const paymentId = "60000000-0000-4000-8000-000000000006";
 type PaymentDraft = Parameters<InvoicesRepository["insertPayment"]>[0];
 
 test("default categories use one expense category for every invoice adjustment", () => {
-  const categories = createDefaultCategoryDrafts(userId).filter(
+  const categories = createDefaultCategoryDrafts(userId, randomUUID).filter(
     (category) => category.name === invoiceAdjustmentCategoryName,
   );
 

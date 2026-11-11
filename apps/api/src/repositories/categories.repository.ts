@@ -5,7 +5,22 @@ import type { CategoriesRepository } from "../services/categories.service";
 
 export const categoriesRepository = {
   async insertDefaults(data) {
-    await db.insert(categories).values(data).onConflictDoNothing();
+    const userId = data[0]?.userId;
+    if (!userId) return;
+    // Subcategories reference parent ids from the same batch, so the defaults go in only for an
+    // account that has no categories yet; a partially skipped batch would orphan subcategories.
+    await db.transaction(async (tx) => {
+      const [existing] = await tx
+        .select({ id: categories.id })
+        .from(categories)
+        .where(eq(categories.userId, userId))
+        .limit(1);
+      if (!existing) await tx.insert(categories).values(data);
+    });
+  },
+  async insertMany(data) {
+    // One statement, so subcategories can reference parents inserted alongside them.
+    await db.insert(categories).values(data);
   },
   async insert(data) {
     return categoryWrite(data.userId, async (tx) => {

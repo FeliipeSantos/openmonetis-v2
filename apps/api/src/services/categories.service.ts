@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import {
   assertCategoryHierarchy,
   CategoryConstraintError,
@@ -6,6 +7,8 @@ import {
   canChangeCategoryType,
   createCategoryDraft,
   createDefaultCategoryDrafts,
+  selectMissingDefaultCategories,
+  selectNonDefaultCategories,
 } from "@openmonetis/domain/categories";
 import type {
   CategoryOutput,
@@ -30,6 +33,7 @@ type CategoryCreateRecord = Omit<CategoryRecord, "id" | "createdAt" | "updatedAt
 type CategoryUpdateRecord = Partial<Pick<CategoryRecord, "name" | "type" | "icon" | "parentId">>;
 export type CategoriesRepository = {
   insertDefaults(data: CategoryCreateDraft[]): Promise<void>;
+  insertMany(data: CategoryCreateDraft[]): Promise<void>;
   insert(data: CategoryCreateRecord): Promise<CategoryRecord>;
   listByUser(userId: string): Promise<CategoryRecord[]>;
   findByIdForUser(id: string, userId: string): Promise<CategoryRecord | null>;
@@ -108,9 +112,57 @@ export function createCategoriesService(repository: CategoriesRepository) {
       throw badRequest("The type of a category in use cannot be changed", "category_type_in_use");
     }
   }
+  async function removeCategory(id: string, userId: string) {
+    return write(async () => {
+      await editableCategory(id, userId);
+      if ((await repository.listByUser(userId)).some((category) => category.parentId === id))
+        throw new CategoryConstraintError("category_has_children");
+      if (await repository.hasFinancialReferencesForUser(id, userId))
+        throw badRequest("Category has financial references", "category_in_use");
+      const category = await repository.deleteForUser(id, userId);
+      if (!category) throw notFound("Category not found", "category_not_found");
+      return { id: category.id };
+    });
+  }
   return {
     async seedDefaults(userId: string) {
-      await repository.insertDefaults(createDefaultCategoryDrafts(userId));
+      await repository.insertDefaults(createDefaultCategoryDrafts(userId, randomUUID));
+    },
+    /**
+     * Removes the account's categories that are neither system nor default ones. A category still
+     * used by transactions, budgets or recurrences (or with remaining subcategories) is kept.
+     */
+    async removeNonDefaults(userId: string) {
+      const existing = await repository.listByUser(userId);
+      const names = new Map(existing.map((category) => [category.id, category.name]));
+      const removed: string[] = [];
+      const kept: string[] = [];
+      for (const category of selectNonDefaultCategories(
+        existing,
+        createDefaultCategoryDrafts(userId, randomUUID),
+      )) {
+        const parentName = category.parentId ? names.get(category.parentId) : undefined;
+        const label = parentName ? `${parentName} › ${category.name}` : category.name;
+        try {
+          await removeCategory(category.id, userId);
+          removed.push(label);
+        } catch {
+          kept.push(label);
+        }
+      }
+      return { removed, kept };
+    },
+    /** Adds the default categories an existing account lacks, without touching existing ones. */
+    async syncDefaults(userId: string) {
+      const missing = selectMissingDefaultCategories(
+        await repository.listByUser(userId),
+        createDefaultCategoryDrafts(userId, randomUUID),
+      );
+      if (missing.length) await repository.insertMany(missing);
+      return {
+        categories: missing.filter((draft) => !draft.parentId).length,
+        subcategories: missing.filter((draft) => draft.parentId).length,
+      };
     },
     async create(input: CreateCategoryInput, userId: string) {
       return write(async () => {
@@ -179,18 +231,7 @@ export function createCategoriesService(repository: CategoriesRepository) {
         return toOutput(category, categories);
       });
     },
-    async remove(id: string, userId: string) {
-      return write(async () => {
-        await editableCategory(id, userId);
-        if ((await repository.listByUser(userId)).some((category) => category.parentId === id))
-          throw new CategoryConstraintError("category_has_children");
-        if (await repository.hasFinancialReferencesForUser(id, userId))
-          throw badRequest("Category has financial references", "category_in_use");
-        const category = await repository.deleteForUser(id, userId);
-        if (!category) throw notFound("Category not found", "category_not_found");
-        return { id: category.id };
-      });
-    },
+    remove: removeCategory,
   };
 }
 export type CategoriesService = ReturnType<typeof createCategoriesService>;

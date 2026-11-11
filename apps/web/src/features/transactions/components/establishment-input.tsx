@@ -59,7 +59,6 @@ export function EstablishmentInput({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [highlighted, setHighlighted] = useState("");
-  const [contentWidth, setContentWidth] = useState<number>();
   const containerRef = useRef<HTMLDivElement>(null);
   const available = useMemo(
     () => suggestions.some((suggestion) => suggestion.type === type),
@@ -70,10 +69,13 @@ export function EstablishmentInput({
     [suggestions, query, type],
   );
 
+  /** Opens the list for what was typed; with nothing typed it stays closed (except on mobile). */
   function show(nextQuery: string) {
+    if (!mobile && !nextQuery.trim()) {
+      setOpen(false);
+      return;
+    }
     const matches = findTransactionSuggestions(suggestions, nextQuery, type);
-    const container = containerRef.current;
-    if (container) setContentWidth(container.offsetWidth);
     setHighlighted(matches[0] ? suggestionKey(matches[0]) : "");
     setOpen(matches.length > 0);
   }
@@ -177,7 +179,9 @@ export function EstablishmentInput({
 
       <PopoverContent
         title="Lançamentos anteriores"
-        align="end"
+        align="start"
+        anchor={containerRef}
+        sideOffset={6}
         className="w-[var(--anchor-width)] gap-0 p-0"
         finalFocus={false}
         initialFocus={false}
@@ -186,7 +190,6 @@ export function EstablishmentInput({
           event.stopPropagation();
           setOpen(false);
         }}
-        style={contentWidth ? { width: contentWidth } : undefined}
       >
         {mobile ? (
           <Input

@@ -10,6 +10,7 @@ test("import matches full category paths and leaves duplicate leaf names for rev
     icon: null,
     type: "expense",
     isSystem: false,
+    position: 0,
     createdAt: "2026-09-01T00:00:00.000Z",
     updatedAt: "2026-09-01T00:00:00.000Z",
   };

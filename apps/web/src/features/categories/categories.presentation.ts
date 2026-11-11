@@ -33,8 +33,50 @@ export function sortCategoryOptions<
   );
 }
 
+/** The order chosen by dragging on the categories screen, then the name. */
 function compareCategories(left: CategoryOutput, right: CategoryOutput) {
-  return left.name.localeCompare(right.name, "pt-BR");
+  return left.position - right.position || left.name.localeCompare(right.name, "pt-BR");
+}
+
+/**
+ * Moves one category to where another one is, within the same level, and returns the ids of that
+ * level in their new order. Returns null when the move changes nothing or crosses levels.
+ */
+export function moveCategory(
+  categories: readonly CategoryOutput[],
+  activeId: string,
+  overId: string,
+) {
+  const active = categories.find((category) => category.id === activeId);
+  const over = categories.find((category) => category.id === overId);
+  if (!active || !over || activeId === overId) return null;
+  if (active.type !== over.type || (active.parentId ?? null) !== (over.parentId ?? null)) {
+    return null;
+  }
+  const level = categories
+    .filter(
+      (category) =>
+        category.type === active.type && (category.parentId ?? null) === (active.parentId ?? null),
+    )
+    .sort(compareCategories)
+    .map((category) => category.id);
+  const from = level.indexOf(activeId);
+  const to = level.indexOf(overId);
+  level.splice(to, 0, ...level.splice(from, 1));
+  return level;
+}
+
+/** The categories with each id of `orderedIds` placed at its index, for an optimistic update. */
+export function applyCategoryOrder(
+  categories: readonly CategoryOutput[],
+  orderedIds: readonly string[],
+) {
+  const positions = new Map(orderedIds.map((id, index) => [id, index]));
+  return categories.map((category) =>
+    positions.has(category.id)
+      ? { ...category, position: positions.get(category.id) as number }
+      : category,
+  );
 }
 
 export function getCategoryErrorMessage(error: unknown, operation: "save" | "remove" = "save") {
@@ -90,6 +132,30 @@ export function getSubcategoryOptions(
     : [];
   return { parent, selected, options };
 }
+
+export const missingCategoryMessage = "Selecione a categoria e a subcategoria.";
+export const missingSubcategoryMessage = "Selecione uma subcategoria.";
+
+/**
+ * A transaction is saved with a subcategory whenever its category has one: nothing chosen (or a
+ * category that no longer exists) is missing both, and a main category with subcategories is
+ * missing the subcategory. A main category without subcategories, such as the system ones, is
+ * accepted as it is.
+ */
+export function getCategorySelectionError(
+  categories: readonly Pick<CategoryOutput, "id" | "parentId">[],
+  categoryId: string,
+) {
+  const category = categories.find((item) => item.id === categoryId);
+  if (!category) return missingCategoryMessage;
+  if (category.parentId) return undefined;
+  return categories.some((item) => item.parentId === category.id)
+    ? missingSubcategoryMessage
+    : undefined;
+}
+
+/** Shown under Subcategoria when the chosen category has none to pick. */
+export const noSubcategoriesNotice = "Esta categoria não tem subcategorias e será salva sem uma.";
 
 export function getSubcategoryPlaceholder(
   parent: CategoryOutput | undefined,

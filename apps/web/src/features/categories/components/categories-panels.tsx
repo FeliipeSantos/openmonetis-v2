@@ -25,6 +25,7 @@ import {
   getSubcategoryCountLabel,
 } from "../categories.presentation";
 import { CategoryIcon } from "../category-icons";
+import { SortableCategoryList } from "./sortable-category-list";
 import { SubcategoryForm } from "./subcategory-form";
 
 /** Categorias principais à esquerda; ao escolher uma, as subcategorias dela aparecem à direita. */
@@ -36,6 +37,7 @@ export function CategoriesPanels({
   onRemove,
   onCreateCategory,
   onCreateSubcategory,
+  onMove,
   pendingId,
 }: {
   categories: CategoryOutput[];
@@ -45,6 +47,8 @@ export function CategoriesPanels({
   onRemove: (category: CategoryOutput) => Promise<void>;
   onCreateCategory: () => void;
   onCreateSubcategory: (input: CreateCategoryInput) => Promise<void>;
+  /** Drops `activeId` where `overId` is, within the same level. */
+  onMove: (activeId: string, overId: string) => void;
   pendingId?: string | null;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -83,48 +87,54 @@ export function CategoriesPanels({
             Nova categoria
           </Button>
         </div>
-        <ul aria-label={`Categorias de ${categoryGroupLabels[type]}`}>
-          {groups.map((group) => {
+        <SortableCategoryList
+          ariaLabel={`Categorias de ${categoryGroupLabels[type]}`}
+          disabled={searching}
+          items={groups.map((group) => group.parent)}
+          onMove={onMove}
+          rowClassName={(category) =>
+            cn(
+              "flex min-w-0 items-center gap-2 rounded-md border-l-2 border-transparent bg-card px-2 hover:bg-muted/50 focus-within:bg-muted/50",
+              category.id === parent.id && "border-brand-strong bg-muted/50",
+            )
+          }
+          renderActions={(category) => (
+            <CategoryActions
+              category={category}
+              onEdit={onEdit}
+              onRemove={onRemove}
+              pending={pendingId === category.id}
+            />
+          )}
+          renderContent={(category) => {
+            const group = groups.find((item) => item.parent.id === category.id);
+            if (!group) return null;
             const active = group.parent.id === parent.id;
             return (
-              <li
-                className={cn(
-                  "flex min-w-0 items-center gap-2 rounded-md border-l-2 border-transparent px-2 hover:bg-muted/50 focus-within:bg-muted/50",
-                  active && "border-brand-strong bg-muted/50",
-                )}
-                key={group.parent.id}
+              <button
+                aria-pressed={active}
+                className="flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-md py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={() => select(group.parent.id)}
+                type="button"
               >
-                <button
-                  aria-pressed={active}
-                  className="flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-md py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  onClick={() => select(group.parent.id)}
-                  type="button"
+                <span
+                  className={cn(
+                    "grid size-9 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground",
+                    active && "text-brand-strong",
+                  )}
                 >
-                  <span
-                    className={cn(
-                      "grid size-9 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground",
-                      active && "text-brand-strong",
-                    )}
-                  >
-                    <CategoryIcon className="size-4" name={group.parent.icon} />
+                  <CategoryIcon className="size-4" name={group.parent.icon} />
+                </span>
+                <span className="grid min-w-0">
+                  <span className="truncate font-medium">{group.parent.name}</span>
+                  <span className="text-muted-foreground text-xs">
+                    {getSubcategoryCountLabel(group.children.length, searching)}
                   </span>
-                  <span className="grid min-w-0">
-                    <span className="truncate font-medium">{group.parent.name}</span>
-                    <span className="text-muted-foreground text-xs">
-                      {getSubcategoryCountLabel(group.children.length, searching)}
-                    </span>
-                  </span>
-                </button>
-                <CategoryActions
-                  category={group.parent}
-                  onEdit={onEdit}
-                  onRemove={onRemove}
-                  pending={pendingId === group.parent.id}
-                />
-              </li>
+                </span>
+              </button>
             );
-          })}
-        </ul>
+          }}
+        />
       </Card>
       <Card
         className="min-w-0 scroll-mt-4 gap-0 p-3 sm:p-4 lg:sticky lg:top-4"
@@ -165,32 +175,37 @@ export function CategoriesPanels({
           </div>
         ) : null}
         {children.length ? (
-          <ul aria-label={`Subcategorias de ${parent.name}`} className="[&_a]:no-underline">
-            {children.map((child) => (
-              <li
-                className="flex min-w-0 items-center gap-2 rounded-md px-2 hover:bg-muted/50 focus-within:bg-muted/50"
-                key={child.id}
+          <SortableCategoryList
+            ariaLabel={`Subcategorias de ${parent.name}`}
+            className="[&_a]:no-underline"
+            disabled={searching}
+            items={children}
+            onMove={onMove}
+            rowClassName={() =>
+              "flex min-w-0 items-center gap-2 rounded-md bg-card px-2 hover:bg-muted/50 focus-within:bg-muted/50"
+            }
+            renderActions={(child) => (
+              <CategoryActions
+                category={child}
+                onEdit={onEdit}
+                onRemove={onRemove}
+                pending={pendingId === child.id}
+              />
+            )}
+            renderContent={(child) => (
+              <Link
+                className="flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-md py-2 text-sm hover:text-brand-strong outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                params={{ categoryId: child.id }}
+                to="/categories/$categoryId"
+                aria-label={getCategoryLabel(child)}
               >
-                <Link
-                  className="flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-md py-2 text-sm hover:text-brand-strong outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  params={{ categoryId: child.id }}
-                  to="/categories/$categoryId"
-                  aria-label={getCategoryLabel(child)}
-                >
-                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
-                    <CategoryIcon className="size-4" name={child.icon ?? parent.icon} />
-                  </span>
-                  <span className="min-w-0 break-words font-medium">{child.name}</span>
-                </Link>
-                <CategoryActions
-                  category={child}
-                  onEdit={onEdit}
-                  onRemove={onRemove}
-                  pending={pendingId === child.id}
-                />
-              </li>
-            ))}
-          </ul>
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
+                  <CategoryIcon className="size-4" name={child.icon ?? parent.icon} />
+                </span>
+                <span className="min-w-0 break-words font-medium">{child.name}</span>
+              </Link>
+            )}
+          />
         ) : adding ? null : (
           <div className="grid min-h-40 place-items-center p-6 text-center">
             <p className="text-muted-foreground text-sm">

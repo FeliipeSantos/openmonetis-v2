@@ -1,6 +1,11 @@
 import { budgets, categories, db, recurringTransactionRules, transactions } from "@openmonetis/db";
-import { CategoryConstraintError, expandCategoryIds } from "@openmonetis/domain/categories";
-import { and, asc, eq, inArray, type SQLWrapper, sql } from "drizzle-orm";
+import {
+  assertCategoryOrder,
+  CategoryConstraintError,
+  type CategoryType,
+  expandCategoryIds,
+} from "@openmonetis/domain/categories";
+import { and, asc, eq, inArray, isNull, type SQLWrapper, sql } from "drizzle-orm";
 import type { CategoriesRepository } from "../services/categories.service";
 
 export const categoriesRepository = {
@@ -24,7 +29,11 @@ export const categoriesRepository = {
   },
   async insert(data) {
     return categoryWrite(data.userId, async (tx) => {
-      const [category] = await tx.insert(categories).values(data).returning();
+      const position = await nextPosition(tx, data.userId, data.type, data.parentId ?? null);
+      const [category] = await tx
+        .insert(categories)
+        .values({ ...data, position })
+        .returning();
       return category;
     });
   },
@@ -59,9 +68,20 @@ export const categoriesRepository = {
   },
   async updateForUser(id, userId, data) {
     return categoryWrite(userId, async (tx) => {
+      const [current] = await tx
+        .select({ type: categories.type, parentId: categories.parentId })
+        .from(categories)
+        .where(and(eq(categories.id, id), eq(categories.userId, userId)))
+        .limit(1);
+      const type = data.type ?? current?.type;
+      const parentId = data.parentId === undefined ? (current?.parentId ?? null) : data.parentId;
+      // Moving to another group (or type) puts the category at the end of its new level.
+      const moved =
+        current && type && (type !== current.type || parentId !== (current.parentId ?? null));
+      const position = moved ? await nextPosition(tx, userId, type, parentId) : undefined;
       const [category] = await tx
         .update(categories)
-        .set({ ...data, updatedAt: new Date() })
+        .set({ ...data, ...(position === undefined ? {} : { position }), updatedAt: new Date() })
         .where(
           and(eq(categories.id, id), eq(categories.userId, userId), eq(categories.isSystem, false)),
         )
@@ -78,6 +98,24 @@ export const categoriesRepository = {
         )
         .returning();
       return category ?? null;
+    });
+  },
+  async reorderForUser(userId, type, parentId, ids) {
+    await categoryWrite(userId, async (tx) => {
+      const siblings = await tx
+        .select({ id: categories.id })
+        .from(categories)
+        .where(siblingsOf(userId, type, parentId));
+      assertCategoryOrder(
+        siblings.map((sibling) => sibling.id),
+        ids,
+      );
+      for (const [position, id] of ids.entries()) {
+        await tx
+          .update(categories)
+          .set({ position })
+          .where(and(eq(categories.id, id), eq(categories.userId, userId)));
+      }
     });
   },
   async hasFinancialReferencesForUser(id, userId) {
@@ -126,6 +164,27 @@ export function listCategoriesByIdsForUser(ids: string[], userId: string) {
 }
 
 type CategoryTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+function siblingsOf(userId: string, type: CategoryType, parentId: string | null) {
+  return and(
+    eq(categories.userId, userId),
+    eq(categories.type, type),
+    parentId ? eq(categories.parentId, parentId) : isNull(categories.parentId),
+  );
+}
+
+async function nextPosition(
+  tx: CategoryTransaction,
+  userId: string,
+  type: CategoryType,
+  parentId: string | null,
+) {
+  const [row] = await tx
+    .select({ next: sql<number>`coalesce(max(${categories.position}) + 1, 0)::int` })
+    .from(categories)
+    .where(siblingsOf(userId, type, parentId));
+  return row?.next ?? 0;
+}
 async function categoryWrite<T>(
   userId: string,
   operation: (tx: CategoryTransaction) => Promise<T>,

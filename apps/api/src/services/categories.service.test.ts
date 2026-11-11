@@ -15,6 +15,7 @@ test("category removal checks ownership and rejects financial references before 
     type: "expense",
     icon: null,
     isSystem: false,
+    position: 0,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -66,6 +67,7 @@ test("category edits preserve an omitted parent and validate ownership before pe
     icon: "home",
     isSystem: false,
     parentId: null,
+    position: 0,
     createdAt: date,
     updatedAt: date,
   };

@@ -7,7 +7,13 @@ import { MobileDatePicker as DatePicker } from "@/components/forms/mobile-date-p
 import { MobileSelect as Select } from "@/components/forms/mobile-select";
 import { MobileSelectContent as SelectContent } from "@/components/forms/mobile-select-content";
 import { SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getCategoryLabel } from "@/features/categories/categories.presentation";
+import {
+  getCategoryLabel,
+  getCategorySelectionError,
+  getSubcategoryOptions,
+  missingSubcategoryMessage,
+  noSubcategoriesNotice,
+} from "@/features/categories/categories.presentation";
 import { CategoryPicker } from "@/features/categories/components/category-picker";
 import { SubcategoryPicker } from "@/features/categories/components/subcategory-picker";
 import {
@@ -151,33 +157,51 @@ export function TransactionBasicFields({
       ) : null}
 
       {!isTransfer ? (
-        <form.Field name="categoryId">
-          {(field) => (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FieldShell
-                error={getTransactionFormErrorMessage("categoryId", field.state.meta.errors)}
-                label="Categoria"
-              >
-                <CategoryPicker
-                  categories={visibleCategories}
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  onCreate={() => setRelatedRecord("category")}
-                  disabled={isSubmitting}
-                  invalid={field.state.meta.errors.length > 0}
-                  rootsOnly
-                />
-              </FieldShell>
-              <FieldShell label="Subcategoria">
-                <SubcategoryPicker
-                  categories={visibleCategories}
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  disabled={isSubmitting}
-                />
-              </FieldShell>
-            </div>
-          )}
+        <form.Field
+          name="categoryId"
+          validators={{
+            onSubmit: ({ value }) => getCategorySelectionError(visibleCategories, value),
+            // After a failed save the message follows the choice, so it clears once fixed.
+            onChange: ({ value, fieldApi }) =>
+              fieldApi.form.state.submissionAttempts > 0
+                ? getCategorySelectionError(visibleCategories, value)
+                : undefined,
+          }}
+        >
+          {(field) => {
+            const error = getTransactionFormErrorMessage("categoryId", field.state.meta.errors);
+            const subcategoryError = error === missingSubcategoryMessage ? error : undefined;
+            const categoryError = subcategoryError ? undefined : error;
+            const { parent, options } = getSubcategoryOptions(visibleCategories, field.state.value);
+            const withoutSubcategories = Boolean(parent && !parent.parentId && !options.length);
+            return (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FieldShell error={categoryError} label="Categoria">
+                  <CategoryPicker
+                    categories={visibleCategories}
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    onCreate={() => setRelatedRecord("category")}
+                    disabled={isSubmitting}
+                    invalid={Boolean(categoryError)}
+                    rootsOnly
+                  />
+                </FieldShell>
+                <FieldShell error={subcategoryError} label="Subcategoria">
+                  <SubcategoryPicker
+                    categories={visibleCategories}
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    disabled={isSubmitting}
+                    invalid={Boolean(subcategoryError)}
+                  />
+                  {withoutSubcategories ? (
+                    <p className="text-muted-foreground text-xs">{noSubcategoriesNotice}</p>
+                  ) : null}
+                </FieldShell>
+              </div>
+            );
+          }}
         </form.Field>
       ) : null}
     </section>

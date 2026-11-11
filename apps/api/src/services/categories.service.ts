@@ -13,6 +13,7 @@ import {
 import type {
   CategoryOutput,
   CreateCategoryInput,
+  ReorderCategoriesInput,
   ReplaceCategoryInput,
   UpdateCategoryInput,
 } from "@openmonetis/validators/categories";
@@ -26,10 +27,11 @@ export type CategoryRecord = {
   icon: string | null;
   isSystem: boolean;
   parentId?: string | null;
+  position: number;
   createdAt: Date;
   updatedAt: Date;
 };
-type CategoryCreateRecord = Omit<CategoryRecord, "id" | "createdAt" | "updatedAt">;
+type CategoryCreateRecord = Omit<CategoryRecord, "id" | "position" | "createdAt" | "updatedAt">;
 type CategoryUpdateRecord = Partial<Pick<CategoryRecord, "name" | "type" | "icon" | "parentId">>;
 export type CategoriesRepository = {
   insertDefaults(data: CategoryCreateDraft[]): Promise<void>;
@@ -45,6 +47,12 @@ export type CategoriesRepository = {
   ): Promise<CategoryRecord | null>;
   deleteForUser(id: string, userId: string): Promise<CategoryRecord | null>;
   hasFinancialReferencesForUser(id: string, userId: string): Promise<boolean>;
+  reorderForUser(
+    userId: string,
+    type: CategoryType,
+    parentId: string | null,
+    ids: string[],
+  ): Promise<void>;
 };
 
 function toOutput(
@@ -59,6 +67,7 @@ function toOutput(
     isSystem: category.isSystem,
     parentId: category.parentId ?? null,
     parentName: categories.find((item) => item.id === category.parentId)?.name ?? null,
+    position: category.position,
     createdAt: category.createdAt.toISOString(),
     updatedAt: category.updatedAt.toISOString(),
   };
@@ -125,6 +134,11 @@ export function createCategoriesService(repository: CategoriesRepository) {
     });
   }
   return {
+    /** Saves the order of one level (same type and parent) as dragged on the categories screen. */
+    async reorder(input: ReorderCategoriesInput, userId: string) {
+      await write(() => repository.reorderForUser(userId, input.type, input.parentId, input.ids));
+      return { ids: input.ids };
+    },
     async seedDefaults(userId: string) {
       await repository.insertDefaults(createDefaultCategoryDrafts(userId, randomUUID));
     },

@@ -54,8 +54,13 @@ export function BudgetsPage({ onPeriodChange, period }: BudgetsPageProps) {
     (category) => category.type === "expense",
   );
   const budgetedCategoryIds = new Set(overview?.items.map((budget) => budget.categoryId));
+  // A main category stays listed while one of its subcategories can still get a budget.
   const availableCategories = expenseCategories.filter(
-    (category) => !budgetedCategoryIds.has(category.id),
+    (category) =>
+      !budgetedCategoryIds.has(category.id) ||
+      expenseCategories.some(
+        (child) => child.parentId === category.id && !budgetedCategoryIds.has(child.id),
+      ),
   );
   const categorySlugs = buildFilterSlugMap(
     (categoriesQuery.data ?? []).map((category) => ({

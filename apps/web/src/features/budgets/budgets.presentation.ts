@@ -1,5 +1,6 @@
 import { formatDateInBrazil, periodToSafeInstant } from "@openmonetis/shared/date-time";
 import type { BudgetOutput } from "@openmonetis/validators/budgets";
+import type { CategoryOutput } from "@openmonetis/validators/categories";
 
 export const budgetStatusLabels: Record<BudgetOutput["status"], string> = {
   onTrack: "Dentro do limite",
@@ -43,4 +44,19 @@ export function getBudgetWidgetItems(items: BudgetOutput[], limit?: number) {
   );
 
   return limit === undefined ? sorted : sorted.slice(0, limit);
+}
+
+/** Explains what a budget for the chosen category will count. */
+export function getBudgetScopeHint(
+  categories: readonly Pick<CategoryOutput, "id" | "name" | "parentId" | "parentName">[],
+  categoryId: string,
+) {
+  const category = categories.find((item) => item.id === categoryId);
+  if (!category) {
+    return "Escolha só a categoria para incluir todas as subcategorias, ou também uma subcategoria para limitar o orçamento a ela.";
+  }
+  if (category.parentId) {
+    return `Considera só os lançamentos de ${category.parentName ?? ""} › ${category.name}.`;
+  }
+  return `Considera todos os lançamentos de ${category.name} e das suas subcategorias.`;
 }

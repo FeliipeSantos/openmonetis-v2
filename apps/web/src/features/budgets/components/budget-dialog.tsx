@@ -10,17 +10,16 @@ import { useId, useState } from "react";
 import { MobileFormContent as DialogContent } from "@/components/forms/mobile-form-content";
 import { MobileFormDialog as Dialog } from "@/components/forms/mobile-form-dialog";
 import { MobileFormState } from "@/components/forms/mobile-form-state";
-import { MobileSelect as Select } from "@/components/forms/mobile-select";
-import { MobileSelectContent as SelectContent } from "@/components/forms/mobile-select-content";
 import { PeriodPicker } from "@/components/period-picker";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getCategoryLabel } from "@/features/categories/categories.presentation";
 import { CategoryIcon } from "@/features/categories/category-icons";
+import { CategoryPicker } from "@/features/categories/components/category-picker";
+import { SubcategoryPicker } from "@/features/categories/components/subcategory-picker";
 import { showInvalidFormToast } from "@/lib/form-feedback";
+import { getBudgetScopeHint } from "../budgets.presentation";
 
 type BudgetDialogProps = {
   budget: BudgetOutput | null;
@@ -109,13 +108,18 @@ export function BudgetDialog({
           >
             {(state) => <MobileFormState {...state} />}
           </form.Subscribe>
-          <form.Field name="categoryId">
-            {(field) => (
-              <div className="grid gap-1.5">
-                <Label className="font-mono" htmlFor={`${id}-category`}>
-                  Categoria de despesa
-                </Label>
-                {editing && budget ? (
+          <form.Field
+            name="categoryId"
+            validators={{
+              onSubmit: ({ value }) => (value ? undefined : "Selecione a categoria."),
+            }}
+          >
+            {(field) =>
+              editing && budget ? (
+                <div className="grid gap-1.5">
+                  <Label className="font-mono" htmlFor={`${id}-category`}>
+                    Categoria de despesa
+                  </Label>
                   <output
                     className="flex h-9 items-center gap-2 rounded-md border border-input bg-muted/40 px-3 text-sm"
                     id={`${id}-category`}
@@ -126,35 +130,41 @@ export function BudgetDialog({
                     />
                     <span>{budget.categoryName}</span>
                   </output>
-                ) : (
-                  <Select
-                    onValueChange={(value) => value && field.handleChange(value)}
-                    value={field.state.value}
-                  >
-                    <SelectTrigger className="w-full" id={`${id}-category`}>
-                      <SelectValue placeholder="Selecione">
-                        {(value: string) =>
-                          value ? (
-                            <CategoryOption
-                              category={categories.find((item) => item.id === value)}
-                            />
-                          ) : (
-                            "Selecione"
-                          )
-                        }
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          <CategoryOption category={category} />
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-            )}
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid content-start gap-1.5">
+                    <span className="font-mono text-sm font-medium">Categoria de despesa</span>
+                    <CategoryPicker
+                      allowEmpty={false}
+                      categories={categories}
+                      invalid={field.state.meta.errors.length > 0}
+                      onChange={field.handleChange}
+                      placeholder="Selecione"
+                      rootsOnly
+                      value={field.state.value}
+                    />
+                    {field.state.meta.errors[0] ? (
+                      <p className="text-destructive text-xs" role="alert">
+                        {String(field.state.meta.errors[0])}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="grid content-start gap-1.5">
+                    <span className="font-mono text-sm font-medium">Subcategoria</span>
+                    <SubcategoryPicker
+                      categories={categories}
+                      noneLabel="Todas as subcategorias"
+                      onChange={field.handleChange}
+                      value={field.state.value}
+                    />
+                  </div>
+                  <p className="text-muted-foreground text-xs sm:col-span-2">
+                    {getBudgetScopeHint(categories, field.state.value)}
+                  </p>
+                </div>
+              )
+            }
           </form.Field>
 
           <form.Field name="period">
@@ -233,15 +243,5 @@ export function BudgetDialog({
         </form>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function CategoryOption({ category }: { category?: CategoryOutput }) {
-  if (!category) return null;
-  return (
-    <span className="flex min-w-0 items-center gap-2">
-      <CategoryIcon className="size-4 shrink-0 text-muted-foreground" name={category.icon} />
-      <span className="truncate">{getCategoryLabel(category)}</span>
-    </span>
   );
 }

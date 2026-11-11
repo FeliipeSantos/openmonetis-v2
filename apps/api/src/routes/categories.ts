@@ -4,6 +4,7 @@ import {
   CategoryOutputSchema,
   CategoryParamsSchema,
   CreateCategoryInputSchema,
+  ReorderCategoriesInputSchema,
   ReplaceCategoryInputSchema,
   UpdateCategoryInputSchema,
 } from "@openmonetis/validators/categories";
@@ -14,6 +15,7 @@ import { errorResponse as error, validationHook } from "../utils/openapi";
 const OneSchema = z.object({ data: CategoryOutputSchema, error: z.null() });
 const ManySchema = z.object({ data: z.array(CategoryOutputSchema), error: z.null() });
 const DeletedSchema = z.object({ data: z.object({ id: z.uuid() }), error: z.null() });
+const ReorderedSchema = z.object({ data: z.object({ ids: z.array(z.uuid()) }), error: z.null() });
 
 export function createCategoriesRoute(service: CategoriesService) {
   const route = new OpenAPIHono<{ Variables: ApiVariables }>({ defaultHook: validationHook });
@@ -54,6 +56,28 @@ export function createCategoriesRoute(service: CategoriesService) {
       },
     }),
     async (c) => c.json(ok(await service.list(c.get("userId"))), 200),
+  );
+  route.openapi(
+    createRoute({
+      method: "put",
+      path: "/order",
+      tags: ["Categories"],
+      request: {
+        body: {
+          required: true,
+          content: { "application/json": { schema: ReorderCategoriesInputSchema } },
+        },
+      },
+      responses: {
+        200: {
+          description: "Saved the order of one level of categories",
+          content: { "application/json": { schema: ReorderedSchema } },
+        },
+        400: error("The ids must be every category of this type and parent, once each"),
+        401: error("Authentication required"),
+      },
+    }),
+    async (c) => c.json(ok(await service.reorder(c.req.valid("json"), c.get("userId"))), 200),
   );
   route.openapi(
     createRoute({

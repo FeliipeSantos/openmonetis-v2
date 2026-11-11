@@ -26,18 +26,24 @@ export function SubcategoryPicker({
   value,
   onChange,
   disabled,
+  invalid,
+  noneLabel = "Sem subcategoria",
 }: {
   categories: CategoryOutput[];
   value: string;
   onChange: (id: string) => void;
   disabled?: boolean;
+  invalid?: boolean;
+  /** Label of the option that keeps only the main category. */
+  noneLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const { parent, selected, options } = getSubcategoryOptions(categories, value, search);
   const hasSubcategories = getSubcategoryOptions(categories, value).options.length > 0;
   const unavailable = !parent || !hasSubcategories;
-  const placeholder = getSubcategoryPlaceholder(parent, hasSubcategories);
+  const placeholder =
+    parent && hasSubcategories ? noneLabel : getSubcategoryPlaceholder(parent, hasSubcategories);
   function choose(id: string) {
     onChange(id);
     setOpen(false);
@@ -59,6 +65,7 @@ export function SubcategoryPicker({
             role="combobox"
             aria-expanded={open}
             aria-label={`Subcategoria: ${selected?.name ?? placeholder}`}
+            aria-invalid={invalid}
             disabled={disabled || unavailable}
             className="w-full justify-start overflow-hidden font-normal"
           />
@@ -99,7 +106,7 @@ export function SubcategoryPicker({
                 onSelect={() => choose(parent.id)}
               >
                 <CircleDashed aria-hidden="true" className="size-4" />
-                Sem subcategoria
+                {noneLabel}
               </CommandItem>
             ) : null}
             {options.map((child) => (

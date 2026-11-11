@@ -190,12 +190,20 @@ export function calculateBudgetSpending(
   };
 }
 
+/**
+ * Budgets against the month's spending. A budget on a main category covers it and every one of its
+ * subcategories; a budget on a subcategory covers only that subcategory. `categoryParents` maps each
+ * category id to its main category (or null). When a main category and one of its subcategories are
+ * both budgeted, the subcategory still gets its own progress but is counted once in the totals.
+ */
 export function calculateBudgetOverview(
   budgetLimits: Array<{ categoryId: string; amount: string | number }>,
   spending: BudgetSpending,
+  categoryParents: ReadonlyMap<string, string | null> = new Map(),
 ): BudgetOverviewCalculation {
   const progressByCategory = new Map<string, BudgetProgress>();
   const budgetedCategoryIds = new Set(budgetLimits.map((budget) => budget.categoryId));
+  const coveredCategoryIds = new Set<string>();
   let allocatedAmount = 0;
   let actualSpentAmount = 0;
   let projectedAmount = 0;
@@ -204,27 +212,41 @@ export function calculateBudgetOverview(
   let exceededAmount = 0;
   let warningCount = 0;
 
+  const coveredBy = (categoryId: string) => [
+    categoryId,
+    ...[...categoryParents]
+      .filter(([, parentId]) => parentId === categoryId)
+      .map(([childId]) => childId),
+  ];
+  const sumOver = (amounts: Map<string, number>, categoryIds: string[]) =>
+    categoryIds.reduce((total, categoryId) => total + (amounts.get(categoryId) ?? 0), 0);
+
   for (const budget of budgetLimits) {
     const amount = Math.abs(Number(budget.amount));
+    const categoryIds = coveredBy(budget.categoryId);
+    for (const categoryId of categoryIds) coveredCategoryIds.add(categoryId);
     const progress = calculateBudgetProgress(
       amount,
-      spending.actualByCategory.get(budget.categoryId) ?? 0,
-      spending.projectedByCategory.get(budget.categoryId) ?? 0,
+      sumOver(spending.actualByCategory, categoryIds),
+      sumOver(spending.projectedByCategory, categoryIds),
     );
     progressByCategory.set(budget.categoryId, progress);
     allocatedAmount += amount;
-    actualSpentAmount += progress.actualSpentAmount;
-    projectedAmount += progress.projectedAmount;
-    committedAmount += progress.committedAmount;
     availableAmount += progress.remainingAmount;
     exceededAmount += progress.exceededAmount;
     if (progress.status !== "onTrack") warningCount += 1;
+
+    const parentId = categoryParents.get(budget.categoryId);
+    if (parentId && budgetedCategoryIds.has(parentId)) continue;
+    actualSpentAmount += progress.actualSpentAmount;
+    projectedAmount += progress.projectedAmount;
+    committedAmount += progress.committedAmount;
   }
 
   const unbudgetedItems = [
     ...new Set([...spending.actualByCategory.keys(), ...spending.projectedByCategory.keys()]),
   ]
-    .filter((categoryId) => !budgetedCategoryIds.has(categoryId))
+    .filter((categoryId) => !coveredCategoryIds.has(categoryId))
     .map((categoryId) => ({
       categoryId: categoryId as string | null,
       committedAmount: roundMoney(

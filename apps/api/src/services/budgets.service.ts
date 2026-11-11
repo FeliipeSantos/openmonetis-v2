@@ -56,6 +56,7 @@ type BudgetCategoriesRepository = {
     id: string,
     userId: string,
   ): Promise<{ id: string; type: "income" | "expense" } | null>;
+  listByUser(userId: string): Promise<Array<{ id: string; parentId?: string | null }>>;
 };
 
 export function createBudgetsService(
@@ -72,13 +73,18 @@ export function createBudgetsService(
 
   async function list(userId: string, query: ListBudgetsQuery) {
     const periodEnd = getPeriodEndDate(query.period);
-    const [budgetRows, spendingEntries, recurringRules] = await Promise.all([
+    const [budgetRows, spendingEntries, recurringRules, categories] = await Promise.all([
       repository.listByUserAndPeriod(userId, query.period),
       repository.listSpendingEntries(userId, query.period),
       repository.listRecurringRules(userId, periodEnd),
+      categoriesRepository.listByUser(userId),
     ]);
     const spending = calculateBudgetSpending(spendingEntries, recurringRules, query.period);
-    const overview = calculateBudgetOverview(budgetRows, spending);
+    const overview = calculateBudgetOverview(
+      budgetRows,
+      spending,
+      new Map(categories.map((category) => [category.id, category.parentId ?? null])),
+    );
     const items = budgetRows
       .map((budget) =>
         toOutput(

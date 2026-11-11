@@ -2,11 +2,16 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { CategoryOutput } from "@openmonetis/validators/categories";
 import {
+  applyCategoryOrder,
   getCategoryGroups,
   getCategoryLabel,
+  getCategorySelectionError,
   getSubcategoryCountLabel,
   getSubcategoryOptions,
   getSubcategoryPlaceholder,
+  missingCategoryMessage,
+  missingSubcategoryMessage,
+  moveCategory,
   sortCategoryOptions,
 } from "./categories.presentation";
 
@@ -17,6 +22,7 @@ const root: CategoryOutput = {
   icon: null,
   type: "expense",
   isSystem: false,
+  position: 0,
   createdAt: date,
   updatedAt: date,
   parentId: null,
@@ -83,4 +89,35 @@ test("subcategory options follow the main category of the chosen id", () => {
   assert.equal(getSubcategoryPlaceholder(undefined, false), "Escolha a categoria");
   assert.equal(getSubcategoryPlaceholder(root, true), "Sem subcategoria");
   assert.equal(getSubcategoryPlaceholder(root, false), "Sem subcategorias");
+});
+
+test("a transaction needs a subcategory whenever its category has one", () => {
+  assert.equal(getCategorySelectionError(categories, ""), missingCategoryMessage);
+  assert.equal(getCategorySelectionError(categories, "home"), missingSubcategoryMessage);
+  assert.equal(getCategorySelectionError(categories, "light"), undefined);
+  assert.equal(getCategorySelectionError(categories, "travel"), undefined);
+  assert.equal(getCategorySelectionError(categories, "deleted"), missingCategoryMessage);
+});
+
+test("moving a category reorders only its own level", () => {
+  const level = [
+    { ...light, position: 0 },
+    { ...water, position: 1 },
+    { ...light, id: "gas", name: "Gás", position: 2 },
+  ];
+  const all = [...level, root, { ...root, id: "travel", name: "Viagem", position: 1 }];
+  assert.deepEqual(moveCategory(all, "gas", "light"), ["gas", "light", "water"]);
+  assert.deepEqual(moveCategory(all, "light", "gas"), ["water", "gas", "light"]);
+  assert.equal(moveCategory(all, "light", "travel"), null);
+  assert.equal(moveCategory(all, "light", "light"), null);
+  assert.deepEqual(
+    applyCategoryOrder(all, ["gas", "light", "water"])
+      .filter((category) => category.parentId === "home")
+      .map((category) => [category.id, category.position]),
+    [
+      ["light", 1],
+      ["water", 2],
+      ["gas", 0],
+    ],
+  );
 });

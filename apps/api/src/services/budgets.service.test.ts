@@ -77,6 +77,10 @@ function fixture() {
       assert.equal(user, userId);
       return id === "foreign" ? null : { id, type: id === "salary" ? "income" : "expense" };
     },
+    async listByUser(user) {
+      assert.equal(user, userId);
+      return [];
+    },
   });
   return { userId, rows, spending, rules, repository, service, writes: () => writes };
 }

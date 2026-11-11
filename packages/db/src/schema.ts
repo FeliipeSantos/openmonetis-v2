@@ -613,6 +613,8 @@ export const categories = pgTable(
     parentId: uuid("parent_id"),
     icon: varchar("icon", { length: 100 }),
     isSystem: boolean("is_system").notNull().default(false),
+    /** Order among the categories sharing the same type and parent, chosen by dragging. */
+    position: integer("position").notNull().default(0),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at")
       .notNull()
@@ -621,6 +623,7 @@ export const categories = pgTable(
   },
   (table) => [
     index("categories_user_id_type_idx").on(table.userId, table.type),
+    check("categories_position_nonnegative_check", sql`${table.position} >= 0`),
     uniqueIndex("categories_user_id_name_type_unique")
       .on(table.userId, table.name, table.type)
       .where(sql`${table.parentId} is null`),

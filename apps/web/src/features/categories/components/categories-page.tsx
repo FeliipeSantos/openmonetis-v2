@@ -18,9 +18,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   useCreateCategoryMutation,
   useDeleteCategoryMutation,
+  useReorderCategoriesMutation,
   useReplaceCategoryMutation,
 } from "../categories.mutations";
-import { getCategoryErrorMessage, getCategoryGroups } from "../categories.presentation";
+import {
+  getCategoryErrorMessage,
+  getCategoryGroups,
+  moveCategory,
+} from "../categories.presentation";
 import { categoriesQueryOptions } from "../categories.queries";
 import { CategoriesPanels } from "./categories-panels";
 import { CategoryDialog } from "./category-dialog";
@@ -30,6 +35,7 @@ export function CategoriesPage() {
   const create = useCreateCategoryMutation();
   const replace = useReplaceCategoryMutation();
   const remove = useDeleteCategoryMutation();
+  const reorder = useReorderCategoriesMutation();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<CategoryOutput | null>(null);
@@ -49,6 +55,15 @@ export function CategoriesPage() {
       await replace.mutateAsync({ id: editing.id, input: input as ReplaceCategoryInput });
     else await create.mutateAsync(input as CreateCategoryInput);
     changeOpen(false);
+  }
+  function move(activeId: string, overId: string) {
+    const ids = moveCategory(categories, activeId, overId);
+    const moved = categories.find((category) => category.id === activeId);
+    if (!ids || !moved) return;
+    reorder.mutate(
+      { type: moved.type, parentId: moved.parentId ?? null, ids },
+      { onError: () => toast.error("Não foi possível salvar a nova ordem. Tente novamente.") },
+    );
   }
   async function deleteOne(category: CategoryOutput) {
     try {
@@ -105,6 +120,7 @@ export function CategoriesPage() {
                         search={search}
                         type={type}
                         onCreateCategory={() => openNew(type)}
+                        onMove={move}
                         onCreateSubcategory={async (input) => {
                           await create.mutateAsync(input);
                         }}

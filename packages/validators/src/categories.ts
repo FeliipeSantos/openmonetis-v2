@@ -28,12 +28,23 @@ export const CategoryOutputSchema = z
     isSystem: z.boolean(),
     parentId: z.uuid().nullable().optional(),
     parentName: z.string().nullable().optional(),
+    position: z.number().int().nonnegative(),
     createdAt: z.iso.datetime(),
     updatedAt: z.iso.datetime(),
   })
   .openapi("CategoryOutput");
 
+/** The new order of one level: every category with this type and parent, first to last. */
+export const ReorderCategoriesInputSchema = z
+  .object({
+    type: z.enum(categoryTypes),
+    parentId: z.uuid().nullable(),
+    ids: z.array(z.uuid()).min(1).max(500),
+  })
+  .openapi("ReorderCategoriesInput");
+
 export type CreateCategoryInput = z.infer<typeof CreateCategoryInputSchema>;
+export type ReorderCategoriesInput = z.infer<typeof ReorderCategoriesInputSchema>;
 export type ReplaceCategoryInput = z.infer<typeof ReplaceCategoryInputSchema>;
 export type UpdateCategoryInput = z.infer<typeof UpdateCategoryInputSchema>;
 export type CategoryOutput = z.infer<typeof CategoryOutputSchema>;

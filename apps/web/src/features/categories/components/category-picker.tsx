@@ -26,15 +26,21 @@ export function CategoryPicker({
   disabled,
   invalid,
   rootsOnly = false,
+  placeholder = "Sem categoria",
+  allowEmpty = true,
 }: {
   categories: CategoryOutput[];
   value: string;
   onChange: (id: string) => void;
-  onCreate: () => void;
+  /** Offers "Criar categoria" at the bottom of the list when given. */
+  onCreate?: () => void;
   disabled?: boolean;
   invalid?: boolean;
   /** Lists only main categories; a selected subcategory shows (and checks) its main category. */
   rootsOnly?: boolean;
+  placeholder?: string;
+  /** Offers a "Sem categoria" option that clears the choice. */
+  allowEmpty?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -45,7 +51,8 @@ export function CategoryPicker({
       : current;
   const groups = getCategoryGroups(categories, search);
   const showEmptyOption =
-    !search.trim() || "sem categoria".includes(search.trim().toLocaleLowerCase("pt-BR"));
+    allowEmpty &&
+    (!search.trim() || "sem categoria".includes(search.trim().toLocaleLowerCase("pt-BR")));
   function choose(id: string) {
     onChange(id);
     setOpen(false);
@@ -66,7 +73,7 @@ export function CategoryPicker({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            aria-label={`Categoria: ${selected ? getCategoryLabel(selected) : "Sem categoria"}`}
+            aria-label={`Categoria: ${selected ? getCategoryLabel(selected) : placeholder}`}
             aria-invalid={invalid}
             disabled={disabled}
             className="w-full justify-start overflow-hidden font-normal"
@@ -80,7 +87,7 @@ export function CategoryPicker({
           {selected?.parentName ? (
             <span className="text-muted-foreground">{selected.parentName} › </span>
           ) : null}
-          {selected ? selected.name : <span className="text-muted-foreground">Sem categoria</span>}
+          {selected ? selected.name : <span className="text-muted-foreground">{placeholder}</span>}
         </span>
         <ChevronDown aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
       </MobilePickerTrigger>
@@ -141,20 +148,22 @@ export function CategoryPicker({
             ))}
           </CommandList>
         </Command>
-        <div className="border-t p-1">
-          <Button
-            type="button"
-            variant="ghost"
-            className="w-full justify-start text-muted-foreground"
-            onClick={() => {
-              setOpen(false);
-              onCreate();
-            }}
-          >
-            <Plus aria-hidden="true" className="size-4" />
-            Criar categoria
-          </Button>
-        </div>
+        {onCreate ? (
+          <div className="border-t p-1">
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full justify-start text-muted-foreground"
+              onClick={() => {
+                setOpen(false);
+                onCreate();
+              }}
+            >
+              <Plus aria-hidden="true" className="size-4" />
+              Criar categoria
+            </Button>
+          </div>
+        ) : null}
       </MobilePickerContent>
     </MobilePicker>
   );

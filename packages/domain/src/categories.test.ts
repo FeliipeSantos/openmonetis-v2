@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   assertCategoryHierarchy,
+  assertCategoryOrder,
   balanceAdjustmentCategoryName,
+  CategoryConstraintError,
   type CategoryHierarchyNode,
   createDefaultCategoryDrafts,
   type ExistingCategory,
@@ -178,4 +180,36 @@ test("non-default categories exclude system ones and list subcategories before p
     selectNonDefaultCategories(existing, defaults).map((category) => category.id),
     ["fair", "old-child", "old", "salary"],
   );
+});
+
+test("a new order must list every category of the level exactly once", () => {
+  assert.doesNotThrow(() => assertCategoryOrder(["a", "b", "c"], ["c", "a", "b"]));
+  for (const ids of [
+    ["a", "b"],
+    ["a", "b", "c", "d"],
+    ["a", "a", "b"],
+    ["a", "b", "x"],
+  ]) {
+    assert.throws(
+      () => assertCategoryOrder(["a", "b", "c"], ids),
+      (error: unknown) =>
+        error instanceof CategoryConstraintError && error.code === "category_invalid_order",
+    );
+  }
+});
+
+test("default categories start in alphabetical order at each level", () => {
+  const drafts = createDefaultCategoryDrafts("user", createSequentialIds());
+  const level = (type: string, parentId: string | null) =>
+    drafts
+      .filter((draft) => draft.type === type && (draft.parentId ?? null) === parentId)
+      .sort((left, right) => (left.position ?? 0) - (right.position ?? 0))
+      .map((draft) => draft.name);
+  const roots = level("expense", null);
+  assert.deepEqual(
+    roots,
+    [...roots].sort((left, right) => left.localeCompare(right, "pt-BR")),
+  );
+  const food = drafts.find((draft) => draft.name === "Alimentação" && !draft.parentId);
+  assert.equal(level("expense", food?.id ?? null)[0], "Alimentação no trabalho");
 });

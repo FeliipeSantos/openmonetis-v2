@@ -17,6 +17,8 @@ export type CategoryCreateDraft = {
   isSystem: boolean;
   parentId?: string | null;
   id?: string;
+  /** Order among siblings (same type and parent); appended at the end when omitted. */
+  position?: number;
 };
 
 export type CategoryHierarchyNode = {
@@ -32,7 +34,8 @@ export class CategoryConstraintError extends Error {
       | "category_invalid_parent"
       | "category_has_children"
       | "category_name_conflict"
-      | "category_in_use",
+      | "category_in_use"
+      | "category_invalid_order",
   ) {
     super(code);
   }
@@ -466,8 +469,15 @@ export function createDefaultCategoryDrafts(
   userId: string,
   createId: () => string,
 ): CategoryCreateDraft[] {
+  // New accounts list each level alphabetically, like the order existing accounts started with.
+  const alphabeticalIndex = (names: string[], name: string) =>
+    [...names].sort((left, right) => left.localeCompare(right, "pt-BR")).indexOf(name);
   return defaultCategoryDefinitions.flatMap((category) => {
     const parentId = createId();
+    const rootNames = defaultCategoryDefinitions
+      .filter((item) => item.type === category.type)
+      .map((item) => item.name);
+    const childNames = (category.subcategories ?? []).map(([name]) => name);
     return [
       {
         id: parentId,
@@ -477,6 +487,7 @@ export function createDefaultCategoryDrafts(
         icon: category.icon,
         isSystem: category.isSystem ?? false,
         parentId: null,
+        position: alphabeticalIndex(rootNames, category.name),
       },
       ...(category.subcategories ?? []).map(([name, icon]) => ({
         id: createId(),
@@ -486,6 +497,7 @@ export function createDefaultCategoryDrafts(
         icon,
         isSystem: false,
         parentId,
+        position: alphabeticalIndex(childNames, name),
       })),
     ];
   });
@@ -497,6 +509,7 @@ export type ExistingCategory = {
   type: CategoryType;
   isSystem: boolean;
   parentId?: string | null;
+  position?: number;
 };
 
 /**
@@ -543,7 +556,21 @@ export function selectMissingDefaultCategories(
     if (existingByKey.has(keyOf(draft.type, parent.id, draft.name))) continue;
     missing.push({ ...draft, parentId: parent.id });
   }
-  return missing;
+  // What is added goes after what the account already has at each level, in the default order.
+  const nextPosition = new Map<string, number>();
+  const levelOf = (type: CategoryType, parentId: string | null | undefined) =>
+    `${type}|${parentId ?? ""}`;
+  for (const category of existing) {
+    const level = levelOf(category.type, category.parentId);
+    nextPosition.set(level, Math.max(nextPosition.get(level) ?? 0, (category.position ?? 0) + 1));
+  }
+  return missing.map((draft) => {
+    const level = levelOf(draft.type, draft.parentId);
+    if (!nextPosition.has(level)) return draft;
+    const position = nextPosition.get(level) as number;
+    nextPosition.set(level, position + 1);
+    return { ...draft, position };
+  });
 }
 
 /**
@@ -580,4 +607,19 @@ export function selectNonDefaultCategories(
     ...extras.filter((category) => category.parentId),
     ...extras.filter((category) => !category.parentId),
   ];
+}
+
+/**
+ * A new order for one level (same type and parent) must list each of its categories exactly once.
+ */
+export function assertCategoryOrder(siblingIds: readonly string[], orderedIds: readonly string[]) {
+  const siblings = new Set(siblingIds);
+  const ordered = new Set(orderedIds);
+  if (
+    ordered.size !== orderedIds.length ||
+    ordered.size !== siblings.size ||
+    orderedIds.some((id) => !siblings.has(id))
+  ) {
+    throw new CategoryConstraintError("category_invalid_order");
+  }
 }

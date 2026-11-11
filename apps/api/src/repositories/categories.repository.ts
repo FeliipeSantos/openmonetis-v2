@@ -23,6 +23,16 @@ export const categoriesRepository = {
       if (!existing) await tx.insert(categories).values(data);
     });
   },
+  async updateIconsForUser(userId, updates) {
+    await db.transaction(async (tx) => {
+      for (const update of updates) {
+        await tx
+          .update(categories)
+          .set({ icon: update.icon, updatedAt: new Date() })
+          .where(and(eq(categories.id, update.id), eq(categories.userId, userId)));
+      }
+    });
+  },
   async insertMany(data) {
     // One statement, so subcategories can reference parents inserted alongside them.
     await db.insert(categories).values(data);
@@ -231,4 +241,14 @@ export function categoryLabelSql(category: {
 }) {
   return sql<string>`case when ${category.parentId} is null then ${category.name}
     else concat((select p.name from categories p where p.id = ${category.parentId} and p.user_id = ${category.userId}), ' › ', ${category.name}) end`;
+}
+
+/** The category icon, or its main category icon when a subcategory has none. */
+export function categoryIconSql(category: {
+  icon: SQLWrapper;
+  parentId: SQLWrapper;
+  userId: SQLWrapper;
+}) {
+  return sql<string | null>`coalesce(nullif(trim(${category.icon}), ''),
+    (select nullif(trim(p.icon), '') from categories p where p.id = ${category.parentId} and p.user_id = ${category.userId}))`;
 }

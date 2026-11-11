@@ -37,6 +37,13 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
   ele remove as categorias que não são do sistema nem do padrão, desde que não tenham lançamentos,
   orçamentos, recorrências ou subcategorias; as que estiverem em uso são mantidas e listadas. No
   container da API: `node --import tsx src/scripts/sync-default-categories.ts --email=<email>`.
+  O comando também preenche o ícone padrão das categorias da lista que estiverem sem ícone, sem
+  trocar os ícones já escolhidos.
+
+### Corrigido
+
+- Lançamentos (inclusive recorrentes) e orçamentos de uma subcategoria sem ícone mostravam o ícone
+  genérico de etiqueta; agora usam o ícone da categoria principal.
 
 ### Alterado
 

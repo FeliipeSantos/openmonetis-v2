@@ -56,7 +56,7 @@ import {
   sql,
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { categoryLabelSql } from "./categories.repository";
+import { categoryIconSql, categoryLabelSql } from "./categories.repository";
 import {
   deletePendingExternalExpensesForTransactions,
   findExternalExpenseAssignmentKeys,
@@ -533,7 +533,7 @@ const transactionColumns = {
     limit 1
   )`.as("invoice_payment_card_logo"),
   categoryName: categoryLabelSql(categories),
-  categoryIcon: categories.icon,
+  categoryIcon: categoryIconSql(categories),
   sourceAccountName: sourceAccounts.name,
   sourceAccountLogo: sourceAccounts.logo,
   destinationAccountName: destinationAccounts.name,
@@ -612,7 +612,7 @@ const recurringRuleColumns = {
   cardName: cards.name,
   cardLogo: cards.logo,
   categoryName: categoryLabelSql(categories),
-  categoryIcon: categories.icon,
+  categoryIcon: categoryIconSql(categories),
   sourceAccountName: sourceAccounts.name,
   sourceAccountLogo: sourceAccounts.logo,
   destinationAccountName: destinationAccounts.name,

@@ -8,6 +8,7 @@ import {
   createCategoryDraft,
   createDefaultCategoryDrafts,
   selectMissingDefaultCategories,
+  selectMissingDefaultIcons,
   selectNonDefaultCategories,
 } from "@openmonetis/domain/categories";
 import type {
@@ -36,6 +37,7 @@ type CategoryUpdateRecord = Partial<Pick<CategoryRecord, "name" | "type" | "icon
 export type CategoriesRepository = {
   insertDefaults(data: CategoryCreateDraft[]): Promise<void>;
   insertMany(data: CategoryCreateDraft[]): Promise<void>;
+  updateIconsForUser(userId: string, updates: Array<{ id: string; icon: string }>): Promise<void>;
   insert(data: CategoryCreateRecord): Promise<CategoryRecord>;
   listByUser(userId: string): Promise<CategoryRecord[]>;
   findByIdForUser(id: string, userId: string): Promise<CategoryRecord | null>;
@@ -168,14 +170,16 @@ export function createCategoriesService(repository: CategoriesRepository) {
     },
     /** Adds the default categories an existing account lacks, without touching existing ones. */
     async syncDefaults(userId: string) {
-      const missing = selectMissingDefaultCategories(
-        await repository.listByUser(userId),
-        createDefaultCategoryDrafts(userId, randomUUID),
-      );
+      const defaults = createDefaultCategoryDrafts(userId, randomUUID);
+      const existing = await repository.listByUser(userId);
+      const icons = selectMissingDefaultIcons(existing, defaults);
+      if (icons.length) await repository.updateIconsForUser(userId, icons);
+      const missing = selectMissingDefaultCategories(existing, defaults);
       if (missing.length) await repository.insertMany(missing);
       return {
         categories: missing.filter((draft) => !draft.parentId).length,
         subcategories: missing.filter((draft) => draft.parentId).length,
+        icons: icons.length,
       };
     },
     async create(input: CreateCategoryInput, userId: string) {

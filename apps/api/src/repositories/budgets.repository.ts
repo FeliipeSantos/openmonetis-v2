@@ -13,7 +13,7 @@ import { resolveCardClosingRule } from "@openmonetis/domain/cards";
 import { and, asc, eq, isNull, lte, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { BudgetsRepository } from "../services/budgets.service";
-import { categoryLabelSql } from "./categories.repository";
+import { categoryIconSql, categoryLabelSql } from "./categories.repository";
 import { effectiveRecurringEndDateSql } from "./recurring-transactions.repository";
 import {
   effectiveSplitAmountSql,
@@ -35,7 +35,7 @@ const budgetWithCategoryColumns = {
   createdAt: budgets.createdAt,
   updatedAt: budgets.updatedAt,
   categoryName: categoryLabelSql(categories),
-  categoryIcon: categories.icon,
+  categoryIcon: categoryIconSql(categories),
 };
 
 export const budgetsRepository = {

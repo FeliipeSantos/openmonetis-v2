@@ -623,3 +623,34 @@ export function assertCategoryOrder(siblingIds: readonly string[], orderedIds: r
     throw new CategoryConstraintError("category_invalid_order");
   }
 }
+
+/**
+ * Default icons for existing categories that match a default (same name, ignoring case, at the same
+ * level) but have no icon. Icons the account already set are never replaced.
+ */
+export function selectMissingDefaultIcons(
+  existing: readonly (ExistingCategory & { icon: string | null })[],
+  defaults: readonly CategoryCreateDraft[],
+) {
+  const normalize = (name: string) => name.trim().toLocaleLowerCase("pt-BR");
+  const defaultsById = new Map(defaults.map((draft) => [draft.id, draft]));
+  const iconByKey = new Map<string, string>();
+  for (const draft of defaults) {
+    if (!draft.icon) continue;
+    const parent = draft.parentId ? defaultsById.get(draft.parentId) : undefined;
+    iconByKey.set(
+      `${draft.type}|${parent ? normalize(parent.name) : ""}|${normalize(draft.name)}`,
+      draft.icon,
+    );
+  }
+  const existingById = new Map(existing.map((category) => [category.id, category]));
+  return existing.flatMap((category) => {
+    if (category.icon?.trim()) return [];
+    const parent = category.parentId ? existingById.get(category.parentId) : undefined;
+    if (category.parentId && !parent) return [];
+    const icon = iconByKey.get(
+      `${category.type}|${parent ? normalize(parent.name) : ""}|${normalize(category.name)}`,
+    );
+    return icon ? [{ id: category.id, icon }] : [];
+  });
+}

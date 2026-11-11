@@ -50,7 +50,7 @@ async function syncDefaultCategories(argv = process.argv.slice(2)) {
     }
     const added = await service.syncDefaults(account.id);
     console.log(
-      `${account.email}: ${added.categories} categorias e ${added.subcategories} subcategorias adicionadas.`,
+      `${account.email}: ${added.categories} categorias e ${added.subcategories} subcategorias adicionadas; ${added.icons} ícones vazios preenchidos.`,
     );
   }
 }

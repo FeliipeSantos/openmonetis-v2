@@ -16,6 +16,7 @@ import {
   otherIncomeCategoryName,
   personSettlementCategoryName,
   selectMissingDefaultCategories,
+  selectMissingDefaultIcons,
   selectNonDefaultCategories,
   yieldCategoryName,
 } from "./categories";
@@ -212,4 +213,50 @@ test("default categories start in alphabetical order at each level", () => {
   );
   const food = drafts.find((draft) => draft.name === "Alimentação" && !draft.parentId);
   assert.equal(level("expense", food?.id ?? null)[0], "Alimentação no trabalho");
+});
+
+test("syncing fills only the missing icons of default categories", () => {
+  const defaults = createDefaultCategoryDrafts("user", createSequentialIds());
+  const updates = selectMissingDefaultIcons(
+    [
+      { id: "home", name: "Moradia", type: "expense", isSystem: false, parentId: null, icon: "" },
+      {
+        id: "condo",
+        name: "condomínio",
+        type: "expense",
+        isSystem: false,
+        parentId: "home",
+        icon: null,
+      },
+      {
+        id: "rent",
+        name: "Aluguel",
+        type: "expense",
+        isSystem: false,
+        parentId: "home",
+        icon: "wallet",
+      },
+      {
+        id: "own",
+        name: "Financiamento",
+        type: "expense",
+        isSystem: false,
+        parentId: "home",
+        icon: null,
+      },
+      {
+        id: "food",
+        name: "Alimentação",
+        type: "income",
+        isSystem: false,
+        parentId: null,
+        icon: null,
+      },
+    ],
+    defaults,
+  );
+  assert.deepEqual(updates, [
+    { id: "home", icon: "home" },
+    { id: "condo", icon: "building" },
+  ]);
 });

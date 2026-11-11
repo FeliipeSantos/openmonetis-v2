@@ -60,3 +60,11 @@ export function getBudgetScopeHint(
   }
   return `Considera todos os lançamentos de ${category.name} e das suas subcategorias.`;
 }
+
+/** "Alimentação › Feira" → name "Feira" and parent "Alimentação"; a main category has no parent. */
+export function splitBudgetCategoryName(label: string) {
+  const separator = " › ";
+  const index = label.indexOf(separator);
+  if (index < 0) return { name: label, parentName: null };
+  return { name: label.slice(index + separator.length), parentName: label.slice(0, index) };
+}

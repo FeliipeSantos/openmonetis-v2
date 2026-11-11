@@ -55,6 +55,9 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Corrigido
 
+- Cartão de orçamento: nomes longos cortavam o selo de situação. O cartão de uma subcategoria
+  mostra o nome dela no título e a categoria principal na linha de baixo ("Alimentação · Limite
+  mensal"), e o selo não encolhe mais.
 - Sugestões de lançamentos anteriores: passam a considerar também lançamentos com data futura,
   recorrências (mesmo as que ainda não têm lançamento no passado) e transferências. Em uma nova
   transferência, escolher a sugestão preenche valor e contas de origem e destino; os dois lados de

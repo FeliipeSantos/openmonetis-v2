@@ -25,6 +25,7 @@ import {
   budgetStatusLabels,
   budgetStatusStyles,
   formatBudgetPercentage,
+  splitBudgetCategoryName,
 } from "../budgets.presentation";
 
 type BudgetCardProps = {
@@ -44,22 +45,30 @@ export function BudgetCard({
 }: BudgetCardProps) {
   const [removeOpen, setRemoveOpen] = useState(false);
   const exceeded = budget.status === "exceeded";
+  const category = splitBudgetCategoryName(budget.categoryName);
 
   return (
     <Card className="gap-5 border">
       <CardHeader className="gap-4">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             <span className="grid size-10 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
               <CategoryIcon className="size-5" name={budget.categoryIcon} />
             </span>
             <div className="min-w-0">
-              <CardTitle className="truncate">{budget.categoryName}</CardTitle>
-              <p className="mt-0.5 font-mono text-muted-foreground text-xs">Limite mensal</p>
+              <CardTitle className="break-words" title={budget.categoryName}>
+                {category.name}
+              </CardTitle>
+              <p className="mt-0.5 font-mono text-muted-foreground text-xs">
+                {category.parentName ? `${category.parentName} · Limite mensal` : "Limite mensal"}
+              </p>
             </div>
           </div>
           <Badge
-            className={cn("font-mono border-transparent", budgetStatusStyles[budget.status])}
+            className={cn(
+              "shrink-0 font-mono border-transparent",
+              budgetStatusStyles[budget.status],
+            )}
             variant="outline"
           >
             {budgetStatusLabels[budget.status]}

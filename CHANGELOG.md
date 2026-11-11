@@ -7,6 +7,11 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ## [Unreleased]
 
+### Corrigido
+
+- Subcategorias passam a exibir o próprio ícone na lista de categorias e nas tendências por
+  categoria, usando o ícone da categoria principal só quando não têm um ícone definido.
+
 ## [0.16.0] - 2026-11-07
 
 Adiciona o extrato mensal de cada pessoa externa, com envio por e-mail pelo Resend, envio

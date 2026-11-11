@@ -101,7 +101,7 @@ function CategorySection({
         >
           <CategoryIcon
             className="size-4"
-            name={category.isDetail ? category.parentIcon : category.icon}
+            name={category.isDetail ? (category.icon ?? category.parentIcon) : category.icon}
           />
         </span>
         {category.isDirect ? (

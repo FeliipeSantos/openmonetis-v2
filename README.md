@@ -2,6 +2,8 @@
 > [felipegcoutinho/openmonetis-v2](https://github.com/felipegcoutinho/openmonetis-v2), modificado
 > por FeliipeSantos para uso pessoal e não comercial. As mudanças ficam na branch `custom`; o
 > software continua sob a [licença original](LICENSE), com os avisos de copyright do autor.
+> A lista das alterações e o roteiro para atualizar a partir do original estão em
+> [docs/fork-customizations.md](docs/fork-customizations.md).
 
 <p align="center">
   <img src="apps/web/public/images/openmonetis-mark.svg" width="112" alt="Símbolo do OpenMonetis" />

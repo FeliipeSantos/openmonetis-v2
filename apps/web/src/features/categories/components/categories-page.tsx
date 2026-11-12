@@ -1,3 +1,4 @@
+import { getCurrentPeriodInBrazil } from "@openmonetis/shared/date-time";
 import type {
   CategoryOutput,
   CreateCategoryInput,
@@ -11,10 +12,13 @@ import { ProtectedRoute } from "@/components/auth/protected-route";
 import { MobileCollectionLoading } from "@/components/mobile-collection-loading";
 import { Navbar } from "@/components/navigation/navbar";
 import { PageHeader } from "@/components/page-header";
+import { SearchInput } from "@/components/search-input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { formatBudgetPeriod } from "@/features/budgets/budgets.presentation";
+import { budgetsQueryOptions } from "@/features/budgets/budgets.queries";
+import { categoryMonthBreakdownQueryOptions } from "@/features/dashboard/dashboard.queries";
 import {
   useCreateCategoryMutation,
   useDeleteCategoryMutation,
@@ -24,6 +28,7 @@ import {
 import {
   getCategoryErrorMessage,
   getCategoryGroups,
+  getCategoryMonthSummaries,
   moveCategory,
 } from "../categories.presentation";
 import { categoriesQueryOptions } from "../categories.queries";
@@ -32,6 +37,17 @@ import { CategoryDialog } from "./category-dialog";
 
 export function CategoriesPage() {
   const query = useQuery(categoriesQueryOptions());
+  const [period] = useState(getCurrentPeriodInBrazil);
+  const breakdownQuery = useQuery(categoryMonthBreakdownQueryOptions(period));
+  const budgetsQuery = useQuery(budgetsQueryOptions(period));
+  // Month values are a bonus: the list stays usable if either request fails.
+  const monthSummaries =
+    breakdownQuery.data && budgetsQuery.data
+      ? {
+          expense: getCategoryMonthSummaries(breakdownQuery.data.expenses, budgetsQuery.data.items),
+          income: getCategoryMonthSummaries(breakdownQuery.data.income, []),
+        }
+      : undefined;
   const create = useCreateCategoryMutation();
   const replace = useReplaceCategoryMutation();
   const remove = useDeleteCategoryMutation();
@@ -89,11 +105,12 @@ export function CategoriesPage() {
             icon={<Tags aria-hidden="true" className="size-5" />}
             title="Categorias"
           />
-          <Input
+          <SearchInput
             aria-label="Buscar categorias"
+            containerClassName="sm:w-72"
             placeholder="Buscar categoria"
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onValueChange={setSearch}
           />
           {query.isLoading ? <MobileCollectionLoading message="Carregando categorias..." /> : null}
           {query.isError ? (
@@ -119,6 +136,12 @@ export function CategoriesPage() {
                         categories={items}
                         search={search}
                         type={type}
+                        monthLabel={
+                          monthSummaries
+                            ? `${type === "expense" ? "Gasto em" : "Recebido em"} ${formatBudgetPeriod(period).toLocaleLowerCase("pt-BR")}`
+                            : undefined
+                        }
+                        monthSummaries={monthSummaries?.[type]}
                         onCreateCategory={() => openNew(type)}
                         onMove={move}
                         onCreateSubcategory={async (input) => {

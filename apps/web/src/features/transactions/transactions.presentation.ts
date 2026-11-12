@@ -448,6 +448,15 @@ export function getTransactionSettlementLabel(
       : "Pago";
 }
 
+/** Short status for dense lists and the transactions table "Situação" column. */
+export function getTransactionSettlementShortLabel(
+  transaction: Pick<TransactionOutput, "type" | "isSettled" | "paymentMethod">,
+) {
+  if (transaction.paymentMethod === "credit_card" || transaction.isSettled === null)
+    return "Na fatura";
+  return getTransactionSettlementLabel(transaction);
+}
+
 export function formatTransactionSettlementSummary(
   transaction: Pick<
     TransactionOutput,

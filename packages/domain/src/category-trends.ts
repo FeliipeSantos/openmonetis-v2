@@ -1,6 +1,6 @@
 import type { CardClosingRule } from "./cards";
 import { expandCategoryIds, invoicePaymentCategoryName } from "./categories";
-import { fromCents } from "./money";
+import { fromCents, roundToTwoDecimals } from "./money";
 import { getRecurringDueDate } from "./recurring-expenses";
 import { getOccurrenceAmount, type SettlementAwareRule } from "./settlements";
 import {
@@ -381,6 +381,10 @@ function buildSummary(
     { incomeCents: 0, expenseCents: 0, actualCents: 0, recurringCents: 0 },
   );
   const periodCount = periods.length;
+  // Averages follow the same rule as each category: only months with movement count.
+  const incomePeriodCount = countPeriodsWithMovement(periods, ["incomeAmount"]);
+  const expensePeriodCount = countPeriodsWithMovement(periods, ["expenseAmount"]);
+  const movementPeriodCount = countPeriodsWithMovement(periods, ["incomeAmount", "expenseAmount"]);
 
   return {
     periodCount,
@@ -391,12 +395,22 @@ function buildSummary(
     actualAmount: fromCents(totals.actualCents),
     recurringAmount: fromCents(totals.recurringCents),
     totalAmount: fromCents(totals.actualCents + totals.recurringCents),
-    averageMonthlyIncomeAmount: fromCents(Math.round(totals.incomeCents / periodCount)),
-    averageMonthlyExpenseAmount: fromCents(Math.round(totals.expenseCents / periodCount)),
+    averageMonthlyIncomeAmount: fromCents(Math.round(totals.incomeCents / incomePeriodCount)),
+    averageMonthlyExpenseAmount: fromCents(Math.round(totals.expenseCents / expensePeriodCount)),
     averageMonthlyNetAmount: fromCents(
-      Math.round((totals.incomeCents - totals.expenseCents) / periodCount),
+      Math.round((totals.incomeCents - totals.expenseCents) / movementPeriodCount),
     ),
   };
+}
+
+function countPeriodsWithMovement(
+  periods: readonly CategoryTrendPeriodOutput[],
+  amountKeys: readonly ("incomeAmount" | "expenseAmount")[],
+) {
+  const withMovement = periods.filter((period) =>
+    amountKeys.some((key) => toAbsoluteCents(period[key]) !== 0),
+  );
+  return Math.max(withMovement.length, 1);
 }
 
 function calculateChange(
@@ -477,8 +491,4 @@ function toAbsoluteCents(amount: string | number) {
 function toSignedCents(amount: string | number) {
   const numericAmount = Number(amount);
   return Number.isFinite(numericAmount) ? Math.round(numericAmount * 100) : 0;
-}
-
-function roundToTwoDecimals(value: number) {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
 }

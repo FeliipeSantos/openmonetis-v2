@@ -14,6 +14,7 @@ import {
   getTransactionDateLabel,
   getTransactionSettlementAction,
   getTransactionSettlementLabel,
+  getTransactionSettlementShortLabel,
   getTransactionSuggestionDetail,
   groupTransactionRows,
   labelTransactionExportFileName,
@@ -151,6 +152,25 @@ test("split rows connect by record identity, preserving every visible share", ()
     ],
   );
   assert.deepEqual(groupTransactionRows([]), []);
+});
+
+test("short settlement labels fit the transactions status column", () => {
+  assert.equal(
+    getTransactionSettlementShortLabel({
+      type: "expense",
+      isSettled: null,
+      paymentMethod: "credit_card",
+    }),
+    "Na fatura",
+  );
+  assert.equal(
+    getTransactionSettlementShortLabel({ type: "expense", isSettled: true, paymentMethod: "pix" }),
+    "Pago",
+  );
+  assert.equal(
+    getTransactionSettlementShortLabel({ type: "income", isSettled: false, paymentMethod: "pix" }),
+    "Em aberto",
+  );
 });
 
 test("settlement copy distinguishes receipts, payments and invoice-controlled amounts", () => {

@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, LockKeyhole, Pencil, Plus, Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { CardActionsMenu } from "@/components/card-actions-menu";
+import { MoneyValue } from "@/components/money-value";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,9 +17,15 @@ import {
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  budgetProgressStyles,
+  formatBudgetPercentage,
+} from "@/features/budgets/budgets.presentation";
 import { cn } from "@/lib/utils";
 import {
+  type CategoryMonthSummary,
   categoryGroupLabels,
   getCategoryGroups,
   getCategoryLabel,
@@ -39,6 +46,8 @@ export function CategoriesPanels({
   onCreateSubcategory,
   onMove,
   pendingId,
+  monthLabel,
+  monthSummaries,
 }: {
   categories: CategoryOutput[];
   type: CategoryOutput["type"];
@@ -50,6 +59,10 @@ export function CategoriesPanels({
   /** Drops `activeId` where `overId` is, within the same level. */
   onMove: (activeId: string, overId: string) => void;
   pendingId?: string | null;
+  /** Heading of the month column, e.g. "Gasto em novembro de 2026"; omitted while it loads. */
+  monthLabel?: string;
+  /** Month totals by main category; omitted while they load. */
+  monthSummaries?: ReadonlyMap<string, CategoryMonthSummary>;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [addingParentId, setAddingParentId] = useState<string | null>(null);
@@ -87,6 +100,11 @@ export function CategoriesPanels({
             Nova categoria
           </Button>
         </div>
+        {monthLabel ? (
+          <p className="mx-2 mb-2 border-b pb-2 text-right font-mono text-muted-foreground text-xs">
+            {monthLabel}
+          </p>
+        ) : null}
         <SortableCategoryList
           ariaLabel={`Categorias de ${categoryGroupLabels[type]}`}
           disabled={searching}
@@ -111,27 +129,35 @@ export function CategoriesPanels({
             if (!group) return null;
             const active = group.parent.id === parent.id;
             return (
-              <button
-                aria-pressed={active}
-                className="flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-md py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                onClick={() => select(group.parent.id)}
-                type="button"
-              >
-                <span
-                  className={cn(
-                    "grid size-9 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground",
-                    active && "text-brand-strong",
-                  )}
+              <>
+                <button
+                  aria-pressed={active}
+                  className="flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-md py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  onClick={() => select(group.parent.id)}
+                  type="button"
                 >
-                  <CategoryIcon className="size-4" name={group.parent.icon} />
-                </span>
-                <span className="grid min-w-0">
-                  <span className="truncate font-medium">{group.parent.name}</span>
-                  <span className="text-muted-foreground text-xs">
-                    {getSubcategoryCountLabel(group.children.length, searching)}
+                  <span
+                    className={cn(
+                      "grid size-9 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground",
+                      active && "text-brand-strong",
+                    )}
+                  >
+                    <CategoryIcon className="size-4" name={group.parent.icon} />
                   </span>
-                </span>
-              </button>
+                  <span className="grid min-w-0">
+                    <span className="truncate font-medium">{group.parent.name}</span>
+                    <span className="text-muted-foreground text-xs">
+                      {getSubcategoryCountLabel(group.children.length, searching)}
+                    </span>
+                  </span>
+                </button>
+                {monthSummaries ? (
+                  <CategoryMonthValue
+                    name={group.parent.name}
+                    summary={monthSummaries.get(group.parent.id)}
+                  />
+                ) : null}
+              </>
             );
           }}
         />
@@ -219,6 +245,43 @@ export function CategoriesPanels({
         )}
       </Card>
     </div>
+  );
+}
+
+function CategoryMonthValue({
+  name,
+  summary,
+}: {
+  name: string;
+  summary: CategoryMonthSummary | undefined;
+}) {
+  const budget = summary?.budget;
+  if (budget)
+    return (
+      <div className="grid w-28 shrink-0 gap-1.5 text-right sm:w-36">
+        <p className="text-sm tabular-nums">
+          <MoneyValue amount={budget.committedAmount} />
+          <span className="text-muted-foreground text-xs">
+            {" "}
+            de <MoneyValue amount={budget.amount} />
+          </span>
+        </p>
+        <Progress
+          aria-label={`${formatBudgetPercentage(budget.usagePercentage)}% do orçamento de ${name} comprometido`}
+          indicatorClassName={budgetProgressStyles[budget.status]}
+          trackClassName="h-1.5"
+          value={Math.min(budget.usagePercentage, 100)}
+        />
+      </div>
+    );
+  return (
+    <p className="w-24 shrink-0 text-right text-sm tabular-nums sm:w-32">
+      {summary?.amount ? (
+        <MoneyValue amount={summary.amount} />
+      ) : (
+        <span className="text-muted-foreground text-xs">Sem movimento</span>
+      )}
+    </p>
   );
 }
 

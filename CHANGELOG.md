@@ -107,6 +107,204 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 - Subcategorias passam a exibir o próprio ícone na lista de categorias e nas tendências por
   categoria, usando o ícone da categoria principal só quando não têm um ícone definido.
 
+## [0.17.1] - 2026-11-11
+
+O desfoque translúcido do cabeçalho, dos menus e dos painéis volta a aparecer em Chrome, Edge e
+Firefox.
+
+### Corrigido
+
+- O desfoque translúcido do cabeçalho, dos menus, listas suspensas, painéis laterais, avisos e
+  navegação de período voltou a aparecer na versão publicada em Chrome, Edge e Firefox; antes ele
+  só funcionava no Safari.
+
+## [0.17.0] - 2026-11-11
+
+Despesas parceladas e Lançamentos recorrentes passam a projetar os próximos 12 meses, e as
+parcelas ganham simulação de compra no cartão e de quitação antecipada com desconto, sem gravar
+nada. A interface unifica cards de indicador, buscas, filtros e cores de gráfico, melhora a
+acessibilidade e o uso no celular, e o Diagnóstico com IA abre mais rápido. Os relatórios de
+parcelas e recorrentes mudam de contrato na API; veja as notas de atualização.
+
+### Adicionado
+
+- Botão **Pular para o conteúdo** no cabeçalho: é o primeiro item ao navegar com Tab e leva o
+  foco direto ao título da página.
+- Teste e2e que abre as telas principais em 390px e falha se alguma rolar na horizontal.
+- Lançamentos: nova coluna **Situação** com ícone e texto (Pago, Recebido, Em aberto, Na fatura),
+  que continua dando baixa com um clique. A lista do celular passa a mostrar a situação abaixo do
+  valor.
+- No celular, a trilha de navegação vira um link de voltar para a página anterior da hierarquia.
+- Caixa de entrada: o aviso de captura descartada oferece **Desfazer**, que devolve o item aos
+  pendentes.
+- Categorias mostram o gasto (ou recebimento) do mês atual de cada categoria e, quando há
+  orçamento, quanto do limite já foi usado, com barra de progresso.
+- Pessoas: nove novos avatares ilustrados para escolher, no mesmo estilo dos atuais.
+- Despesas parceladas: **Simular compra** mostra como uma compra no cartão ocuparia os próximos
+  12 meses. Informe valor, parcelas, cartão e, se quiser, um nome e a fatura da primeira parcela;
+  sem fatura escolhida, ela segue o fechamento do cartão. A simulação aparece no gráfico em azul,
+  empilhada sobre as parcelas reais, e como uma linha tracejada no topo da lista, com quando
+  começa e termina. Nada é salvo e nenhum outro valor do sistema muda; dá para editar ou remover
+  a simulação a qualquer momento.
+- Despesas parceladas: **Simular quitação** calcula quanto pagar neste mês para antecipar as
+  parcelas marcadas. Em cada compra dá para informar o **valor a pagar** que o app do banco mostra,
+  ou o desconto em R$ ou %; a simulação calcula os outros dois e mostra a economia. Tudo o que
+  pertence à simulação usa o mesmo verde-azulado, separado do coral da marca e do azul da compra
+  simulada. O gráfico mostra a quitação nessa cor no mês atual e, em tracejado, o que deixa de ser cobrado nos meses
+  seguintes; cada compra mostra o novo saldo, o novo término e o valor a pagar. O painel resume
+  o total selecionado, o desconto, o alívio no próximo mês e a nova última parcela. Um valor fora
+  do selecionado da compra é apontado nela e a compra é calculada sem desconto. A caixa de
+  seleção da compra fica parcialmente marcada quando só algumas parcelas foram escolhidas.
+- O balão dos gráficos dos próximos 12 meses mostra o **Total do mês** quando há mais de uma
+  série empilhada.
+- API: `POST /reports/installments/simulations` calcula o cronograma de uma compra hipotética no
+  cartão, com nome e fatura opcionais, e `POST /reports/installments/payoff-simulations` calcula
+  uma quitação antecipada com desconto por compra (`discounts[]` por `seriesId`, com `type`
+  `amount`, `percentage` ou `payoffAmount`). Nenhuma das
+  duas grava nada.
+
+### Alterado
+
+- **Diagnóstico com IA** abre mais rápido: a situação da conexão com cada assistente de IA é
+  reaproveitada por alguns minutos em vez de consultada nas ferramentas a cada visita, e um
+  diagnóstico já salvo aparece sem esperar essa verificação. O histórico e o relatório do mês
+  começam a carregar assim que o ponteiro passa pelo link da página.
+- Os resumos dos relatórios (Evolução por categoria, Compromissos futuros, Despesas parceladas,
+  Lançamentos recorrentes e Distribuição financeira), da Caixa de entrada e de Metas usam o mesmo
+  card de indicador: ícone e rótulo, valor e uma linha de contexto. Na Distribuição financeira, o
+  bloco destacado do resultado do mês vira quatro cards: saldo, receitas, despesas e taxa de
+  poupança. Na Caixa de entrada, a lista **Por origem** fica num card próprio abaixo dos
+  indicadores.
+- Na página da pessoa, os indicadores de **Acertos** e do extrato mensal seguem o mesmo card, com
+  ícone por situação do saldo (a receber, acertado ou crédito). Os valores de **Acertos** passam a
+  respeitar o modo privacidade.
+- Página da pessoa: o cartão ganha um degradê suave na cor predominante do avatar, e e-mail, data
+  de cadastro e observação ficam visíveis logo abaixo do nome, sem o popover **Detalhes**. O botão
+  de editar ganha uma área de toque maior. A navegação de mês passa para logo abaixo da trilha,
+  como no extrato da conta e na fatura do cartão, deixando o cartão junto das abas.
+- O cabeçalho colorido do extrato da conta, da fatura do cartão, da página da categoria e dos
+  orçamentos mantém a cor em destaque, mas os indicadores secundários viram cards translúcidos com
+  o mesmo ícone, rótulo e tamanho de valor dos resumos dos relatórios, no lugar das colunas
+  separadas por linhas com rótulo em caixa alta.
+- Evolução por categoria: a tabela abre já mostrando o mês mais recente ao lado das colunas
+  fixas **Média** e **Total**, e a linha **Total mensal** passa a exibir média e total.
+- A média mensal do resumo de Evolução por categoria considera só os meses com movimento, a
+  mesma regra da média de cada categoria.
+- Extrato da conta, fatura do cartão e página da categoria passam a ter o nome como título
+  principal da página (`h1`), o que melhora a navegação por leitores de tela.
+- Botão **Novo lançamento** passa a ser dividido: o lado principal abre **Nova despesa** direto e
+  a seta lista os demais tipos. O menu não abre mais ao passar o mouse.
+- Mais contraste nas abas inativas, nas células sem movimento e nos textos sobre a cor do banco em
+  contas e cartões.
+- Os centavos dos indicadores do dashboard usam a mesma cor do restante do valor.
+- Dividir lançamento: as pessoas vêm logo depois da forma de divisão, numa lista única, e o
+  resumo do que falta distribuir fica fixo acima dos botões, sempre à vista. O cartão da divisão
+  mostra quantas pessoas participam e a parte de quem lançou. Se o valor do lançamento mudar
+  depois de dividir, o cartão avisa que a divisão precisa ser revista.
+- Cartões: **Gastos do cartão** mostra o total do ciclo em destaque, quando a fatura fecha e o
+  dia de maior gasto. O acumulado sobe em degraus, para no dia de hoje e tem escala própria, então
+  os gastos pequenos do dia continuam visíveis. As abas viram **Por dia** e **Por fatura** e
+  ficam ao lado do título.
+- Cartões: **Gastos do cartão** compara a fatura com a anterior no mesmo dia do ciclo, por
+  exemplo "R$ 300,00 acima da fatura anterior no mesmo dia", e desenha a fatura anterior como uma
+  linha tracejada no gráfico. Faturas já fechadas comparam os totais finais.
+- Orçamentos: o resumo responde primeiro quanto dos limites do mês já foi usado, com barra e
+  percentual, e separa **Lançado**, **Previsto**, **Disponível** e **Acima do limite**. Os cards
+  de categoria mostram selo só quando pedem atenção, aparecem em ordem de uso e dizem quanto resta
+  ou passou. As despesas em categorias sem limite vão para o fim da página.
+- Quando um modal abre por cima de outro, o modal de baixo também fica escurecido, como já
+  acontecia no celular.
+- Observações de cartões e pessoas abrem num popover, que funciona com toque e teclado, e o ícone
+  ganha uma área de toque maior.
+- Ajustes: no celular, a aba ativa fica sempre visível na faixa de abas.
+- A barra inferior do celular dá mais espaço a **Lançamentos**, que não é mais cortado.
+- Gráficos usam as mesmas cores para receita (verde), despesa (vermelho) e saldo (azul) em todas
+  as telas. O fluxo de caixa da conta deixa de pintar as saídas de laranja.
+- Fatura vencida aparece como um selo vermelho no cabeçalho do cartão.
+- Todas as buscas de lista usam o mesmo campo, com ícone, botão de limpar e textos curtos. A
+  busca de Categorias ganha o ícone que faltava.
+- Painel de filtros de lançamentos agrupado em **Tipo e pagamento**, **Pessoas e contas**,
+  **Datas e valores** e **Outros**. Todos os seletores mostram a seta, o checkbox fica ao lado do
+  texto, o botão **Filtros** mostra quantos estão ativos e o rodapé passa a ter **Fechar**, já que
+  os filtros se aplicam sozinhos.
+- Visão geral: **Restaurar organização padrão** sai de perto das ações rápidas e vai para o fim
+  dos widgets. O aviso de novidades aparece só na Visão geral; nas demais páginas fica no menu do
+  usuário.
+- Caixa de entrada: **Descartar** passa a ter texto visível e fica afastado de **Revisar**.
+- Lançamentos no celular: uma lista contínua, com o cabeçalho de cada dia fixo logo abaixo do
+  seletor de mês e linhas mais baixas.
+- Orçamentos no celular: cards mais compactos, com o detalhamento atrás de **Detalhes**.
+- Chaves de acesso e tokens de dispositivo usam a fonte padrão nos subtítulos, como o resto da
+  página.
+- Animações revisadas: as abas ganham um indicador que desliza até a aba escolhida; páginas e
+  grids de contas, cartões, pessoas, metas, orçamentos e anotações entram com um fade em cascata;
+  no celular, os formulários em tela cheia deslizam ao abrir e fechar; checkbox, switch, tooltip,
+  accordion e blocos recolhíveis têm transições mais curtas e consistentes. Tudo respeita a
+  preferência de movimento reduzido.
+- Despesas parceladas e Lançamentos recorrentes passam a mostrar todas as compras e séries de
+  uma vez, sem recorte por mês. Os dois relatórios começam no mês atual e projetam os próximos
+  12 meses num gráfico em que o mês atual aparece destacado.
+- Despesas parceladas: o resumo mostra **Saldo a pagar**, o valor a pagar no mês atual, as compras
+  em andamento e o mês da **Última parcela**. Cada compra mostra quanto falta, a próxima parcela
+  com valor e quando termina. A simulação de quitação abre em **Simular quitação**, e só então as
+  caixas de seleção aparecem. O filtro de cartão e a busca ficam no endereço da página.
+- Despesas parceladas: as abas **Em andamento**, **Concluídas** e **Todas** saem. A lista mostra
+  tudo o que ainda está em aberto, incluindo compras atrasadas e compras que só começam no mês
+  seguinte, e as quitadas cuja última parcela cai no mês atual ou depois, marcadas como
+  **Quitada**. Quando o mês vira, as quitadas no mês anterior saem da lista.
+- Lançamentos recorrentes: o resumo mostra o custo (ou recebimento) médio por mês, o previsto no
+  mês atual e o total dos próximos 12 meses. A situação vira abas com a contagem de cada uma, e
+  o valor de cada série mostra a frequência (por exemplo, **/mês** ou **/ano**).
+- API: `GET /reports/installments` e `GET /recurring-transactions/report` deixam de aceitar
+  `period` e passam a usar o mês atual. `GET /reports/installments` também deixa de aceitar
+  `status` e devolve as compras em aberto mais as quitadas a partir do mês atual. O relatório de parcelas troca `monthlyHistory` por
+  `upcomingMonths` e ganha `summary.lastInstallmentPeriod`, `summary.overdueAmount` e
+  `overdueInstallmentCount` em cada compra; o de recorrentes ganha
+  `summary.projectionTotal` e `summary.monthlyAverage`. `GET /reports/installments/dashboard`
+  continua exigindo `period`.
+- Despesas parceladas: compras com parcelas vencidas e não pagas mostram **Em atraso desde** no
+  lugar da próxima parcela, e o resumo informa quanto do saldo está atrasado.
+- Ícones padronizados com a tabela de lançamentos: parcelas usam o calendário com relógio e
+  recorrências usam as setas circulares no menu, nos títulos, nos widgets e no formulário.
+  **Compromissos futuros** passa a usar o medidor, o mesmo do widget da Visão geral.
+
+### Removido
+
+- Atalhos de teclado da caixa de entrada (J/K, Enter, D e X), o ⌘ Enter para salvar anotações
+  e as dicas de atalhos exibidas na caixa de entrada, nas anotações e na calculadora.
+
+### Corrigido
+
+- Rolagem horizontal no celular em Evolução por categoria, Despesas parceladas, Novidades e nos
+  extratos de contas, cartões e categorias com nome longo.
+- Erros no console ao abrir Distribuição financeira, causados por alturas negativas no primeiro
+  desenho do gráfico.
+- Login e cadastro deixam de repetir o erro num aviso flutuante; a mensagem aparece só no
+  formulário.
+- Rótulos sobrepostos no gráfico de Distribuição financeira quando há várias categorias com
+  valores pequenos.
+- Faixas largas do gráfico de Distribuição financeira, como o saldo do período, deixam de se
+  dobrar e invadir as faixas vizinhas.
+- As setas de rolagem dos seletores deixam de cobrir as opções com uma faixa de outra cor; agora
+  só esmaecem a borda da lista.
+
+### Notas de atualização
+
+- Banco: nenhuma migration nesta versão.
+- API: `GET /reports/installments` passa a ignorar `period` e `status` e sempre responde a partir
+  do mês atual; `monthlyHistory` foi substituído por `upcomingMonths`, e entram
+  `summary.lastInstallmentPeriod`, `summary.overdueAmount` e `overdueInstallmentCount` em cada
+  compra. `GET /recurring-transactions/report` passa a ignorar `period` e ganha
+  `summary.projectionTotal` e `summary.monthlyAverage`. Clientes que liam `monthlyHistory` precisam
+  usar `upcomingMonths`. Novas rotas `POST /reports/installments/simulations` e
+  `POST /reports/installments/payoff-simulations`, que não gravam dados. Campos novos:
+  `usagePercentage` no resumo de orçamentos e `totalAmount`, `peakDay`, `comparison` e
+  `previousCumulativeAmount` nos gastos do cartão. `GET /reports/installments/dashboard` continua
+  exigindo `period`.
+- Ambiente: nenhuma variável nova ou removida.
+- Compose: sem mudanças; basta atualizar as imagens com `docker compose pull` e
+  `docker compose up -d`.
+
 ## [0.16.0] - 2026-11-07
 
 Adiciona o extrato mensal de cada pessoa externa, com envio por e-mail pelo Resend, envio
@@ -1263,7 +1461,9 @@ API-first, com cliente web em PT-BR, domínio financeiro isolado e implantação
 - Backup e restauração definidos como operações de infraestrutura, cobrindo PostgreSQL, objetos do
   storage e segredos da implantação.
 
-[Unreleased]: https://github.com/felipegcoutinho/openmonetis-v2/compare/v0.16.0...HEAD
+[Unreleased]: https://github.com/felipegcoutinho/openmonetis-v2/compare/v0.17.1...HEAD
+[0.17.1]: https://github.com/felipegcoutinho/openmonetis-v2/compare/v0.17.0...v0.17.1
+[0.17.0]: https://github.com/felipegcoutinho/openmonetis-v2/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/felipegcoutinho/openmonetis-v2/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/felipegcoutinho/openmonetis-v2/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/felipegcoutinho/openmonetis-v2/compare/v0.13.1...v0.14.0

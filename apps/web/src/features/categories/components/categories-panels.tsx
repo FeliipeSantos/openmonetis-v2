@@ -190,6 +190,11 @@ export function CategoriesPanels({
             </Button>
           ) : null}
         </div>
+        {monthLabel && children.length ? (
+          <p className="mx-2 mb-2 border-b pb-2 text-right font-mono text-muted-foreground text-xs">
+            {monthLabel}
+          </p>
+        ) : null}
         {adding ? (
           <div className="px-2 pb-3">
             <SubcategoryForm
@@ -219,17 +224,25 @@ export function CategoriesPanels({
               />
             )}
             renderContent={(child) => (
-              <Link
-                className="flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-md py-2 text-sm hover:text-brand-strong outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                params={{ categoryId: child.id }}
-                to="/categories/$categoryId"
-                aria-label={getCategoryLabel(child)}
-              >
-                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
-                  <CategoryIcon className="size-4" name={child.icon ?? parent.icon} />
-                </span>
-                <span className="min-w-0 break-words font-medium">{child.name}</span>
-              </Link>
+              <>
+                <Link
+                  className="flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-md py-2 text-sm hover:text-brand-strong outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  params={{ categoryId: child.id }}
+                  to="/categories/$categoryId"
+                  aria-label={getCategoryLabel(child)}
+                >
+                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
+                    <CategoryIcon className="size-4" name={child.icon ?? parent.icon} />
+                  </span>
+                  <span className="min-w-0 break-words font-medium">{child.name}</span>
+                </Link>
+                {monthSummaries ? (
+                  <CategoryMonthValue
+                    name={getCategoryLabel(child)}
+                    summary={monthSummaries.get(child.id)}
+                  />
+                ) : null}
+              </>
             )}
           />
         ) : adding ? null : (

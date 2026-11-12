@@ -25,14 +25,22 @@ export function getCategoryGroups(categories: readonly CategoryOutput[], search 
 
 export type CategoryMonthSummary = { amount: number; budget: BudgetOutput | null };
 
-/** Indexes the month totals and budgets the API already computed by category id. */
+type CategoryMonthTotal = { categoryId: string; amount: number };
+
+/**
+ * Indexes the month totals and budgets the API already computed by category id, for main
+ * categories and for their subcategories.
+ */
 export function getCategoryMonthSummaries(
-  totals: readonly { categoryId: string; amount: number }[],
+  totals: readonly (CategoryMonthTotal & { subcategories?: readonly CategoryMonthTotal[] })[],
   budgets: readonly BudgetOutput[],
 ) {
   const summaries = new Map<string, CategoryMonthSummary>();
-  for (const total of totals)
+  for (const total of totals) {
     summaries.set(total.categoryId, { amount: total.amount, budget: null });
+    for (const subcategory of total.subcategories ?? [])
+      summaries.set(subcategory.categoryId, { amount: subcategory.amount, budget: null });
+  }
   for (const budget of budgets) {
     summaries.set(budget.categoryId, {
       amount: summaries.get(budget.categoryId)?.amount ?? 0,

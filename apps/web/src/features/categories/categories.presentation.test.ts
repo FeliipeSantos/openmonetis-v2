@@ -147,3 +147,14 @@ test("category month summaries pair API totals with budgets, including budgets w
   assert.deepEqual(summaries.get("travel"), { amount: 0, budget });
   assert.equal(summaries.has("unknown"), false);
 });
+
+test("category month summaries also index each subcategory total", () => {
+  const summaries = getCategoryMonthSummaries(
+    [{ categoryId: "home", amount: 300, subcategories: [{ categoryId: "light", amount: 120 }] }],
+    [],
+  );
+
+  assert.deepEqual(summaries.get("home"), { amount: 300, budget: null });
+  assert.deepEqual(summaries.get("light"), { amount: 120, budget: null });
+  assert.equal(summaries.has("water"), false);
+});

@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildDashboardAttentionItems, compareDashboardMetric } from "./dashboard";
+import {
+  buildDashboardAttentionItems,
+  calculateDashboardCategoryBreakdown,
+  compareDashboardMetric,
+} from "./dashboard";
 
 const today = "2026-10-29";
 
@@ -201,4 +205,61 @@ test("metric comparison bounds extreme percentages", () => {
     change: { kind: "percent", value: 999 },
     trend: "up",
   });
+});
+
+test("category breakdown totals each subcategory of the month under its main category", () => {
+  const base = {
+    categoryIcon: null,
+    origin: "regular" as const,
+    personRole: "admin" as const,
+    type: "expense" as const,
+  };
+  const food = { categoryParentId: "food", categoryParentName: "Alimentação" };
+  const breakdown = calculateDashboardCategoryBreakdown(
+    [
+      {
+        ...base,
+        ...food,
+        amount: -150,
+        categoryId: "market",
+        categoryName: "Supermercado",
+        period: "2026-11",
+      },
+      {
+        ...base,
+        ...food,
+        amount: -80,
+        categoryId: "delivery",
+        categoryName: "Delivery",
+        period: "2026-11",
+      },
+      {
+        ...base,
+        ...food,
+        amount: -20,
+        categoryId: "delivery",
+        categoryName: "Delivery",
+        period: "2026-11",
+      },
+      {
+        ...base,
+        ...food,
+        amount: -999,
+        categoryId: "market",
+        categoryName: "Supermercado",
+        period: "2026-10",
+      },
+      { ...base, amount: -30, categoryId: "food", categoryName: "Alimentação", period: "2026-11" },
+    ],
+    "2026-11",
+    "2026-10",
+  );
+
+  const [foodTotal] = breakdown.expenses;
+  assert.equal(foodTotal?.categoryId, "food");
+  assert.equal(foodTotal?.amount, 280);
+  assert.deepEqual(foodTotal?.subcategories, [
+    { categoryId: "market", amount: 150 },
+    { categoryId: "delivery", amount: 100 },
+  ]);
 });

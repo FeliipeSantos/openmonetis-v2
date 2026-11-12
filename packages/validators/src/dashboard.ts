@@ -109,6 +109,7 @@ const dashboardCategoryBreakdownItemSchema = z.object({
   previousAmount: z.number().finite(),
   count: z.number().int().nonnegative(),
   percentage: z.number().finite(),
+  subcategories: z.array(z.object({ categoryId: z.uuid(), amount: z.number().finite() })),
 });
 
 export const DashboardCategoryBreakdownOutputSchema = z

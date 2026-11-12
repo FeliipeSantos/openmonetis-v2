@@ -45,6 +45,7 @@ para a lista completa.
 | Seletor com 203 ícones agrupados por tipo | `category-icons.tsx`, `category-icon-picker.tsx` | `33a4e91` |
 | Tela de Categorias em dois painéis (principais à esquerda, subcategorias à direita), substituindo `categories-table.tsx` | `categories-panels.tsx`, `categories-page.tsx` | `f92e0e5` |
 | Gasto do mês e barra de orçamento ao lado de cada categoria principal (recurso da v0.17.1 levado aos painéis) | `categories-panels.tsx` (`CategoryMonthValue`), `categories-page.tsx` | merge da v0.17.1 |
+| Gasto do mês também em cada subcategoria; a resposta de `GET /dashboard/category-breakdown` ganhou `subcategories` em cada categoria | `packages/domain/src/dashboard.ts` (`groupCategoryBreakdown`), `packages/validators/src/dashboard.ts`, `categories.presentation.ts` (`getCategoryMonthSummaries`), `categories-panels.tsx` | — |
 | Lista padrão de categorias do projeto finance (23 principais, 153 subcategorias), preservando as de sistema (cadeado) | `packages/domain/src/categories.ts`, `categories.service.ts` | `6f5a1d1` |
 | Script para sincronizar a lista padrão e preencher ícones vazios em contas existentes | `apps/api/src/scripts/sync-default-categories.ts`, script `db:sync-categories` | `6f5a1d1`, `902ac41` |
 | Ordenação por arraste (≡) de categorias e subcategorias, coluna `position` | `sortable-category-list.tsx`, `categories.presentation.ts`, migração `0032` | `7d3811f` |
@@ -125,6 +126,7 @@ atenção, mesmo quando o Git juntar sem conflito.
 | `transaction-basic-fields.tsx`, `useTransactionForm.ts`, `transaction-form.validation.ts` | Subcategoria, sugestões e validação | Manter os dois campos e a validação |
 | `transactions.repository.ts` | Sugestões, `categoryIconSql`, `excludeFromBudget` | Conferir as consultas de sugestão e de ícone |
 | `packages/db/src/schema.ts`, `drizzle/meta/_journal.json` | Colunas e migrações do fork | Ver a [seção 3](#3-migrações-de-banco-do-fork) |
+| `packages/domain/src/dashboard.ts`, `packages/validators/src/dashboard.ts` | Campo `subcategories` no detalhamento por categoria | Manter o campo e o teste `category breakdown totals each subcategory` |
 | `components/ui/popover.tsx` | Prop `anchor` usada pelas sugestões | Manter a prop |
 | `CHANGELOG.md` | Os dois lados escrevem em `Unreleased` | Manter as entradas do fork em `Unreleased` e as versões do upstream abaixo |
 | `*.presentation.test.ts` | Os dois lados acrescentam testes | Manter os dois conjuntos |
@@ -223,6 +225,7 @@ seus dados. Uma conta nova já confere a lista padrão de categorias.
 | 2 | Categorias | Clicar em uma categoria principal | Subcategorias dela no painel da direita |
 | 3 | Categorias | Arrastar pelo ≡ | Nova ordem continua após recarregar a página |
 | 4 | Categorias | Ver a coluna "Gasto em <mês>" | Alimentação: R$ 230,00 de R$ 500,00 com barra; demais: "Sem movimento" |
+| 4a | Categorias | Abrir as subcategorias de Alimentação | Supermercado: R$ 150,00 de R$ 100,00 com barra; Delivery: R$ 140,00; demais: "Sem movimento" |
 | 5 | Categorias | Editar o ícone de uma subcategoria | Ícone próprio aparece nos lançamentos; sem ícone, aparece o da principal |
 | 6 | Categorias | Menu ⋯ de uma categoria | Sem "Adicionar subcategoria" duplicado |
 | 7 | Lançamentos | Nova despesa | Categoria e Subcategoria lado a lado |

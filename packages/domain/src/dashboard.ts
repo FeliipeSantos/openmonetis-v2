@@ -305,6 +305,13 @@ export type DashboardCategoryBreakdownItem = {
   count: number;
   percentage: number;
   previousAmount: number;
+  /** Month totals of the subcategories that had movement, largest first. */
+  subcategories: DashboardCategoryBreakdownSubcategory[];
+};
+
+export type DashboardCategoryBreakdownSubcategory = {
+  amount: number;
+  categoryId: string;
 };
 
 export type DashboardCategoryBreakdown = {
@@ -726,6 +733,7 @@ function groupCategoryBreakdown(
       categoryName: string;
       count: number;
       previousAmountCents: number;
+      subcategoryCents: Map<string, number>;
     }
   >();
 
@@ -758,6 +766,7 @@ function groupCategoryBreakdown(
       categoryName: entry.categoryParentName ?? entry.categoryName,
       count: 0,
       previousAmountCents: 0,
+      subcategoryCents: new Map<string, number>(),
     };
     const amountCents =
       type === "expense" ? toCents(expenseImpact) : Math.abs(toCents(entry.amount));
@@ -765,6 +774,12 @@ function groupCategoryBreakdown(
     if (entry.period === period) {
       group.amountCents += amountCents;
       group.count += 1;
+      if (entry.categoryParentId) {
+        group.subcategoryCents.set(
+          entry.categoryId,
+          (group.subcategoryCents.get(entry.categoryId) ?? 0) + amountCents,
+        );
+      }
     } else {
       group.previousAmountCents += amountCents;
     }
@@ -782,6 +797,10 @@ function groupCategoryBreakdown(
       previousAmount: group.previousAmountCents / 100,
       count: group.count,
       percentage: totalCents > 0 ? Math.round((group.amountCents / totalCents) * 1_000) / 10 : 0,
+      subcategories: [...group.subcategoryCents]
+        .filter(([, cents]) => cents !== 0)
+        .map(([subcategoryId, cents]) => ({ categoryId: subcategoryId, amount: cents / 100 }))
+        .sort((left, right) => right.amount - left.amount),
     }))
     .sort(
       (left, right) =>

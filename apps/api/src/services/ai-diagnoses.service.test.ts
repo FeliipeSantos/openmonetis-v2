@@ -67,6 +67,7 @@ function snapshot(): DashboardSnapshotOutput {
           previousAmount: 6_500,
           count: 3,
           percentage: 100,
+          subcategories: [],
         },
       ],
     },

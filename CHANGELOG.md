@@ -9,6 +9,9 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Adicionado
 
+- Categorias: o painel de subcategorias também mostra o gasto do mês de cada subcategoria (ou a
+  barra do orçamento, quando ela tem um). A API passa a devolver, em `GET /dashboard/category-breakdown`,
+  o total do mês de cada subcategoria (`subcategories`).
 - Orçamento mensal: o cadastro de orçamento ganha a opção **Mensal**. Um orçamento mensal vale no
   mês em que foi criado e se repete nos meses seguintes, sem precisar cadastrar de novo, até
   existir outro orçamento da categoria num mês posterior. Nos meses seguintes o cartão mostra

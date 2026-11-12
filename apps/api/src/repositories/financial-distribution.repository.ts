@@ -18,6 +18,7 @@ import {
 import { and, asc, eq, gte, inArray, isNull, lte, ne, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { FinancialDistributionRepository } from "../services/financial-distribution.service";
+import { categoryIconSql } from "./categories.repository";
 import { effectiveRecurringEndDateSql } from "./recurring-transactions.repository";
 import {
   effectiveSplitAmountSql,
@@ -56,7 +57,7 @@ export const financialDistributionRepository = {
         parentId: categories.parentId,
         isSystem: categories.isSystem,
         name: categories.name,
-        icon: categories.icon,
+        icon: categoryIconSql(categories),
         type: categories.type,
       })
       .from(categories)

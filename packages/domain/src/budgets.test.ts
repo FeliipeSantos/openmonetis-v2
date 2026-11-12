@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { calculateBudgetOverview } from "./budgets";
+import { calculateBudgetOverview, resolveBudgetsForPeriod } from "./budgets";
 
 test("keeps category excess separate from remaining limits", () => {
   const result = calculateBudgetOverview(
@@ -105,4 +105,34 @@ test("a budget on a subcategory covers only it, and overlaps count once in the t
   assert.equal(result.progressByCategory.get("food")?.actualSpentAmount, 340);
   assert.equal(result.actualSpentAmount, 340);
   assert.equal(result.allocatedAmount, 700);
+});
+
+const budget = (
+  categoryId: string,
+  period: string,
+  isRecurring = false,
+  recurrenceEndPeriod: string | null = null,
+) => ({ id: `${categoryId}-${period}`, categoryId, period, isRecurring, recurrenceEndPeriod });
+
+test("a recurring budget repeats in the following months until replaced or ended", () => {
+  const budgets = [
+    budget("food", "2026-01", true),
+    budget("food", "2026-04", true),
+    budget("rent", "2026-02", true, "2026-03"),
+    budget("fun", "2026-01"),
+    budget("fun", "2026-03", true),
+  ];
+  const at = (period: string) =>
+    resolveBudgetsForPeriod(budgets, period)
+      .map((item) => `${item.id}:${item.inheritedFrom ?? "own"}`)
+      .sort();
+  assert.deepEqual(at("2026-01"), ["food-2026-01:own", "fun-2026-01:own"]);
+  assert.deepEqual(at("2026-02"), ["food-2026-01:2026-01", "rent-2026-02:own"]);
+  assert.deepEqual(at("2026-03"), [
+    "food-2026-01:2026-01",
+    "fun-2026-03:own",
+    "rent-2026-02:2026-02",
+  ]);
+  assert.deepEqual(at("2026-05"), ["food-2026-04:2026-04", "fun-2026-03:2026-03"]);
+  assert.deepEqual(at("2025-12"), []);
 });

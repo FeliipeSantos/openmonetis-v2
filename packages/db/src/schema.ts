@@ -2129,6 +2129,10 @@ export const budgets = pgTable(
       .references(() => categories.id, { onDelete: "cascade", onUpdate: "cascade" }),
     period: varchar("period", { length: 7 }).notNull(),
     amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+    /** Repeats in the following months until another budget of the category or the end period. */
+    isRecurring: boolean("is_recurring").notNull().default(false),
+    /** Last month a recurring budget still applies to; null keeps it going. */
+    recurrenceEndPeriod: varchar("recurrence_end_period", { length: 7 }),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at")
       .notNull()
@@ -2150,6 +2154,10 @@ export const budgets = pgTable(
     }).onDelete("cascade"),
     check("budgets_amount_positive_check", sql`${table.amount} > 0`),
     check("budgets_period_format_check", sql`${table.period} ~ '^[1-9][0-9]{3}-(0[1-9]|1[0-2])$'`),
+    check(
+      "budgets_recurrence_end_period_check",
+      sql`${table.recurrenceEndPeriod} is null or (${table.isRecurring} and ${table.recurrenceEndPeriod} >= ${table.period})`,
+    ),
   ],
 );
 

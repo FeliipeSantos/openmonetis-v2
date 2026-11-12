@@ -23,7 +23,7 @@ export function useUpdateBudgetMutation() {
 export function useDeleteBudgetMutation() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ id }: { id: string; period: string }) => deleteBudget(id),
+    mutationFn: ({ id, period }: { id: string; period: string }) => deleteBudget(id, period),
     onSuccess: () => refreshFinancialQueries(client),
   });
 }

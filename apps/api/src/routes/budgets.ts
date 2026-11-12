@@ -8,6 +8,7 @@ import {
   CopyPreviousBudgetsOutputSchema,
   CreateBudgetInputSchema,
   ListBudgetsQuerySchema,
+  RemoveBudgetQuerySchema,
   UpdateBudgetInputSchema,
 } from "@openmonetis/validators/budgets";
 import type { BudgetsService } from "../services/budgets.service";
@@ -191,10 +192,11 @@ export function createBudgetsRoute(service: BudgetsService) {
       method: "delete",
       path: "/{id}",
       tags: ["Budgets"],
-      request: { params: BudgetParamsSchema },
+      request: { params: BudgetParamsSchema, query: RemoveBudgetQuerySchema },
       responses: {
         200: {
-          description: "Deleted budget",
+          description:
+            "Deleted budget, or a monthly budget stopped from fromPeriod on when that month is later",
           content: { "application/json": { schema: DeleteResponseSchema } },
         },
         401: {
@@ -209,7 +211,10 @@ export function createBudgetsRoute(service: BudgetsService) {
     }),
     async (context) => {
       const { id } = context.req.valid("param");
-      return context.json(ok(await service.remove(id, context.get("userId"))), 200);
+      return context.json(
+        ok(await service.remove(id, context.get("userId"), context.req.valid("query"))),
+        200,
+      );
     },
   );
 

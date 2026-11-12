@@ -12,6 +12,9 @@ function fixture() {
     async listByUserAndPeriod(user, period) {
       return rows.filter((r) => r.userId === user && r.period === period);
     },
+    async listUpToPeriodForUser(user, period) {
+      return rows.filter((r) => r.userId === user && r.period <= period);
+    },
     async findByIdForUser(id, user) {
       return rows.find((r) => r.id === id && r.userId === user) ?? null;
     },
@@ -42,6 +45,8 @@ function fixture() {
         return null;
       const row = {
         ...draft,
+        isRecurring: draft.isRecurring ?? false,
+        recurrenceEndPeriod: null,
         id: `budget-${rows.length}`,
         categoryName: draft.categoryId,
         categoryIcon: null,
@@ -215,4 +220,32 @@ test("reading and updating a foreign budget are rejected without changing the ow
   });
   await assert.rejects(f.service.remove(row.id, "stranger"), { code: "budget_not_found" });
   assert.deepEqual(f.rows, before);
+});
+
+test("a monthly budget repeats in later months and stops from the month it is removed in", async () => {
+  const f = fixture();
+  const created = await f.service.create(
+    { categoryId: "food", period: "2026-01", amount: 300, isRecurring: true },
+    f.userId,
+  );
+  assert.equal(created.isRecurring, true);
+  assert.equal(created.inheritedFrom, null);
+
+  const march = await f.service.list(f.userId, { period: "2026-03" });
+  assert.deepEqual(
+    march.items.map((item) => [item.id, item.period, item.inheritedFrom, item.amount]),
+    [[created.id, "2026-03", "2026-01", 300]],
+  );
+  assert.equal(march.allocatedAmount, 300);
+
+  await f.service.remove(created.id, f.userId, { fromPeriod: "2026-03" });
+  assert.equal((await f.service.list(f.userId, { period: "2026-03" })).items.length, 0);
+  assert.equal((await f.service.list(f.userId, { period: "2026-02" })).items.length, 1);
+  assert.equal((await f.service.list(f.userId, { period: "2026-01" })).items.length, 1);
+
+  const copied = await f.service.copyPrevious(
+    { period: "2026-02", sourceBudgetIds: [created.id] },
+    f.userId,
+  );
+  assert.deepEqual(copied, { createdCount: 0, skippedCount: 1 });
 });

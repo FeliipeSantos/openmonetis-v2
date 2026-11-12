@@ -7,6 +7,7 @@ import {
   calculateBudgetSpending,
   createBudgetDraft,
   getPreviousBudgetPeriod,
+  resolveBudgetsForPeriod,
 } from "@openmonetis/domain/budgets";
 import { getPeriodEndDate } from "@openmonetis/domain/transactions";
 import type {
@@ -14,6 +15,7 @@ import type {
   CopyPreviousBudgetsInput,
   CreateBudgetInput,
   ListBudgetsQuery,
+  RemoveBudgetQuery,
   UpdateBudgetInput,
 } from "@openmonetis/validators/budgets";
 import { badRequest, notFound } from "../utils/errors";
@@ -24,6 +26,8 @@ type BudgetRecord = {
   categoryId: string;
   period: string;
   amount: string;
+  isRecurring: boolean;
+  recurrenceEndPeriod: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -33,11 +37,17 @@ type BudgetWithCategoryRecord = BudgetRecord & {
   categoryIcon: string | null;
 };
 
-type BudgetUpdateRecord = { amount?: string; period?: string };
+type BudgetUpdateRecord = {
+  amount?: string;
+  period?: string;
+  isRecurring?: boolean;
+  recurrenceEndPeriod?: string | null;
+};
 
 export type BudgetsRepository = {
   insertIfAbsent(data: BudgetCreateDraft): Promise<BudgetRecord | null>;
   listByUserAndPeriod(userId: string, period: string): Promise<BudgetWithCategoryRecord[]>;
+  listUpToPeriodForUser(userId: string, period: string): Promise<BudgetWithCategoryRecord[]>;
   findByIdForUser(id: string, userId: string): Promise<BudgetWithCategoryRecord | null>;
   findByCategoryAndPeriodForUser(
     categoryId: string,
@@ -71,10 +81,15 @@ export function createBudgetsService(
     return category;
   }
 
+  /** The budget of each category in `period`, including monthly ones set in earlier months. */
+  async function budgetsForPeriod(userId: string, period: string) {
+    return resolveBudgetsForPeriod(await repository.listUpToPeriodForUser(userId, period), period);
+  }
+
   async function list(userId: string, query: ListBudgetsQuery) {
     const periodEnd = getPeriodEndDate(query.period);
     const [budgetRows, spendingEntries, recurringRules, categories] = await Promise.all([
-      repository.listByUserAndPeriod(userId, query.period),
+      budgetsForPeriod(userId, query.period),
       repository.listSpendingEntries(userId, query.period),
       repository.listRecurringRules(userId, periodEnd),
       categoriesRepository.listByUser(userId),
@@ -89,6 +104,7 @@ export function createBudgetsService(
       .map((budget) =>
         toOutput(
           budget,
+          query.period,
           overview.progressByCategory.get(budget.categoryId) as ReturnType<
             typeof calculateBudgetProgress
           >,
@@ -131,6 +147,7 @@ export function createBudgetsService(
           categoryId: input.categoryId,
           period: input.period,
           amount: input.amount,
+          isRecurring: input.isRecurring,
         }),
       );
       if (!budget) {
@@ -166,6 +183,11 @@ export function createBudgetsService(
       const values: BudgetUpdateRecord = {};
       if (input.amount !== undefined) values.amount = input.amount.toFixed(2);
       if (input.period !== undefined) values.period = input.period;
+      if (input.isRecurring !== undefined) {
+        values.isRecurring = input.isRecurring;
+        // Turning repetition off or on again clears any earlier stop month.
+        values.recurrenceEndPeriod = null;
+      }
       const budget = await repository.updateForUser(id, userId, values);
       if (!budget) throw notFound("Budget not found", "budget_not_found");
       const output = (await list(userId, { period: targetPeriod })).items.find(
@@ -175,28 +197,45 @@ export function createBudgetsService(
       return output;
     },
 
-    async remove(id: string, userId: string) {
+    /**
+     * Removes a budget. From a later month a monthly budget repeats in, it only stops repeating
+     * from that month on, keeping the earlier months.
+     */
+    async remove(id: string, userId: string, query: RemoveBudgetQuery = {}) {
+      const current = await repository.findByIdForUser(id, userId);
+      if (!current) throw notFound("Budget not found", "budget_not_found");
+      if (query.fromPeriod && current.isRecurring && query.fromPeriod > current.period) {
+        const stopped = await repository.updateForUser(id, userId, {
+          recurrenceEndPeriod: getPreviousBudgetPeriod(query.fromPeriod),
+        });
+        if (!stopped) throw notFound("Budget not found", "budget_not_found");
+        return { id: stopped.id };
+      }
       const budget = await repository.deleteForUser(id, userId);
       if (!budget) throw notFound("Budget not found", "budget_not_found");
       return { id: budget.id };
     },
 
     async copyPrevious(input: CopyPreviousBudgetsInput, userId: string) {
-      const previousBudgets = await repository.listByUserAndPeriod(
-        userId,
-        getPreviousBudgetPeriod(input.period),
-      );
+      const [previousBudgets, targetBudgets] = await Promise.all([
+        budgetsForPeriod(userId, getPreviousBudgetPeriod(input.period)),
+        budgetsForPeriod(userId, input.period),
+      ]);
+      // A category that already has a budget in the month (a monthly one included) keeps it.
+      const budgetedInTarget = new Set(targetBudgets.map((budget) => budget.categoryId));
       const selectedIds = new Set(input.sourceBudgetIds);
       const selectedBudgets = previousBudgets.filter((budget) => selectedIds.has(budget.id));
       if (selectedBudgets.length !== selectedIds.size) {
         throw badRequest("One or more source budgets are invalid", "invalid_source_budgets");
       }
-      const drafts = selectedBudgets.map((budget) => ({
-        userId,
-        categoryId: budget.categoryId,
-        period: input.period,
-        amount: budget.amount,
-      }));
+      const drafts = selectedBudgets
+        .filter((budget) => !budgetedInTarget.has(budget.categoryId))
+        .map((budget) => ({
+          userId,
+          categoryId: budget.categoryId,
+          period: input.period,
+          amount: budget.amount,
+        }));
 
       const createdCount = (await repository.insertCopies(drafts)).length;
       return { createdCount, skippedCount: selectedBudgets.length - createdCount };
@@ -205,7 +244,8 @@ export function createBudgetsService(
 }
 
 function toOutput(
-  budget: BudgetWithCategoryRecord,
+  budget: BudgetWithCategoryRecord & { inheritedFrom: string | null },
+  period: string,
   progress: ReturnType<typeof calculateBudgetProgress>,
 ): BudgetOutput {
   return {
@@ -213,8 +253,10 @@ function toOutput(
     categoryId: budget.categoryId,
     categoryName: budget.categoryName,
     categoryIcon: budget.categoryIcon,
-    period: budget.period,
+    period,
     amount: Math.abs(Number(budget.amount)),
+    isRecurring: budget.isRecurring,
+    inheritedFrom: budget.inheritedFrom,
     ...progress,
     createdAt: budget.createdAt.toISOString(),
     updatedAt: budget.updatedAt.toISOString(),

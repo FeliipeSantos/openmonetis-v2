@@ -68,3 +68,27 @@ export function splitBudgetCategoryName(label: string) {
   if (index < 0) return { name: label, parentName: null };
   return { name: label.slice(index + separator.length), parentName: label.slice(0, index) };
 }
+
+/** "Mensal", "Mensal · desde janeiro de 2026" or "Só este mês". */
+export function getBudgetRecurrenceLabel(
+  budget: Pick<BudgetOutput, "isRecurring" | "inheritedFrom">,
+) {
+  if (!budget.isRecurring) return "Só este mês";
+  return budget.inheritedFrom
+    ? `Mensal · desde ${formatBudgetPeriod(budget.inheritedFrom).toLocaleLowerCase("pt-BR")}`
+    : "Mensal";
+}
+
+/** What removing the budget does in the month on screen. */
+export function getBudgetRemovalDescription(
+  budget: Pick<BudgetOutput, "categoryName" | "isRecurring" | "inheritedFrom">,
+) {
+  const name = `"${budget.categoryName}"`;
+  if (budget.inheritedFrom) {
+    return `O limite mensal de ${name} deixa de se repetir a partir deste mês. Os meses anteriores continuam com ele e os lançamentos não serão alterados.`;
+  }
+  if (budget.isRecurring) {
+    return `O limite mensal de ${name} será removido deste mês e dos meses seguintes em que ele se repete. Os lançamentos não serão alterados.`;
+  }
+  return `O limite de ${name} será removido apenas deste mês. Os lançamentos da categoria não serão alterados.`;
+}

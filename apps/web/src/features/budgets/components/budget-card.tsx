@@ -25,6 +25,8 @@ import {
   budgetStatusLabels,
   budgetStatusStyles,
   formatBudgetPercentage,
+  getBudgetRecurrenceLabel,
+  getBudgetRemovalDescription,
   splitBudgetCategoryName,
 } from "../budgets.presentation";
 
@@ -60,7 +62,9 @@ export function BudgetCard({
                 {category.name}
               </CardTitle>
               <p className="mt-0.5 font-mono text-muted-foreground text-xs">
-                {category.parentName ? `${category.parentName} · Limite mensal` : "Limite mensal"}
+                {[category.parentName, getBudgetRecurrenceLabel(budget)]
+                  .filter(Boolean)
+                  .join(" · ")}
               </p>
             </div>
           </div>
@@ -140,10 +144,7 @@ export function BudgetCard({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remover orçamento?</AlertDialogTitle>
-            <AlertDialogDescription>
-              O limite de &quot;{budget.categoryName}&quot; será removido apenas deste mês. Os
-              lançamentos da categoria não serão alterados.
-            </AlertDialogDescription>
+            <AlertDialogDescription>{getBudgetRemovalDescription(budget)}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={pending}>Cancelar</AlertDialogCancel>

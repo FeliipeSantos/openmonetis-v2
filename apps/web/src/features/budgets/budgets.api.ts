@@ -26,8 +26,10 @@ export function updateBudget(id: string, input: UpdateBudgetInput) {
   });
 }
 
-export function deleteBudget(id: string) {
-  return request<{ id: string }>(`/budgets/${id}`, { method: "DELETE" });
+/** From a later month a monthly budget repeats in, removing only stops it from that month on. */
+export function deleteBudget(id: string, fromPeriod?: string) {
+  const query = fromPeriod ? `?${new URLSearchParams({ fromPeriod })}` : "";
+  return request<{ id: string }>(`/budgets/${id}${query}`, { method: "DELETE" });
 }
 
 export function copyPreviousBudgets(input: CopyPreviousBudgetsInput) {

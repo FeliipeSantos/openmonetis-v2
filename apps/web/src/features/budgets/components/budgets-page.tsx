@@ -83,6 +83,18 @@ export function BudgetsPage({ onPeriodChange, period }: BudgetsPageProps) {
   }
 
   async function saveBudget(input: CreateBudgetInput | UpdateBudgetInput) {
+    if (editingBudget?.inheritedFrom) {
+      // A monthly budget from an earlier month changes from this month on, as a budget of its own.
+      const update = input as UpdateBudgetInput;
+      await createMutation.mutateAsync({
+        categoryId: editingBudget.categoryId,
+        period,
+        amount: update.amount ?? editingBudget.amount,
+        isRecurring: update.isRecurring ?? editingBudget.isRecurring,
+      });
+      toast.success("Orçamento atualizado a partir deste mês");
+      return;
+    }
     if (editingBudget) {
       const updated = await updateMutation.mutateAsync({ id: editingBudget.id, input, period });
       toast.success("Orçamento atualizado");
@@ -98,7 +110,11 @@ export function BudgetsPage({ onPeriodChange, period }: BudgetsPageProps) {
   async function removeBudget(budget: BudgetOutput) {
     try {
       await deleteMutation.mutateAsync({ id: budget.id, period });
-      toast.success("Orçamento removido");
+      toast.success(
+        budget.inheritedFrom
+          ? "Orçamento mensal encerrado a partir deste mês"
+          : "Orçamento removido",
+      );
     } catch {
       toast.error("Não foi possível remover o orçamento.");
       throw new Error("Budget removal failed");

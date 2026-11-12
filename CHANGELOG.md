@@ -9,6 +9,15 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Adicionado
 
+- Orçamento mensal: o cadastro de orçamento ganha a opção **Mensal**. Um orçamento mensal vale no
+  mês em que foi criado e se repete nos meses seguintes, sem precisar cadastrar de novo, até
+  existir outro orçamento da categoria num mês posterior. Nos meses seguintes o cartão mostra
+  "Mensal · desde <mês>"; editar ali muda o limite a partir daquele mês, e remover ali só encerra a
+  repetição a partir daquele mês, mantendo os anteriores. Copiar limites do mês anterior não
+  duplica uma categoria que já tem orçamento (inclusive mensal) no mês. A migração
+  `0034_recurring_budgets` cria `is_recurring` e `recurrence_end_period` em `budgets`;
+  `DELETE /budgets/{id}` aceita `fromPeriod`.
+
 - Criar subcategoria no lançamento: o campo **Subcategoria** ganha **+ Criar subcategoria**, que
   abre o formulário já com a categoria principal escolhida e seleciona a nova subcategoria ao
   salvar. Também funciona em uma categoria que ainda não tem subcategorias; categorias do sistema

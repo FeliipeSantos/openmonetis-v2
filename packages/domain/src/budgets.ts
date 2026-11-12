@@ -22,6 +22,7 @@ export type BudgetCreateDraft = {
   categoryId: string;
   period: string;
   amount: string;
+  isRecurring?: boolean;
 };
 
 export type BudgetSpendingEntry = {
@@ -80,13 +81,48 @@ export function createBudgetDraft(input: {
   categoryId: string;
   period: string;
   amount: number;
+  isRecurring?: boolean;
 }): BudgetCreateDraft {
   return {
     userId: input.userId,
     categoryId: input.categoryId,
     period: input.period,
     amount: input.amount.toFixed(2),
+    isRecurring: input.isRecurring ?? false,
   };
+}
+
+export type BudgetPeriodCandidate = {
+  categoryId: string;
+  period: string;
+  isRecurring: boolean;
+  recurrenceEndPeriod: string | null;
+};
+
+/**
+ * The budget each category has in `period`: its own budget for that month, otherwise the latest
+ * earlier one when it is recurring and has not ended by then. A later budget of the category,
+ * recurring or not, replaces an earlier recurring one from its month on. `inheritedFrom` is the
+ * month the budget was set in when it comes from an earlier month.
+ */
+export function resolveBudgetsForPeriod<T extends BudgetPeriodCandidate>(
+  budgets: readonly T[],
+  period: string,
+): Array<T & { inheritedFrom: string | null }> {
+  const latestByCategory = new Map<string, T>();
+  for (const budget of budgets) {
+    if (budget.period > period) continue;
+    const current = latestByCategory.get(budget.categoryId);
+    if (!current || budget.period > current.period) latestByCategory.set(budget.categoryId, budget);
+  }
+  return [...latestByCategory.values()].flatMap(
+    (budget): Array<T & { inheritedFrom: string | null }> => {
+      if (budget.period === period) return [{ ...budget, inheritedFrom: null }];
+      const active =
+        budget.isRecurring && (!budget.recurrenceEndPeriod || budget.recurrenceEndPeriod >= period);
+      return active ? [{ ...budget, inheritedFrom: budget.period }] : [];
+    },
+  );
 }
 
 export function calculateBudgetProgress(

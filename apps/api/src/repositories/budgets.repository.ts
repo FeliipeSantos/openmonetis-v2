@@ -32,6 +32,8 @@ const budgetWithCategoryColumns = {
   categoryId: budgets.categoryId,
   period: budgets.period,
   amount: budgets.amount,
+  isRecurring: budgets.isRecurring,
+  recurrenceEndPeriod: budgets.recurrenceEndPeriod,
   createdAt: budgets.createdAt,
   updatedAt: budgets.updatedAt,
   categoryName: categoryLabelSql(categories),
@@ -57,6 +59,19 @@ export const budgetsRepository = {
         and(eq(budgets.categoryId, categories.id), eq(categories.userId, userId)),
       )
       .where(and(eq(budgets.userId, userId), eq(budgets.period, period)))
+      .orderBy(asc(categories.name));
+  },
+
+  /** Every budget set up to `period`, so recurring ones from earlier months can apply to it. */
+  listUpToPeriodForUser(userId, period) {
+    return db
+      .select(budgetWithCategoryColumns)
+      .from(budgets)
+      .innerJoin(
+        categories,
+        and(eq(budgets.categoryId, categories.id), eq(categories.userId, userId)),
+      )
+      .where(and(eq(budgets.userId, userId), lte(budgets.period, period)))
       .orderBy(asc(categories.name));
   },
 

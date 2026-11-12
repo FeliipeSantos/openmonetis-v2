@@ -1,0 +1,3 @@
+ALTER TABLE "budgets" ADD COLUMN "is_recurring" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "budgets" ADD COLUMN "recurrence_end_period" varchar(7);--> statement-breakpoint
+ALTER TABLE "budgets" ADD CONSTRAINT "budgets_recurrence_end_period_check" CHECK ("budgets"."recurrence_end_period" is null or ("budgets"."is_recurring" and "budgets"."recurrence_end_period" >= "budgets"."period"));

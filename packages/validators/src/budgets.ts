@@ -11,13 +11,20 @@ export const CreateBudgetInputSchema = z
     categoryId: z.uuid(),
     period: periodSchema,
     amount: amountSchema,
+    /** Repeats the budget in the following months. */
+    isRecurring: z.boolean().optional(),
   })
   .openapi("CreateBudgetInput");
 
 export const UpdateBudgetInputSchema = z
-  .object({ amount: amountSchema.optional(), period: periodSchema.optional() })
+  .object({
+    amount: amountSchema.optional(),
+    period: periodSchema.optional(),
+    isRecurring: z.boolean().optional(),
+  })
   .refine(
-    (input) => input.amount !== undefined || input.period !== undefined,
+    (input) =>
+      input.amount !== undefined || input.period !== undefined || input.isRecurring !== undefined,
     "Provide at least one field to update",
   )
   .openapi("UpdateBudgetInput");
@@ -39,6 +46,15 @@ export const ListBudgetsQuerySchema = z
   })
   .openapi("ListBudgetsQuery");
 
+/** Removing a recurring budget from a later month only stops it from that month on. */
+export const RemoveBudgetQuerySchema = z
+  .object({
+    fromPeriod: periodSchema
+      .optional()
+      .openapi({ param: { name: "fromPeriod", in: "query" }, example: "2026-09" }),
+  })
+  .openapi("RemoveBudgetQuery");
+
 export const BudgetParamsSchema = z
   .object({ id: z.uuid().openapi({ param: { name: "id", in: "path" } }) })
   .openapi("BudgetParams");
@@ -51,6 +67,9 @@ export const BudgetOutputSchema = z
     categoryIcon: z.string().nullable(),
     period: periodSchema,
     amount: z.number().nonnegative(),
+    isRecurring: z.boolean(),
+    /** Month the budget was set in when it repeats from an earlier month; null when set here. */
+    inheritedFrom: periodSchema.nullable(),
     actualSpentAmount: z.number().nonnegative(),
     projectedAmount: z.number().nonnegative(),
     committedAmount: z.number().nonnegative(),
@@ -98,3 +117,4 @@ export type ListBudgetsQuery = z.infer<typeof ListBudgetsQuerySchema>;
 export type BudgetOutput = z.infer<typeof BudgetOutputSchema>;
 export type BudgetOverviewOutput = z.infer<typeof BudgetOverviewOutputSchema>;
 export type CopyPreviousBudgetsOutput = z.infer<typeof CopyPreviousBudgetsOutputSchema>;
+export type RemoveBudgetQuery = z.infer<typeof RemoveBudgetQuerySchema>;

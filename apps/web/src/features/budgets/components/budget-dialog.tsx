@@ -15,11 +15,13 @@ import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { CategoryIcon } from "@/features/categories/category-icons";
 import { CategoryPicker } from "@/features/categories/components/category-picker";
 import { SubcategoryPicker } from "@/features/categories/components/subcategory-picker";
 import { showInvalidFormToast } from "@/lib/form-feedback";
-import { getBudgetScopeHint } from "../budgets.presentation";
+import { cn } from "@/lib/utils";
+import { formatBudgetPeriod, getBudgetScopeHint } from "../budgets.presentation";
 
 type BudgetDialogProps = {
   budget: BudgetOutput | null;
@@ -43,22 +45,30 @@ export function BudgetDialog({
   const id = useId();
   const [submitError, setSubmitError] = useState<string | null>(null);
   const editing = Boolean(budget);
+  // A monthly budget from an earlier month is changed from the month on screen on.
+  const inherited = Boolean(budget?.inheritedFrom);
   const form = useForm({
     defaultValues: {
       categoryId: budget?.categoryId ?? initialCategoryId ?? "",
       amount: budget ? String(budget.amount) : "",
       period: budget?.period ?? period,
+      isRecurring: budget?.isRecurring ?? false,
     },
     onSubmitInvalid: showInvalidFormToast,
     onSubmit: async ({ value }) => {
       setSubmitError(null);
       const amount = Number(value.amount);
       const result = editing
-        ? UpdateBudgetInputSchema.safeParse({ amount, period: value.period })
+        ? UpdateBudgetInputSchema.safeParse({
+            amount,
+            period: value.period,
+            isRecurring: value.isRecurring,
+          })
         : CreateBudgetInputSchema.safeParse({
             categoryId: value.categoryId,
             period: value.period,
             amount,
+            isRecurring: value.isRecurring,
           });
 
       if (!result.success) {
@@ -85,9 +95,11 @@ export function BudgetDialog({
         <DialogHeader>
           <DialogTitle>{editing ? "Atualizar orçamento" : "Novo orçamento"}</DialogTitle>
           <DialogDescription>
-            {editing
-              ? "Ajuste o limite mensal desta categoria."
-              : "Defina quanto pretende gastar nesta categoria durante o mês."}
+            {inherited
+              ? "Este limite se repete de um mês anterior. O que você mudar vale a partir deste mês."
+              : editing
+                ? "Ajuste o limite mensal desta categoria."
+                : "Defina quanto pretende gastar nesta categoria durante o mês."}
           </DialogDescription>
         </DialogHeader>
 
@@ -173,13 +185,24 @@ export function BudgetDialog({
                 <Label className="font-mono" htmlFor={`${id}-period`}>
                   Mês do orçamento
                 </Label>
-                <PeriodPicker
-                  id={`${id}-period`}
-                  onChange={field.handleChange}
-                  value={field.state.value}
-                />
+                {inherited ? (
+                  <output
+                    className="flex h-9 items-center rounded-md border border-input bg-muted/40 px-3 text-sm"
+                    id={`${id}-period`}
+                  >
+                    {formatBudgetPeriod(field.state.value)}
+                  </output>
+                ) : (
+                  <PeriodPicker
+                    id={`${id}-period`}
+                    onChange={field.handleChange}
+                    value={field.state.value}
+                  />
+                )}
                 <p className="text-muted-foreground text-xs">
-                  Pré-selecionada conforme o mês da tela.
+                  {inherited
+                    ? "A mudança começa neste mês; os meses anteriores continuam como estão."
+                    : "Pré-selecionada conforme o mês da tela."}
                 </p>
               </div>
             )}
@@ -213,6 +236,29 @@ export function BudgetDialog({
                   </p>
                 ) : null}
               </div>
+            )}
+          </form.Field>
+
+          <form.Field name="isRecurring">
+            {(field) => (
+              <section
+                className={cn(
+                  "flex items-center justify-between gap-4 rounded-lg border border-input bg-popover px-3 py-2.5 transition-colors",
+                  field.state.value && "border-brand/30 bg-brand/5",
+                )}
+              >
+                <label className="min-w-0 cursor-pointer" htmlFor={`${id}-recurring`}>
+                  <span className="block text-left font-medium text-sm">Mensal</span>
+                  <span className="block text-left text-muted-foreground text-xs">
+                    Repete este limite nos meses seguintes, sem precisar cadastrar de novo.
+                  </span>
+                </label>
+                <Switch
+                  checked={field.state.value}
+                  id={`${id}-recurring`}
+                  onCheckedChange={(checked) => field.handleChange(checked)}
+                />
+              </section>
             )}
           </form.Field>
 

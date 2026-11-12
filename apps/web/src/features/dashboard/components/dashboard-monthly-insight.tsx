@@ -63,7 +63,7 @@ export function DashboardMonthlyInsight({ period }: { period: string }) {
                   <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
                     <CategoryIcon className="size-4" name={expense.categoryIcon} />
                   </span>
-                  <div className="grid min-w-0 flex-1 gap-2">
+                  <div className="grid min-w-0 flex-1 grid-cols-1 gap-2">
                     <div className="flex min-w-0 items-center gap-3">
                       <span className="min-w-0 flex-1 truncate font-medium text-sm">
                         {expense.categoryName}

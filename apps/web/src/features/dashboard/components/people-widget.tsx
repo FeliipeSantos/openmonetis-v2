@@ -92,7 +92,7 @@ function PeopleList({ people }: { people: PersonExpense[] }) {
             ) : null}
             <AvatarFallback>{getInitials(person.personName)}</AvatarFallback>
           </Avatar>
-          <div className="grid min-w-0 flex-1 gap-2">
+          <div className="grid min-w-0 flex-1 grid-cols-1 gap-2">
             <div className="flex items-center gap-3">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">

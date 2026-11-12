@@ -103,7 +103,7 @@ function InstallmentExpenseList({ items }: { items: InstallmentExpense[] }) {
             name={item.name}
             size={36}
           />
-          <div className="grid min-w-0 flex-1 gap-2">
+          <div className="grid min-w-0 flex-1 grid-cols-1 gap-2">
             <div className="flex items-center gap-3">
               <div className="min-w-0 flex-1">
                 <div className="flex min-w-0 items-center gap-2">

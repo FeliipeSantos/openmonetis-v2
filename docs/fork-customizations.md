@@ -72,6 +72,7 @@ para a lista completa.
 
 | Alteração | Arquivos principais | Commit |
 | --- | --- | --- |
+| Widgets da Visão geral sem rolagem horizontal com nomes longos (`grid-cols-1` na coluna de texto de cada linha) | `installment-expenses-widget.tsx`, `budgets-widget.tsx`, `goals-widget.tsx`, `invoices-widget.tsx`, `people-widget.tsx`, `category-breakdown-widget.tsx`, `dashboard-monthly-insight.tsx`, `expense-distribution-list.tsx` | — |
 | Logo "Nubank Chroma" renomeada para "Nubank Croma" (só o nome exibido; o arquivo continua `nubank_chroma.png`) | `apps/web/src/lib/logo-catalog.ts` | `6b21c27` |
 
 ## 3. Migrações de banco do fork
@@ -243,6 +244,7 @@ seus dados. Uma conta nova já confere a lista padrão de categorias.
 | 19 | Relatórios › Distribuição financeira | Ver as categorias | Valores batem com os lançamentos; subcategorias com ícone |
 | 20 | Contas / Cartões | Seletor de logos, buscar "croma" | Aparece "Nubank Croma" |
 | 21 | Visão geral | Abrir | Carrega sem erros e mostra o aviso da versão nova |
+| 21a | Visão geral | Despesa parcelada com nome bem longo | Widget Despesas parceladas corta o nome com reticências, sem barra de rolagem horizontal |
 | 22 | Novidades do upstream | Abrir as telas da versão nova | Carregam sem erros no console |
 
 Para os números da massa de teste, também é possível conferir pela API (logado):

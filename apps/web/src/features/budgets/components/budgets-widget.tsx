@@ -167,7 +167,7 @@ function BudgetProgressRow({
       <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
         <CategoryIcon className="size-4" name={budget.categoryIcon} />
       </span>
-      <div className="grid min-w-0 flex-1 gap-2">
+      <div className="grid min-w-0 flex-1 grid-cols-1 gap-2">
         <div className="min-w-0">
           <div className="flex items-center justify-between gap-3">
             <Link

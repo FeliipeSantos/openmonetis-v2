@@ -257,7 +257,7 @@ function InvoiceCardName({ invoice }: { invoice: DashboardInvoice }) {
                   {person.personName.slice(0, 1).toLocaleUpperCase("pt-BR")}
                 </AvatarFallback>
               </Avatar>
-              <div className="grid min-w-0 flex-1 gap-1">
+              <div className="grid min-w-0 flex-1 grid-cols-1 gap-1">
                 <div className="flex items-center justify-between gap-3">
                   <span className="min-w-0 truncate font-medium text-sm">{person.personName}</span>
                   <MoneyValue amount={person.amount} className="shrink-0 font-medium text-sm" />

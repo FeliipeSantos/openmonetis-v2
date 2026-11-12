@@ -67,6 +67,9 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Corrigido
 
+- Visão geral: widgets como Despesas parceladas, Orçamentos, Metas, Faturas e Pessoas mostravam
+  uma barra de rolagem horizontal quando um nome era longo. Agora o nome é cortado com reticências
+  dentro da largura do widget.
 - Distribuição financeira: subcategorias sem ícone próprio mostravam o ícone genérico de etiqueta
   na lista de categorias. Agora usam o ícone da categoria principal, como em lançamentos e
   orçamentos.

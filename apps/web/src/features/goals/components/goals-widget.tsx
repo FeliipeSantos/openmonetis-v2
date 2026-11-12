@@ -95,7 +95,7 @@ function GoalProgressRow({ goal }: { goal: GoalOutput }) {
       <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand/10 text-brand-strong">
         <Goal aria-hidden="true" className="size-4" />
       </span>
-      <div className="grid min-w-0 flex-1 gap-2">
+      <div className="grid min-w-0 flex-1 grid-cols-1 gap-2">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="truncate font-medium text-sm">{goal.name}</p>

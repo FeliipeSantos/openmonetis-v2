@@ -64,6 +64,10 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Corrigido
 
+- Distribuição financeira: subcategorias sem ícone próprio mostravam o ícone genérico de etiqueta
+  na lista de categorias. Agora usam o ícone da categoria principal, como em lançamentos e
+  orçamentos.
+- Seletor de logos: a instituição "Nubank Chroma" passa a se chamar "Nubank Croma".
 - Cartão de orçamento: nomes longos cortavam o selo de situação. O cartão de uma subcategoria
   mostra o nome dela no título e a categoria principal na linha de baixo ("Alimentação · Limite
   mensal"), e o selo não encolhe mais.

@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import type { DeviceTokenKind } from "@openmonetis/domain/device-tokens";
 import {
   assertInboxItemTransition,
   type InboxClearableStatus,
@@ -26,6 +27,7 @@ export type InboxItemRecord = {
   id: string;
   userId: string;
   deviceTokenId: string | null;
+  integrationKind: DeviceTokenKind;
   sourceApp: string;
   sourceAppName: string | null;
   originalTitle: string | null;
@@ -91,6 +93,7 @@ export type InboxRepository = {
 
 type InboxIngestionContext = {
   deviceTokenId: string;
+  integrationKind: DeviceTokenKind;
   userId: string;
 };
 
@@ -341,7 +344,7 @@ function buildDraft(
   context: InboxIngestionContext,
   now: Date,
 ): InboxItemDraft {
-  const notificationTimestamp = parseCompanionNotificationTimestamp(input);
+  const notificationTimestamp = parseNotificationTimestamp(input, context.integrationKind);
   if (!isInboxNotificationTimestampAllowed(notificationTimestamp, now)) {
     throw badRequest(
       "Notification timestamp is outside the accepted range",
@@ -365,6 +368,7 @@ function buildDraft(
   return {
     userId: context.userId,
     deviceTokenId: context.deviceTokenId,
+    integrationKind: context.integrationKind,
     sourceApp: normalized.sourceApp,
     sourceAppName: normalized.sourceAppName,
     originalTitle: normalized.originalTitle,
@@ -377,8 +381,12 @@ function buildDraft(
   };
 }
 
-function parseCompanionNotificationTimestamp(input: CompanionInboxItemInput) {
-  if (input.timestampFormatVersion === 2) {
+function parseNotificationTimestamp(
+  input: CompanionInboxItemInput,
+  integrationKind: DeviceTokenKind,
+) {
+  // Only old Companion builds send the mislabelled format below; other integrations send real ISO dates.
+  if (input.timestampFormatVersion === 2 || integrationKind !== "companion") {
     return new Date(input.notificationTimestamp);
   }
 
@@ -405,6 +413,7 @@ function toOutput(record: InboxItemRecord): InboxItemOutput {
 function toSummaryOutput(record: InboxItemRecord): InboxItemSummaryOutput {
   return {
     id: record.id,
+    integrationKind: record.integrationKind,
     sourceAppName: record.sourceAppName,
     originalText: record.originalText,
     notificationTimestamp: record.notificationTimestamp.toISOString(),

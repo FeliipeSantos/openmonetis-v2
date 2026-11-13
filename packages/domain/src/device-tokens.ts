@@ -5,6 +5,11 @@ export const deviceTokenPrefix = "opm_";
 export const deviceTokenExpiringSoonDays = 30;
 export const deviceTokenActivityWindowDays = 7;
 
+/** Integration that owns a device token: the Android Companion or an n8n workflow. */
+export const deviceTokenKinds = ["companion", "n8n"] as const;
+export type DeviceTokenKind = (typeof deviceTokenKinds)[number];
+export const defaultDeviceTokenKind: DeviceTokenKind = "companion";
+
 const dayInMilliseconds = 24 * 60 * 60 * 1_000;
 
 export function normalizeDeviceTokenName(value: string) {

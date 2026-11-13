@@ -68,6 +68,12 @@ para a lista completa.
 | Cartão de orçamento com o nome da subcategoria no título e a categoria principal embaixo | `budget-card.tsx`, `budgets.presentation.ts` | `3eae948` |
 | Orçamento "Mensal", que se repete nos meses seguintes até ser encerrado | `budgets.service.ts`, `budgets.repository.ts`, `budget-dialog.tsx`, `budgets-page.tsx`, migração `0034` | `af72710` |
 
+### Integrações
+
+| Alteração | Arquivos principais | Commit |
+| --- | --- | --- |
+| **Conexão com n8n**: seção em Ajustes → Integrações (tokens do tipo `n8n`, endereço e JSON de exemplo), selo "n8n" na Caixa de entrada e data ISO comum para o n8n. O Companion continua igual (lista só os tokens `companion`). Formato do envio em [n8n-integration.md](n8n-integration.md) | `n8n-token-settings.tsx`, `n8n-guide.tsx`, `device-token-settings.tsx`, `device-token-item.tsx`, `device-tokens.presentation.ts`, `device-tokens.service.ts`, `inbox.service.ts` (`parseNotificationTimestamp`), `middlewares/device-auth.ts`, `inbox-item-card.tsx`, `inbox-details-dialog.tsx`, migração `0035` | — |
+
 ### Outros
 
 | Alteração | Arquivos principais | Commit |
@@ -82,10 +88,12 @@ para a lista completa.
 | `0032_category_positions` | Coluna `categories.position`, preenchida em ordem alfabética |
 | `0033_exclude_from_budget` | Coluna `exclude_from_budget` em `transactions` e `recurring_transaction_rules` |
 | `0034_recurring_budgets` | Colunas `budgets.is_recurring` e `recurrence_end_period`, com check constraint |
+| `0035_n8n_integration` | Tipo `device_token_kind` e colunas `device_tokens.kind` e `inbox_items.integration_kind` (padrão `companion`) |
 
 Essas migrações **já foram aplicadas na VPS**. Por isso:
 
-- **nunca renomeie, renumere nem altere** `0032`, `0033` e `0034`;
+- **nunca renomeie, renumere nem altere** `0032`, `0033` e `0034` (nem a `0035`, depois que for
+  para a VPS);
 - o `drizzle-kit migrate` aplica só as migrações com `when` (no `_journal.json`) **maior** que a
   última aplicada. Uma migração com data anterior seria **ignorada em silêncio**.
 
@@ -94,12 +102,12 @@ Essas migrações **já foram aplicadas na VPS**. Por isso:
 Se o upstream criar a própria `0032_...` (ou qualquer número que já usamos), o merge dá conflito
 em `packages/db/drizzle/meta/_journal.json`. Para resolver:
 
-1. Mantenha as nossas entradas (`0032`–`0034`) **exatamente** como estão.
+1. Mantenha as nossas entradas (`0032`–`0035`) **exatamente** como estão.
 2. Coloque as migrações do upstream **depois** das nossas, renumerando os arquivos `.sql`, os
    snapshots (`meta/00NN_snapshot.json`) e os campos `idx`/`tag` do journal (ex.: a `0032_x` do
-   upstream vira `0035_x`).
+   upstream vira `0036_x`).
 3. Garanta que o `when` de cada migração seja maior que o da anterior. Se o `when` de uma migração
-   do upstream for menor que o da nossa `0034` (`1794441122031`), aumente-o; caso contrário, ela não
+   do upstream for menor que o da nossa `0035` (`1794592451625`), aumente-o; caso contrário, ela não
    roda na VPS.
 4. Confira se a migração do upstream não colide com as nossas colunas (`position`,
    `exclude_from_budget`, `is_recurring`, `recurrence_end_period`).
@@ -128,6 +136,8 @@ atenção, mesmo quando o Git juntar sem conflito.
 | `transactions.repository.ts` | Sugestões, `categoryIconSql`, `excludeFromBudget` | Conferir as consultas de sugestão e de ícone |
 | `packages/db/src/schema.ts`, `drizzle/meta/_journal.json` | Colunas e migrações do fork | Ver a [seção 3](#3-migrações-de-banco-do-fork) |
 | `packages/domain/src/dashboard.ts`, `packages/validators/src/dashboard.ts` | Campo `subcategories` no detalhamento por categoria | Manter o campo e o teste `category breakdown totals each subcategory` |
+| `device-token-settings.tsx`, `device-token-item.tsx`, `device-tokens.service.ts`, `packages/validators/src/device-tokens.ts` | Tipo do token (`kind`) e filtro da lista do Companion | Manter `kind` na criação, renovação e saída; a seção do Companion continua filtrando por `companion` |
+| `inbox.service.ts`, `routes/inbox.ts`, `packages/validators/src/inbox.ts`, `inbox-item-card.tsx` | Campo `integrationKind` na captura e no selo | Manter o campo; se o upstream mudar o contrato do Companion, levar `integrationKind` junto |
 | `components/ui/popover.tsx` | Prop `anchor` usada pelas sugestões | Manter a prop |
 | `CHANGELOG.md` | Os dois lados escrevem em `Unreleased` | Manter as entradas do fork em `Unreleased` e as versões do upstream abaixo |
 | `*.presentation.test.ts` | Os dois lados acrescentam testes | Manter os dois conjuntos |
@@ -273,6 +283,10 @@ seus dados. Uma conta nova já confere a lista padrão de categorias.
 | 20 | Contas / Cartões | Seletor de logos, buscar "croma" | Aparece "Nubank Croma" |
 | 21 | Visão geral | Abrir | Carrega sem erros e mostra o aviso da versão nova |
 | 21a | Visão geral | Despesa parcelada com nome bem longo | Widget Despesas parceladas corta o nome com reticências, sem barra de rolagem horizontal |
+| 21b | Ajustes › Integrações | Abrir a aba | Companion lista só os aparelhos Android; seção Conexão com n8n aparece logo abaixo |
+| 21c | Ajustes › Integrações | Criar token do n8n | Token exibido uma vez, com endereço e JSON de exemplo; o token aparece só na lista do n8n |
+| 21d | Caixa de entrada | Enviar o JSON de exemplo com o token do n8n (`POST /api/inbox`) e outro item com o token do Companion | Item do n8n com selo "n8n" e "Capturado por n8n" nos detalhes; o do Companion sem selo; os dois viram lançamento ao confirmar |
+| 21e | Companion | Notificação real no Android | Continua chegando na Caixa de entrada |
 | 22 | Novidades do upstream | Abrir as telas da versão nova | Carregam sem erros no console |
 
 Para os números da massa de teste, também é possível conferir pela API (logado):

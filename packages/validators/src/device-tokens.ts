@@ -1,8 +1,11 @@
 import { z } from "@hono/zod-openapi";
-import { deviceTokenNameMaximumLength } from "@openmonetis/domain/device-tokens";
+import { deviceTokenKinds, deviceTokenNameMaximumLength } from "@openmonetis/domain/device-tokens";
 
 export const CreateDeviceTokenInputSchema = z
-  .object({ name: z.string().trim().min(1).max(deviceTokenNameMaximumLength) })
+  .object({
+    name: z.string().trim().min(1).max(deviceTokenNameMaximumLength),
+    kind: z.enum(deviceTokenKinds).optional(),
+  })
   .strict()
   .openapi("CreateDeviceTokenInput");
 
@@ -14,6 +17,7 @@ export const DeviceTokenOutputSchema = z
   .object({
     id: z.uuid(),
     name: z.string(),
+    kind: z.enum(deviceTokenKinds),
     tokenPrefix: z.string(),
     lastUsedAt: z.iso.datetime().nullable(),
     expiresAt: z.iso.datetime(),

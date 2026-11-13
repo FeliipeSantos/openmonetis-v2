@@ -15,6 +15,7 @@ export function createRequireDeviceToken(service: Pick<DeviceTokensService, "aut
     context.set("userId", principal.userId);
     context.set("deviceTokenId", principal.tokenId);
     context.set("deviceTokenName", principal.tokenName);
+    context.set("deviceTokenKind", principal.tokenKind);
     context.set("deviceTokenExpiresAt", principal.expiresAt);
     await next();
   });

@@ -5,6 +5,7 @@ import { MobileFormContent as DialogContent } from "@/components/forms/mobile-fo
 import { Dialog, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 
+import { getInboxIntegrationLabel } from "../inbox.presentation";
 import { inboxItemQueryOptions } from "../inbox.queries";
 
 export function InboxDetailsDialog({
@@ -22,7 +23,9 @@ export function InboxDetailsDialog({
         <DialogHeader>
           <DialogTitle>Detalhes da captura</DialogTitle>
           <DialogDescription>
-            Conteúdo original enviado pelo Companion. Confirme os dados antes de usar.
+            Conteúdo original enviado pelo{" "}
+            {item ? getInboxIntegrationLabel(item.integrationKind) : "aparelho"}. Confirme os dados
+            antes de usar.
           </DialogDescription>
         </DialogHeader>
         <div className="contents" data-mobile-detail-body>
@@ -35,6 +38,12 @@ export function InboxDetailsDialog({
               <div>
                 <dt className="font-mono font-medium text-muted-foreground text-xs">Origem</dt>
                 <dd className="mt-1 text-sm">{item.sourceAppName ?? item.sourceApp}</dd>
+              </div>
+              <div>
+                <dt className="font-mono font-medium text-muted-foreground text-xs">
+                  Capturado por
+                </dt>
+                <dd className="mt-1 text-sm">{getInboxIntegrationLabel(item.integrationKind)}</dd>
               </div>
               {item.originalTitle ? (
                 <div>

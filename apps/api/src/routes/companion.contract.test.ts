@@ -25,6 +25,7 @@ function createTestApp(service: Pick<InboxService, "ingest" | "ingestBatch">) {
           ? {
               tokenId,
               tokenName: "Android",
+              tokenKind: "companion",
               userId,
               expiresAt: new Date("2027-01-01T00:00:00.000Z"),
             }

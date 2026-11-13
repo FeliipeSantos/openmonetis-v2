@@ -9,6 +9,16 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Adicionado
 
+- Conexão com n8n: Ajustes → Integrações ganha a seção **Conexão com n8n**, para enviar dados de
+  fluxos do n8n (por exemplo, notificações do banco capturadas no iPhone) à Caixa de entrada. A seção
+  cria, renova e revoga tokens do n8n, exibe o token uma única vez e mostra o endereço, o cabeçalho e
+  um JSON de exemplo para copiar. As capturas chegam com o selo **n8n** e seguem a mesma revisão do
+  Companion. A migração `0035_n8n_integration` cria o tipo `device_token_kind`, a coluna
+  `device_tokens.kind` e a coluna `inbox_items.integration_kind` (os tokens e capturas existentes
+  ficam como `companion`). `POST /device-tokens` aceita `kind` opcional, e os tokens e itens da
+  Caixa de entrada passam a informar o tipo. Para o n8n, a data da captura é lida como ISO comum,
+  sem o ajuste de fuso das versões antigas do Companion. O Companion continua com os mesmos
+  endereços e contrato. Formato do envio em `docs/n8n-integration.md`.
 - Categorias: o painel de subcategorias também mostra o gasto do mês de cada subcategoria (ou a
   barra do orçamento, quando ela tem um). A API passa a devolver, em `GET /dashboard/category-breakdown`,
   o total do mês de cada subcategoria (`subcategories`).

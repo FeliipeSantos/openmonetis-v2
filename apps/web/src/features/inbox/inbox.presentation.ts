@@ -1,3 +1,4 @@
+import type { DeviceTokenKind } from "@openmonetis/domain/device-tokens";
 import { getInboxSourceNameMatchScore } from "@openmonetis/domain/inbox";
 import {
   dateOnlyToSafeInstant,
@@ -76,6 +77,15 @@ export function groupInboxItemsByDate(
       items: groupItems,
       label: getInboxDateGroupLabel(dateKey, now),
     }));
+}
+
+const inboxIntegrationLabels: Record<DeviceTokenKind, string> = {
+  companion: "Companion",
+  n8n: "n8n",
+};
+
+export function getInboxIntegrationLabel(kind: DeviceTokenKind) {
+  return inboxIntegrationLabels[kind];
 }
 
 export function getInboxItemTitle(item: InboxItemSummaryOutput) {

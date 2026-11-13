@@ -57,6 +57,32 @@ test("device token creation stores only a digest and enforces the limit atomical
   assert.equal(receivedMaximum, deviceTokenMaximumActiveCount);
 });
 
+test("device tokens default to the Companion and keep the requested integration", async () => {
+  const kinds: string[] = [];
+  const service = createDeviceTokensService(
+    createRepository({
+      insertIfBelowActiveLimit: async (data) => {
+        kinds.push(data.kind);
+        return {
+          id: "00000000-0000-4000-8000-000000000002",
+          ...data,
+          lastUsedAt: null,
+          revokedAt: null,
+          createdAt: now,
+        };
+      },
+    }),
+    { secret, now: () => now },
+  );
+
+  const companion = await service.create({ name: "Android" }, userId);
+  const workflow = await service.create({ name: "n8n", kind: "n8n" }, userId);
+
+  assert.deepEqual(kinds, ["companion", "n8n"]);
+  assert.equal(companion.kind, "companion");
+  assert.equal(workflow.kind, "n8n");
+});
+
 test("device token creation reports the active-token limit without a count/insert race", async () => {
   const service = createDeviceTokensService(
     createRepository({ insertIfBelowActiveLimit: async () => null }),
@@ -80,6 +106,7 @@ test("device token authentication requires the exact format and touches owned cr
               id: "00000000-0000-4000-8000-000000000002",
               userId,
               name: "Android",
+              kind: "companion",
               tokenDigest: digest,
               tokenPrefix: rawToken.slice(0, 12),
               lastUsedAt: null,
@@ -105,6 +132,7 @@ const activeRecord = {
   id: "00000000-0000-4000-8000-000000000003",
   userId,
   name: "Android",
+  kind: "companion" as const,
   tokenDigest: "digest",
   tokenPrefix: "opm_aaaaaaaa",
   lastUsedAt: now,
@@ -146,7 +174,8 @@ test("device token rotation keeps the name and replaces only an owned active tok
   let replacedId: string | null = null;
   const service = createDeviceTokensService(
     createRepository({
-      listActiveForUser: async (owner) => (owner === userId ? [activeRecord] : []),
+      listActiveForUser: async (owner) =>
+        owner === userId ? [{ ...activeRecord, kind: "n8n" as const }] : [],
       replaceForUser: async (id, data) => {
         replacedId = id;
         return {
@@ -165,6 +194,7 @@ test("device token rotation keeps the name and replaces only an owned active tok
 
   assert.equal(replacedId, activeRecord.id);
   assert.equal(rotated.name, "Android");
+  assert.equal(rotated.kind, "n8n");
   assert.match(rotated.token, /^opm_[A-Za-z0-9_-]{43}$/);
   assert.equal(rotated.lastUsedAt, null);
   await assert.rejects(

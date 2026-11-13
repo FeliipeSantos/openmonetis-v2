@@ -246,13 +246,6 @@
       "when": 1794441122031,
       "tag": "0034_recurring_budgets",
       "breakpoints": true
-    },
-    {
-      "idx": 35,
-      "version": "7",
-      "when": 1794592451625,
-      "tag": "0035_n8n_integration",
-      "breakpoints": true
     }
   ]
 }

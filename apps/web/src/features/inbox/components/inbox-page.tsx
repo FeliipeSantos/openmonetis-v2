@@ -215,7 +215,7 @@ export function InboxPage({
           { label: "Lançamentos" },
           { label: "Caixa de entrada" },
         ]}
-        description="Revise as capturas do Companion e do n8n antes de transformá-las em lançamentos."
+        description="Revise as capturas do Companion antes de transformá-las em lançamentos."
         icon={<Inbox aria-hidden="true" className="size-5" />}
         title="Caixa de entrada"
         actions={

@@ -1,7 +1,7 @@
 import type { DeviceTokenOutput } from "@openmonetis/validators/device-tokens";
 import { Image } from "@unpic/react";
 import type { LucideIcon } from "lucide-react";
-import { CalendarClock, History, Inbox, RefreshCw, Unplug, Workflow } from "lucide-react";
+import { CalendarClock, History, Inbox, RefreshCw, Unplug } from "lucide-react";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -85,27 +85,17 @@ export function DeviceTokenItem({
   return (
     <li className="flex items-start gap-3 p-4">
       <span className="grid size-10 shrink-0 place-items-center">
-        {token.kind === "n8n" ? (
-          <Workflow
-            aria-hidden="true"
-            className={cn(
-              "size-6 transition-opacity",
-              connected ? "text-foreground" : "text-muted-foreground opacity-60",
-            )}
-          />
-        ) : (
-          <Image
-            alt=""
-            className={cn(
-              "h-6 w-7 object-contain transition-[filter,opacity]",
-              connected ? undefined : "opacity-60 grayscale",
-            )}
-            height={16}
-            layout="fixed"
-            src={androidHeadIconPath}
-            width={28}
-          />
-        )}
+        <Image
+          alt=""
+          className={cn(
+            "h-6 w-7 object-contain transition-[filter,opacity]",
+            connected ? undefined : "opacity-60 grayscale",
+          )}
+          height={16}
+          layout="fixed"
+          src={androidHeadIconPath}
+          width={28}
+        />
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">

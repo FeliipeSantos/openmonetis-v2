@@ -1,5 +1,4 @@
 import { z } from "@hono/zod-openapi";
-import { deviceTokenKinds } from "@openmonetis/domain/device-tokens";
 import {
   inboxBatchMaximumSize,
   inboxClearableStatuses,
@@ -121,7 +120,6 @@ export const ProcessInboxItemInputSchema = z
 export const InboxItemSummaryOutputSchema = z
   .object({
     id: z.uuid(),
-    integrationKind: z.enum(deviceTokenKinds),
     sourceAppName: z.string().nullable(),
     originalText: z.string(),
     notificationTimestamp: z.iso.datetime(),

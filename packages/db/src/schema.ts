@@ -102,7 +102,6 @@ export const categoryType = pgEnum("category_type", ["income", "expense"]);
 export const invoicePaymentStatus = pgEnum("invoice_payment_status", ["pending", "paid"]);
 
 export const inboxItemStatus = pgEnum("inbox_item_status", ["pending", "processed", "discarded"]);
-export const deviceTokenKind = pgEnum("device_token_kind", ["companion", "n8n"]);
 export const inboxRuleMatchMode = pgEnum("inbox_rule_match_mode", ["all", "any"]);
 
 export const noteKind = pgEnum("note_kind", ["text", "checklist", "task"]);
@@ -1060,7 +1059,6 @@ export const deviceTokens = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 80 }).notNull(),
-    kind: deviceTokenKind("kind").notNull().default("companion"),
     tokenDigest: varchar("token_digest", { length: 64 }).notNull(),
     tokenPrefix: varchar("token_prefix", { length: 12 }).notNull(),
     lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
@@ -1090,7 +1088,6 @@ export const inboxItems = pgTable(
     deviceTokenId: uuid("device_token_id").references(() => deviceTokens.id, {
       onDelete: "set null",
     }),
-    integrationKind: deviceTokenKind("integration_kind").notNull().default("companion"),
     sourceApp: varchar("source_app", { length: 255 }).notNull(),
     sourceAppName: varchar("source_app_name", { length: 255 }),
     originalTitle: varchar("original_title", { length: 500 }),

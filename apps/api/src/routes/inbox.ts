@@ -350,7 +350,6 @@ export function createCompanionInboxRoute(service: Pick<InboxService, "ingest" |
     async (context) => {
       const result = await service.ingest(context.req.valid("json"), {
         deviceTokenId: context.get("deviceTokenId"),
-        integrationKind: context.get("deviceTokenKind"),
         userId: context.get("userId"),
       });
       return context.json(
@@ -400,7 +399,6 @@ export function createCompanionInboxRoute(service: Pick<InboxService, "ingest" |
     async (context) => {
       const results = await service.ingestBatch(context.req.valid("json").items, {
         deviceTokenId: context.get("deviceTokenId"),
-        integrationKind: context.get("deviceTokenKind"),
         userId: context.get("userId"),
       });
       const success = results.filter((result) => result.success).length;

@@ -20,7 +20,7 @@ export function InboxEmpty({ filtered, status }: { filtered: boolean; status: In
   const copy = {
     pending: [
       "Nada para revisar",
-      "Conecte o Companion ou o n8n em Ajustes → Integrações para receber capturas. Se já está conectado, suas próximas capturas aparecerão aqui.",
+      "Conecte o Companion em Ajustes para receber capturas. Se já está conectado, suas próximas capturas aparecerão aqui.",
     ],
     processed: [
       "Nenhuma captura confirmada",

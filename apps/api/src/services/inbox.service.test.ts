@@ -14,7 +14,6 @@ function createRecord(overrides: Partial<InboxItemRecord> = {}): InboxItemRecord
     id: inboxId,
     userId,
     deviceTokenId,
-    integrationKind: "companion",
     sourceApp: "com.example.bank",
     sourceAppName: "Banco Example",
     originalTitle: "Compra aprovada",
@@ -94,28 +93,7 @@ test("legacy Companion timestamps are interpreted as Brazil wall-clock time", as
   const { timestampFormatVersion: _version, ...withoutVersion } = legacyInput;
   await service.ingest(
     { ...withoutVersion, notificationTimestamp: "2026-08-10T09:00:00.000Z" },
-    { userId, deviceTokenId, integrationKind: "companion" },
-  );
-
-  assert.equal((receivedTimestamp as Date | null)?.toISOString(), now.toISOString());
-});
-
-test("n8n timestamps are read as real ISO dates without the format version", async () => {
-  let receivedTimestamp: Date | null = null;
-  const service = createInboxService(
-    createRepository({
-      insertOrFind: async (draft) => {
-        receivedTimestamp = draft.notificationTimestamp;
-        return { record: createRecord({ ...draft }), duplicate: false };
-      },
-    }),
-    { now: () => now },
-  );
-
-  const { timestampFormatVersion: _version, ...withoutVersion } = input();
-  await service.ingest(
-    { ...withoutVersion, notificationTimestamp: "2026-08-10T12:00:00.000Z" },
-    { userId, deviceTokenId, integrationKind: "n8n" },
+    { userId, deviceTokenId },
   );
 
   assert.equal((receivedTimestamp as Date | null)?.toISOString(), now.toISOString());
@@ -134,39 +112,12 @@ test("inbox ingestion derives a stable fingerprint and accepts idempotent duplic
   });
   const service = createInboxService(repository, { now: () => now });
 
-  const first = await service.ingest(input(), {
-    userId,
-    deviceTokenId,
-    integrationKind: "companion",
-  });
-  const duplicate = await service.ingest(input(), {
-    userId,
-    deviceTokenId,
-    integrationKind: "companion",
-  });
+  const first = await service.ingest(input(), { userId, deviceTokenId });
+  const duplicate = await service.ingest(input(), { userId, deviceTokenId });
 
   assert.equal(first.id, inboxId);
   assert.equal(duplicate.duplicate, true);
   assert.match(firstFingerprint, /^[a-f0-9]{64}$/);
-});
-
-test("inbox ingestion records which integration captured the item", async () => {
-  let storedKind: string | null = null;
-  const service = createInboxService(
-    createRepository({
-      insertOrFind: async (draft) => {
-        storedKind = draft.integrationKind;
-        return { record: createRecord(draft), duplicate: false };
-      },
-      findByIdForUser: async () => createRecord({ integrationKind: "n8n" }),
-    }),
-    { now: () => now },
-  );
-
-  await service.ingest(input(), { userId, deviceTokenId, integrationKind: "n8n" });
-
-  assert.equal(storedKind, "n8n");
-  assert.equal((await service.get(inboxId, userId)).integrationKind, "n8n");
 });
 
 test("batch ingestion exposes only expected application error codes", async () => {
@@ -188,7 +139,6 @@ test("batch ingestion exposes only expected application error codes", async () =
   const conflictResults = await service.ingestBatch([input("known-conflict")], {
     userId,
     deviceTokenId,
-    integrationKind: "companion",
   });
   assert.deepEqual(conflictResults, [
     {
@@ -200,11 +150,7 @@ test("batch ingestion exposes only expected application error codes", async () =
   ]);
 
   await assert.rejects(
-    service.ingestBatch([input("database-error")], {
-      userId,
-      deviceTokenId,
-      integrationKind: "companion",
-    }),
+    service.ingestBatch([input("database-error")], { userId, deviceTokenId }),
     /database detail/,
   );
 });
@@ -529,7 +475,7 @@ test("ingestion rejects future notification timestamps before persistence", asyn
   await assert.rejects(
     service.ingest(
       { ...input(), notificationTimestamp: "2030-01-01T00:00:00Z" },
-      { userId, deviceTokenId, integrationKind: "companion" },
+      { userId, deviceTokenId },
     ),
     { code: "inbox_notification_timestamp_invalid" },
   );

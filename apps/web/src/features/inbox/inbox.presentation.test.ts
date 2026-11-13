@@ -2,14 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   formatInboxTimestamp,
-  getInboxIntegrationLabel,
   getInboxPurchaseDate,
   groupInboxItemsByDate,
 } from "./inbox.presentation";
 
 const baseItem = {
   id: "00000000-0000-4000-8000-000000000001",
-  integrationKind: "companion" as const,
   sourceAppName: "Banco Example",
   originalText: "Compra aprovada",
   parsedName: "Compra",
@@ -52,9 +50,4 @@ test("inbox widget formats timestamps in Sao Paulo time", () => {
   assert.match(formatted, /17/);
   assert.match(formatted, /21:30/);
   assert.doesNotMatch(formatted, /18/);
-});
-
-test("inbox items name the integration that captured them", () => {
-  assert.equal(getInboxIntegrationLabel("companion"), "Companion");
-  assert.equal(getInboxIntegrationLabel("n8n"), "n8n");
 });

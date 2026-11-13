@@ -33,7 +33,6 @@ import {
   useRevokeDeviceTokenMutation,
   useRotateDeviceTokenMutation,
 } from "../device-tokens.mutations";
-import { filterDeviceTokensByKind } from "../device-tokens.presentation";
 import { deviceTokensQueryOptions } from "../device-tokens.queries";
 import { CompanionGuide } from "./companion-guide";
 import { DeviceTokenItem } from "./device-token-item";
@@ -52,7 +51,6 @@ export function DeviceTokenSettings() {
         ? connectionCheckIntervalMs
         : false,
   });
-  const tokens = filterDeviceTokensByKind(query.data, "companion");
   const createMutation = useCreateDeviceTokenMutation();
   const revokeMutation = useRevokeDeviceTokenMutation();
   const rotateMutation = useRotateDeviceTokenMutation();
@@ -148,10 +146,10 @@ export function DeviceTokenSettings() {
           onRetry={() => void query.refetch()}
         />
       ) : null}
-      {tokens && !query.isError ? (
-        tokens.length ? (
+      {query.data && !query.isError ? (
+        query.data.length ? (
           <ul className="divide-y divide-border rounded-lg border border-border">
-            {tokens.map((token) => (
+            {query.data.map((token) => (
               <DeviceTokenItem
                 actionsDisabled={rotateMutation.isPending || revokeMutation.isPending}
                 key={token.id}
@@ -174,8 +172,8 @@ export function DeviceTokenSettings() {
       {query.data || query.isError ? (
         <CompanionGuide
           // Reopen the guide whenever the account goes back to having no authorized device.
-          defaultOpen={!tokens?.length}
-          key={tokens?.length ? "connected" : "empty"}
+          defaultOpen={!query.data?.length}
+          key={query.data?.length ? "connected" : "empty"}
         />
       ) : null}
 

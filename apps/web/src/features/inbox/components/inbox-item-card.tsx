@@ -15,7 +15,6 @@ import { cn } from "@/lib/utils";
 import {
   formatInboxAmount,
   formatInboxTime,
-  getInboxIntegrationLabel,
   getInboxItemTitle,
   type InboxSourceMatch,
 } from "../inbox.presentation";
@@ -98,9 +97,6 @@ export function InboxItemCard({
               </p>
               <p className="mt-1 truncate text-muted-foreground text-xs">
                 {formatInboxTime(item.notificationTimestamp)} · {sourceLabel}
-                {item.integrationKind === "n8n"
-                  ? ` · ${getInboxIntegrationLabel(item.integrationKind)}`
-                  : null}
               </p>
             </div>
           </div>
@@ -150,9 +146,6 @@ export function InboxItemCard({
               </span>
             </p>
             <Badge variant="secondary">{sourceLabel}</Badge>
-            {item.integrationKind === "n8n" ? (
-              <Badge variant="outline">{getInboxIntegrationLabel(item.integrationKind)}</Badge>
-            ) : null}
             {item.status === "pending"
               ? suggestionQuery.data?.appliedRules.map((rule) => (
                   <Badge

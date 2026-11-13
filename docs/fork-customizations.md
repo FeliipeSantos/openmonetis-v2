@@ -154,19 +154,47 @@ Exemplo para uma versão `vX.Y.Z` do upstream.
 
    O segundo comando mostra se há migrações novas; o terceiro, os arquivos alterados pelos dois
    lados.
-4. **Faça o merge em um branch separado**, nunca direto no `custom`:
+4. **Revise a segurança do que vem**, antes do merge:
+
+   ```bash
+   git diff <base atual> vX.Y.Z -- package.json "apps/*/package.json" "packages/*/package.json" pnpm-workspace.yaml .npmrc Dockerfile compose.yml .github .vscode
+   git diff <base atual> vX.Y.Z -- apps packages scripts | grep -E '^\+.*(https?://|fetch\(|child_process|spawn|exec\(|eval\(|new Function)'
+   ```
+
+   O primeiro comando mostra o que muda em dependências, permissões de build, Docker, CI e
+   configuração do editor; o segundo, linhas novas que acessam a internet ou executam programas.
+   Confira:
+
+   - **Dependências novas:** nome conhecido, sem erro de digitação parecido com um pacote famoso
+     (typosquatting) e com uso amplo. Versões trocadas sem motivo no `pnpm-lock.yaml` merecem
+     atenção.
+   - **`allowBuilds`** no `pnpm-workspace.yaml`: hoje só `esbuild`, `lightningcss` e
+     `unrs-resolver` podem rodar scripts na instalação. Um pacote novo nessa lista ganha permissão
+     de executar código ao instalar.
+   - **Scripts de instalação:** nenhum `preinstall`, `postinstall` ou `prepare` nos
+     `package.json`.
+   - **`Dockerfile` e `compose.yml`:** downloads (`ADD`, `curl`, `wget`) só de origens conhecidas
+     e com `--checksum`; nenhuma porta nova publicada para fora.
+   - **Endereços externos:** cada `https://` novo no código tem motivo claro. Hoje são apenas
+     GitHub (verificação de versão), logo.dev e Resend (opcionais, só com chave configurada),
+     Google Fonts e as fontes das CLIs do serviço de IA.
+   - **`.vscode` e `.github`:** nenhuma tarefa que rode sozinha ao abrir a pasta
+     (`runOn: folderOpen`) e nenhum workflow que envie segredos para fora.
+
+   Se algo não tiver explicação no CHANGELOG da versão, não faça o merge antes de entender.
+5. **Faça o merge em um branch separado**, nunca direto no `custom`:
 
    ```bash
    git switch -c merge/vX.Y.Z custom
    git merge --no-ff --no-commit vX.Y.Z
    ```
 
-5. **Resolva os conflitos** com a [seção 4](#4-pontos-de-conflito-prováveis) e, se houver
+6. **Resolva os conflitos** com a [seção 4](#4-pontos-de-conflito-prováveis) e, se houver
    migrações, com a [seção 3](#3-migrações-de-banco-do-fork). A regra geral: o fork mantém o
    comportamento que criou, e as novidades do upstream são levadas para dentro dele.
-6. **Rode a validação automática** (seção 6.1). Só faça o commit do merge com tudo passando.
-7. **Rode o roteiro manual** (seção 6.2) no localhost.
-8. **Traga para o `custom` e envie:**
+7. **Rode a validação automática** (seção 6.1). Só faça o commit do merge com tudo passando.
+8. **Rode o roteiro manual** (seção 6.2) no localhost.
+9. **Traga para o `custom` e envie:**
 
    ```bash
    git switch custom
@@ -174,8 +202,8 @@ Exemplo para uma versão `vX.Y.Z` do upstream.
    git push origin custom
    ```
 
-9. **Atualize a VPS** (seção 7) e repita os testes principais lá.
-10. **Atualize este documento:** a base atual na seção 1 e uma linha no
+10. **Atualize a VPS** (seção 7) e repita os testes principais lá.
+11. **Atualize este documento:** a base atual na seção 1 e uma linha no
     [histórico](#8-histórico-de-atualizações).
 
 ## 6. Roteiro de testes
@@ -252,7 +280,7 @@ Para os números da massa de teste, também é possível conferir pela API (loga
 
 ## 7. Implantar na VPS
 
-1. Envie o `custom` (passo 8 da seção 5).
+1. Envie o `custom` (passo 9 da seção 5).
 2. Na VPS, rode `sudo /home/ubuntu/openmonetis-update.sh`. Ele faz backup do banco antes de
    atualizar.
 3. Confira os serviços com `cd ~/openmonetis && sudo docker compose ps`: `api` e `web` devem estar
@@ -273,4 +301,4 @@ em `~/openmonetis/backups`, porque o código antigo pode não funcionar com o ba
 
 | Data | De → para | Conflitos | Decisões |
 | --- | --- | --- | --- |
-| 2026-11-12 | v0.16.0 → v0.17.1 | `CHANGELOG.md`, `budget-card.tsx`, `categories-page.tsx`, `categories-table.tsx` (apagada no fork), `categories.presentation.test.ts`, `transactions.presentation.test.ts` | Sem migrações novas no upstream. O gasto do mês da tabela antiga foi levado aos dois painéis. O cartão de orçamento adotou o novo layout, mantendo o título da subcategoria e a recorrência. Testes: typecheck, 843 testes unitários e roteiro manual sem falhas. |
+| 2026-11-12 | v0.16.0 → v0.17.1 | `CHANGELOG.md`, `budget-card.tsx`, `categories-page.tsx`, `categories-table.tsx` (apagada no fork), `categories.presentation.test.ts`, `transactions.presentation.test.ts` | Sem migrações novas no upstream. O gasto do mês da tabela antiga foi levado aos dois painéis. O cartão de orçamento adotou o novo layout, mantendo o título da subcategoria e a recorrência. Testes: typecheck, 843 testes unitários e roteiro manual sem falhas. Revisão de segurança (feita depois, em 2026-11-13): só mudanças de versão nos `package.json`, avatares SVG, URLs de teste e um link para o GitHub original; nada suspeito. |

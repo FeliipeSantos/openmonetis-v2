@@ -8,6 +8,7 @@ import type {
   ExportTransactionsQuery,
   ImportTransactionsInput,
   InstallmentOptionsOutput,
+  InstallmentOptionsQuery,
   PaginatedTransactionsOutput,
   RecurrenceEndDateOutput,
   RecurrenceEndDateQuery,
@@ -30,6 +31,8 @@ export type TransactionsApiSearch = Omit<
   "people" | "categories" | "accounts" | "cards" | "tags" | "edit"
 > & {
   view?: "accountStatement";
+  /** One total per card invoice instead of each card purchase. */
+  collapseCardPurchases?: boolean;
   personIds?: string[];
   categoryIds?: string[];
   tagIds?: string[];
@@ -61,6 +64,7 @@ function transactionsSearchParams(search: TransactionsApiSearch) {
     paymentMethod: search.paymentMethod,
     settlement: search.settlement,
     view: search.view,
+    collapseCardPurchases: search.collapseCardPurchases || undefined,
     sort: search.sort,
     minAmount: search.minAmount,
     maxAmount: search.maxAmount,
@@ -102,8 +106,10 @@ export function exportTransactions(
   return request<TransactionExportOutput>(`/transactions/export?${params}`);
 }
 
-export function getInstallmentOptions(amount: number) {
-  return request<InstallmentOptionsOutput>(`/transactions/installments/preview?amount=${amount}`);
+export function getInstallmentOptions(query: InstallmentOptionsQuery) {
+  const params = new URLSearchParams({ amount: String(query.amount) });
+  if (query.amountMode) params.set("amountMode", query.amountMode);
+  return request<InstallmentOptionsOutput>(`/transactions/installments/preview?${params}`);
 }
 
 export function getRecurrenceEndDate(query: RecurrenceEndDateQuery) {

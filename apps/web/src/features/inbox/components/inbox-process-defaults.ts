@@ -5,7 +5,11 @@ import type { InboxRuleSuggestionOutput } from "@openmonetis/validators/inbox-ru
 
 import type { TransactionCreateDefaults } from "@/features/transactions/components/transaction-form.validation";
 
-import { getInboxPurchaseDate, getInboxSourceMatch } from "../inbox.presentation";
+import {
+  getInboxPurchaseDate,
+  getInboxPurchaseTime,
+  getInboxSourceMatch,
+} from "../inbox.presentation";
 
 export function getProcessDefaults(
   item: InboxItemSummaryOutput,
@@ -22,6 +26,7 @@ export function getProcessDefaults(
     name: item.parsedName ?? "",
     amount: item.parsedAmount === null ? "" : String(item.parsedAmount),
     purchaseDate: getInboxPurchaseDate(item.notificationTimestamp),
+    purchaseTime: getInboxPurchaseTime(item.notificationTimestamp),
     paymentMethod: matchedCardId ? "credit_card" : "pix",
     cardId: matchedCardId,
     accountId: matchedCardId ? undefined : (matchedAccountId ?? fallbackAccountId),

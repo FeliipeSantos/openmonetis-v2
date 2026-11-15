@@ -24,7 +24,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { formatMetricChangePercent, formatProjectedMetricHelp } from "../dashboard.presentation";
-import { useAdminPersonSlug } from "../useAdminPersonSlug";
 
 type MetricKey = "balance" | "expenses" | "income" | "projected";
 
@@ -79,7 +78,6 @@ const cards: Array<{
 ];
 
 export function DashboardMetrics({ metrics }: { metrics: DashboardMetricsOutput }) {
-  const primarySlug = useAdminPersonSlug();
   const projectedComparison = compareDashboardMetric(
     metrics.projected.current,
     metrics.projected.previous,
@@ -119,21 +117,13 @@ export function DashboardMetrics({ metrics }: { metrics: DashboardMetricsOutput 
           <div className="grid gap-1">
             <MobileMetric
               amount={metrics.income.current}
-              href={
-                primarySlug
-                  ? { people: primarySlug, period: metrics.period, type: "income" as const }
-                  : null
-              }
+              href={{ period: metrics.period, type: "income" as const }}
               label="Receitas"
               valueClassName="text-success"
             />
             <MobileMetric
               amount={metrics.expenses.current}
-              href={
-                primarySlug
-                  ? { people: primarySlug, period: metrics.period, type: "expense" as const }
-                  : null
-              }
+              href={{ period: metrics.period }}
               label="Despesas"
               valueClassName="text-destructive"
             />
@@ -164,14 +154,14 @@ export function DashboardMetrics({ metrics }: { metrics: DashboardMetricsOutput 
                       label={`Como calculamos ${card.label.toLocaleLowerCase("pt-BR")}`}
                     />
                   </CardTitle>
-                  {card.transactionType && primarySlug ? (
+                  {card.transactionType ? (
                     <Link
                       aria-label={`Ver lançamentos de ${card.label.toLocaleLowerCase("pt-BR")}`}
                       className="group/metric-link -my-1 -mr-1.5 grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                      // Opens the matching Lançamentos tab without narrowing it by person.
                       search={{
                         period: metrics.period,
-                        type: card.transactionType,
-                        people: primarySlug,
+                        type: card.transactionType === "expense" ? undefined : card.transactionType,
                       }}
                       to="/transactions"
                     >
@@ -210,7 +200,7 @@ function MobileMetric({
   valueClassName,
 }: {
   amount: number;
-  href?: { people: string; period: string; type: "expense" | "income" } | null;
+  href?: { period: string; type?: "income" } | null;
   label: string;
   valueClassName?: string;
 }) {

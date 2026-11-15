@@ -1,6 +1,7 @@
 import { z } from "@hono/zod-openapi";
 import { recurringActions } from "@openmonetis/domain/recurring-transactions";
 import {
+  installmentAmountModes,
   maximumInstallmentCount,
   maximumRecurrenceOccurrenceCount,
   minimumInstallmentCount,
@@ -28,14 +29,22 @@ export {
 
 const dateSchema = z.iso.date();
 const periodSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/);
+/** Local purchase time (America/Sao_Paulo), 24-hour "HH:MM". */
+export const transactionTimeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 const nullableUuidSchema = z.string().uuid().nullable().optional();
 export const InstallmentOptionsQuerySchema = z
-  .object({ amount: z.coerce.number().positive().max(999_999_999.99).multipleOf(0.01) })
+  .object({
+    amount: z.coerce.number().positive().max(999_999_999.99).multipleOf(0.01),
+    amountMode: z.enum(installmentAmountModes).optional().openapi({
+      description: "`perInstallment` treats `amount` as each installment's amount.",
+    }),
+  })
   .openapi("InstallmentOptionsQuery");
 export const InstallmentOptionOutputSchema = z.object({
   count: z.number().int().min(minimumInstallmentCount).max(maximumInstallmentCount),
   minimumAmount: z.number().nonnegative(),
   maximumAmount: z.number().nonnegative(),
+  totalAmount: z.number().nonnegative(),
 });
 export const InstallmentOptionsOutputSchema = z
   .object({
@@ -100,6 +109,10 @@ const TransactionFieldsSchema = z.object({
   name: TransactionNameSchema.openapi({ example: "Aluguel" }),
   amount: z.number().positive().max(999_999_999.99).openapi({ example: 2500 }),
   purchaseDate: dateSchema.openapi({ example: "2026-07-07" }),
+  purchaseTime: transactionTimeSchema.nullable().optional().openapi({
+    example: "14:30",
+    description: "Optional local purchase time. Not available for recurring transactions.",
+  }),
   invoicePeriod: periodSchema.nullable().optional().openapi({ example: "2026-08" }),
   personId: z.string().uuid().openapi({ example: "3f6d2b84-6ed0-4a50-b257-8adf0b6178de" }),
   accountId: nullableUuidSchema.openapi({ example: "3f6d2b84-6ed0-4a50-b257-8adf0b6178de" }),
@@ -151,9 +164,20 @@ const TransactionFieldsSchema = z.object({
 
 const CreateTransactionFieldsSchema = TransactionFieldsSchema.extend({
   startInstallment: z.number().int().min(1).max(60).optional().openapi({ example: 5 }),
+  installmentAmountMode: z.enum(installmentAmountModes).optional().openapi({
+    description:
+      "For installment purchases: `perInstallment` means `amount` (and split shares) are per installment; defaults to `total`.",
+  }),
 });
 
 export const TransactionInputSchema = CreateTransactionFieldsSchema.superRefine((data, ctx) => {
+  if (data.installmentAmountMode && data.condition !== "installment") {
+    ctx.addIssue({
+      code: "custom",
+      path: ["installmentAmountMode"],
+      message: "installmentAmountMode is only allowed for installment transactions",
+    });
+  }
   if (data.splitShares) {
     if (data.type === "transfer") {
       ctx.addIssue({
@@ -221,6 +245,14 @@ export const TransactionInputSchema = CreateTransactionFieldsSchema.superRefine(
       code: z.ZodIssueCode.custom,
       path: ["recurrenceFrequency"],
       message: "recurrenceFrequency is only allowed for recurring transactions",
+    });
+  }
+
+  if (data.condition === "recurring" && data.purchaseTime) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["purchaseTime"],
+      message: "purchaseTime is not available for recurring transactions",
     });
   }
 
@@ -422,6 +454,14 @@ export const ListTransactionsQuerySchema = z
       .transform(() => true as const)
       .optional(),
     sort: z.enum(["recent", "oldest", "dueDate", "amount"]).optional(),
+    collapseCardPurchases: z
+      .literal("true")
+      .transform(() => true as const)
+      .optional()
+      .openapi({
+        description:
+          "Replaces credit card purchases with one total per card invoice (`cardInvoices`), unless the query already targets cards.",
+      }),
     personIds: csvUuidSchema,
     categoryIds: csvUuidSchema,
     tagIds: csvUuidSchema.optional(),
@@ -734,6 +774,7 @@ export const TransactionOutputSchema = z
       })
       .nullable(),
     purchaseDate: dateSchema.openapi({ example: "2026-07-07" }),
+    purchaseTime: transactionTimeSchema.nullable().optional().openapi({ example: "14:30" }),
     postingDate: dateSchema.nullable(),
     period: periodSchema.openapi({ example: "2026-07" }),
     personId: z.string().uuid().openapi({ example: "3f6d2b84-6ed0-4a50-b257-8adf0b6178de" }),
@@ -792,9 +833,57 @@ export const TransactionOutputSchema = z
   })
   .openapi("Transaction");
 
+export const DailyTransactionSummaryOutputSchema = z
+  .object({
+    date: z.string().openapi({ example: "2026-10-23" }),
+    inflow: z.number().nonnegative().openapi({ example: 0 }),
+    outflow: z.number().nonnegative().openapi({ example: 124.19 }),
+    balance: z.number().openapi({ example: -124.19 }),
+    runningBalance: z.number().openapi({
+      example: -4567.32,
+      description: "Net movement accumulated from the first listed day through this one.",
+    }),
+  })
+  .openapi("DailyTransactionSummary");
+
+export const CardInvoiceTotalOutputSchema = z
+  .object({
+    cardId: z.string().uuid(),
+    cardName: z.string(),
+    cardLogo: z.string().nullable(),
+    period: periodSchema.openapi({ example: "2026-12" }),
+    amount: z.number().openapi({
+      example: -490,
+      description: "Net of the matching purchases on this invoice (negative for spending).",
+    }),
+    transactionCount: z.number().int().positive(),
+    dueDate: z.string().nullable().openapi({ example: "2026-12-10" }),
+    beforeTransactionId: z.string().nullable().openapi({
+      description:
+        "Listing position: the invoice comes right before this item on the page (null: at the end).",
+    }),
+  })
+  .openapi("CardInvoiceTotal");
+
 export const PaginatedTransactionsOutputSchema = z
   .object({
     items: z.array(TransactionOutputSchema),
+    totals: z
+      .object({
+        settled: z.number(),
+        pending: z.number(),
+        total: z.number(),
+      })
+      .openapi("TransactionListTotals", {
+        description:
+          "Signed sums of every matching item across all pages: settled, pending (open or awaiting an invoice) and total.",
+      }),
+    cardInvoices: z.array(CardInvoiceTotalOutputSchema).openapi({
+      description: "Per-card invoice totals when `collapseCardPurchases` applies; empty otherwise.",
+    }),
+    dailySummaries: z.array(DailyTransactionSummaryOutputSchema).openapi({
+      description: "Per-day consolidation of every matching item, across all pages.",
+    }),
     total: z.number().int().nonnegative(),
     page: z.number().int().positive(),
     pageSize: z.number().int().positive(),
@@ -844,3 +933,5 @@ export type CreateTransactionRefundInput = z.infer<typeof CreateTransactionRefun
 export type TransactionRefundOutput = z.infer<typeof TransactionRefundOutputSchema>;
 export type TransactionActionScope = z.infer<typeof TransactionActionScopeSchema>;
 export type UpdateRecurringRuleQuery = z.infer<typeof UpdateRecurringRuleQuerySchema>;
+export type DailyTransactionSummaryOutput = z.infer<typeof DailyTransactionSummaryOutputSchema>;
+export type CardInvoiceTotalOutput = z.infer<typeof CardInvoiceTotalOutputSchema>;

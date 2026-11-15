@@ -21,10 +21,14 @@ import {
   rebalanceTwoAmountShares,
   rebalanceTwoPercentageShares,
   resolveEditedTransactionPeriod,
+  resolveInstallmentPurchaseTotal,
   selectRecurringRuleVersionsToUpdate,
   splitAmountEqually,
   splitAmountIntoInstallments,
+  summarizeCardInvoiceTotals,
+  summarizeListingTotals,
   summarizeTransactionSelection,
+  summarizeTransactionsByDay,
   type TransactionSelectionItem,
 } from "./transactions";
 
@@ -173,21 +177,42 @@ test("refunds without splits belong to the primary person and empty responsibili
 test("installment previews preserve cent redistribution across the supported counts", () => {
   const options = previewInstallmentOptions(3);
   assert.equal(options.length, 59);
-  assert.deepEqual(options[0], { count: 2, minimumAmount: 1.5, maximumAmount: 1.5 });
+  assert.deepEqual(options[0], {
+    count: 2,
+    minimumAmount: 1.5,
+    maximumAmount: 1.5,
+    totalAmount: 3,
+  });
   assert.deepEqual(
     options.find((option) => option.count === 7),
     {
       count: 7,
       minimumAmount: 0.42,
       maximumAmount: 0.43,
+      totalAmount: 3,
     },
   );
-  assert.deepEqual(options.at(-1), { count: 60, minimumAmount: 0.05, maximumAmount: 0.05 });
+  assert.deepEqual(options.at(-1), {
+    count: 60,
+    minimumAmount: 0.05,
+    maximumAmount: 0.05,
+    totalAmount: 3,
+  });
   assert.deepEqual(previewInstallmentOptions(0.01)[0], {
     count: 2,
     minimumAmount: 0,
     maximumAmount: 0.01,
+    totalAmount: 0.01,
   });
+  // Typing each installment's amount: every installment keeps it and the total multiplies.
+  assert.deepEqual(previewInstallmentOptions(10.15, "perInstallment")[1], {
+    count: 3,
+    minimumAmount: 10.15,
+    maximumAmount: 10.15,
+    totalAmount: 30.45,
+  });
+  assert.equal(resolveInstallmentPurchaseTotal(0.1, 3, "perInstallment"), 0.3);
+  assert.equal(resolveInstallmentPurchaseTotal(90, 3), 90);
 });
 
 test("metadata edits preserve installment periods while schedule and invoice edits recalculate", () => {
@@ -598,5 +623,91 @@ test("bulk categorization requires a matching user category", () => {
       { type: "expense", isSystem: false },
     ),
     false,
+  );
+});
+
+test("daily summaries consolidate each day and accumulate the net balance chronologically", () => {
+  const summaries = summarizeTransactionsByDay([
+    { date: "2026-10-23", amount: -124.19, origin: "regular", type: "expense" },
+    { date: "2026-10-22", amount: -28.8, origin: "regular", type: "expense" },
+    { date: "2026-10-23", amount: 10.1, origin: "regular", type: "income" },
+    { date: "2026-10-22", amount: -0.1, origin: "regular", type: "expense" },
+    { date: "2026-10-24", amount: -500, origin: "regular", type: "transfer" },
+  ]);
+  assert.deepEqual(summaries, [
+    { date: "2026-10-22", inflow: 0, outflow: 28.9, balance: -28.9, runningBalance: -28.9 },
+    {
+      date: "2026-10-23",
+      inflow: 10.1,
+      outflow: 124.19,
+      balance: -114.09,
+      runningBalance: -142.99,
+    },
+    { date: "2026-10-24", inflow: 0, outflow: 0, balance: 0, runningBalance: -142.99 },
+  ]);
+});
+
+test("card invoice totals net each card's purchases and count shared purchases once", () => {
+  const card = "70000000-0000-4000-8000-000000000007";
+  assert.deepEqual(
+    summarizeCardInvoiceTotals([
+      {
+        cardId: card,
+        period: "2026-12",
+        purchaseKey: "a",
+        amount: -50,
+        origin: "regular",
+        type: "expense",
+      },
+      {
+        cardId: card,
+        period: "2026-12",
+        purchaseKey: "a",
+        amount: -50,
+        origin: "regular",
+        type: "expense",
+      },
+      {
+        cardId: card,
+        period: "2026-12",
+        purchaseKey: "b",
+        amount: -10.15,
+        origin: "regular",
+        type: "expense",
+      },
+      {
+        cardId: card,
+        period: "2026-12",
+        purchaseKey: "c",
+        amount: 20,
+        origin: "refund",
+        type: "income",
+      },
+      {
+        cardId: card,
+        period: "2027-01",
+        purchaseKey: "d",
+        amount: -30,
+        origin: "regular",
+        type: "expense",
+      },
+    ]),
+    [
+      { cardId: card, period: "2026-12", amount: -90.15, transactionCount: 3 },
+      { cardId: card, period: "2027-01", amount: -30, transactionCount: 1 },
+    ],
+  );
+});
+
+test("listing totals split settled and pending items without float drift", () => {
+  assert.deepEqual(
+    summarizeListingTotals([
+      { amount: -0.1, isSettled: true },
+      { amount: -0.2, isSettled: true },
+      { amount: -184.34, isSettled: false },
+      { amount: -10, isSettled: null },
+      { amount: 50, isSettled: true },
+    ]),
+    { settled: 49.7, pending: -194.34, total: -144.64 },
   );
 });

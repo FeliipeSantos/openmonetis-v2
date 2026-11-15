@@ -3,6 +3,8 @@ import type { CardOutput } from "@openmonetis/validators/cards";
 import type { CategoryOutput } from "@openmonetis/validators/categories";
 import type { PersonOutput } from "@openmonetis/validators/people";
 import type {
+  CardInvoiceTotalOutput,
+  DailyTransactionSummaryOutput,
   ExportTransactionsQuery,
   RecurringOccurrenceActionInput,
   TransactionActionScope,
@@ -14,13 +16,26 @@ import type { ReactNode } from "react";
 
 import type { PageBreadcrumb } from "@/components/page-header";
 
-import type { TransactionsSearch } from "../transactions.presentation";
+import type {
+  TransactionDaySummaryOptions,
+  TransactionsSearch,
+} from "../transactions.presentation";
 
 import type { TransactionCreateDefaults } from "./transaction-form.validation";
 
 export type TransactionsScreenProps = {
   accountStatement?: boolean;
+  /** Splits the listing into Despesas / Receitas / Transferências tabs. */
+  typeTabs?: boolean;
   transactions: TransactionOutput[];
+  /** Sum of every listed item across pages, from the API. */
+  totals?: import("./transactions-totals").TransactionsTotalsValue;
+  /** Card invoice totals shown in place of card purchases. */
+  cardInvoices?: CardInvoiceTotalOutput[];
+  /** Per-day consolidation of every matching item, from the API. */
+  dailySummaries?: DailyTransactionSummaryOutput[];
+  /** Enables day groups with a consolidated footer while sorted by date. */
+  daySummary?: TransactionDaySummaryOptions;
   accounts: AccountOutput[];
   cards: CardOutput[];
   categories: CategoryOutput[];

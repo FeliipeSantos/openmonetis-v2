@@ -1,4 +1,4 @@
-import { getCurrentDateInBrazil } from "@openmonetis/shared/date-time";
+import { getCurrentDateInBrazil, getCurrentTimeInBrazil } from "@openmonetis/shared/date-time";
 import type { AccountOutput } from "@openmonetis/validators/accounts";
 import type { CardOutput } from "@openmonetis/validators/cards";
 import type { PersonOutput } from "@openmonetis/validators/people";
@@ -16,6 +16,8 @@ export type TransactionFormValues = {
   name: string;
   amount: string;
   purchaseDate: string;
+  /** Optional "HH:MM"; empty when the purchase has no time. */
+  purchaseTime: string;
   invoicePeriod: string;
   personId: string;
   accountId: string;
@@ -30,6 +32,8 @@ export type TransactionFormValues = {
   boletoPaymentDate: string;
   installmentCount: string;
   startInstallment: string;
+  /** Whether `amount` is the whole installment purchase or each installment (new purchases). */
+  installmentAmountMode: NonNullable<TransactionInput["installmentAmountMode"]>;
   recurrenceEndDate: string;
   recurrenceAnchorDate: string;
   recurrenceFrequency: NonNullable<TransactionInput["recurrenceFrequency"]>;
@@ -57,6 +61,7 @@ export type TransactionCreateDefaults = Partial<
     | "name"
     | "amount"
     | "purchaseDate"
+    | "purchaseTime"
     | "startInstallment"
   >
 >;
@@ -72,6 +77,7 @@ const transactionFieldMessages: Record<TransactionFieldName, string> = {
   name: "Informe uma descrição com até 160 caracteres.",
   amount: "Informe um valor maior que zero.",
   purchaseDate: "Informe a data.",
+  purchaseTime: "Informe um horário válido.",
   invoicePeriod: "Selecione a fatura.",
   personId: "Selecione uma pessoa.",
   accountId: "Selecione uma conta.",
@@ -86,6 +92,7 @@ const transactionFieldMessages: Record<TransactionFieldName, string> = {
   boletoPaymentDate: "Informe uma data de pagamento válida.",
   installmentCount: "Informe a quantidade de parcelas.",
   startInstallment: "Selecione uma parcela inicial válida.",
+  installmentAmountMode: "Indique se o valor é o total ou o da parcela.",
   recurrenceFrequency: "Selecione a frequência.",
   recurrenceAnchorDate: "Confira a data de referência.",
   recurrenceEndDate: "A data final deve ser igual ou posterior à data da ocorrência.",
@@ -120,6 +127,7 @@ export function getDefaultTransactionFormValues(
     name: defaults.name ?? "",
     amount: defaults.amount ?? "",
     purchaseDate: defaults.purchaseDate ?? today,
+    purchaseTime: defaults.purchaseTime ?? getCurrentTimeInBrazil(),
     invoicePeriod: defaults.invoicePeriod ?? "",
     personId,
     accountId,
@@ -136,6 +144,7 @@ export function getDefaultTransactionFormValues(
       (defaults.paymentMethod === "boleto" && defaults.isSettled !== "false" ? today : ""),
     installmentCount: defaults.installmentCount ?? "2",
     startInstallment: defaults.startInstallment ?? "1",
+    installmentAmountMode: "total",
     recurrenceFrequency: "monthly",
     recurrenceEndDate: "",
     recurrenceAnchorDate: "",
@@ -169,6 +178,7 @@ export function getTransactionFormValuesFromTransaction(
         : transaction.displayAmount) * installmentCopyMultiplier,
     ),
     purchaseDate: transaction.purchaseDate,
+    purchaseTime: transaction.purchaseTime ?? "",
     invoicePeriod: transaction.period,
     personId: transaction.personId,
     accountId: transaction.accountId ?? "",
@@ -188,6 +198,8 @@ export function getTransactionFormValuesFromTransaction(
         : (transaction.settledDate ?? transaction.boletoPaymentDate ?? ""),
     installmentCount: transaction.installmentCount ? String(transaction.installmentCount) : "2",
     startInstallment: transaction.currentInstallment ? String(transaction.currentInstallment) : "1",
+    // Saved purchases always hold their total.
+    installmentAmountMode: "total",
     recurrenceFrequency: transaction.recurrenceFrequency ?? "monthly",
     recurrenceEndDate: transaction.recurrenceEndDate ?? "",
     recurrenceAnchorDate: mode === "edit" ? (transaction.recurrenceAnchorDate ?? "") : "",
@@ -218,6 +230,7 @@ export function normalizeTransactionInput(
     name: value.name,
     amount: Number(value.amount),
     purchaseDate: value.purchaseDate,
+    purchaseTime: getPurchaseTimeInput(value),
     invoicePeriod:
       isCreditCard && value.condition !== "recurring" ? value.invoicePeriod || null : null,
     personId: value.personId,
@@ -241,6 +254,8 @@ export function normalizeTransactionInput(
       options.includeStartInstallment !== false && value.condition === "installment"
         ? Number(value.startInstallment)
         : undefined,
+    installmentAmountMode:
+      options.includeStartInstallment !== false ? getInstallmentAmountModeInput(value) : undefined,
     recurrenceFrequency: value.condition === "recurring" ? value.recurrenceFrequency : null,
     recurrenceEndDate: value.condition === "recurring" ? value.recurrenceEndDate || null : null,
     settledDate:
@@ -347,6 +362,7 @@ export function getChangedTransactionInput(
     ...(value.name !== defaults.name ? { name: data.name } : {}),
     ...(value.amount !== defaults.amount ? { amount: data.amount } : {}),
     ...(value.purchaseDate !== defaults.purchaseDate ? { purchaseDate: data.purchaseDate } : {}),
+    ...(value.purchaseTime !== defaults.purchaseTime ? { purchaseTime: data.purchaseTime } : {}),
     ...(value.invoicePeriod !== defaults.invoicePeriod
       ? { invoicePeriod: data.invoicePeriod }
       : {}),
@@ -410,6 +426,18 @@ export function getTrackedInstallmentHelper(total: number, start: number) {
   return `${tracked} ${tracked === 1 ? "parcela será cadastrada" : "parcelas serão cadastradas"}; ${previous} ${previous === 1 ? "anterior ficará" : "anteriores ficarão"} fora do acompanhamento.`;
 }
 
+/** Recurring transactions have no purchase time; an empty field means "no time". */
+/** Only new installment purchases typed per installment send the mode; the API stores totals. */
+function getInstallmentAmountModeInput(value: TransactionFormValues) {
+  return value.condition === "installment" && value.installmentAmountMode === "perInstallment"
+    ? ("perInstallment" as const)
+    : undefined;
+}
+
+function getPurchaseTimeInput(value: TransactionFormValues) {
+  return value.condition === "recurring" ? null : value.purchaseTime || null;
+}
+
 function normalizeLooseTransactionInput(value: TransactionFormValues) {
   const isTransfer = value.type === "transfer";
   const isCreditCard = value.paymentMethod === "credit_card";
@@ -422,6 +450,7 @@ function normalizeLooseTransactionInput(value: TransactionFormValues) {
     name: value.name,
     amount: Number(value.amount),
     purchaseDate: value.purchaseDate,
+    purchaseTime: getPurchaseTimeInput(value),
     invoicePeriod:
       isCreditCard && value.condition !== "recurring" ? value.invoicePeriod || null : null,
     personId: value.personId,
@@ -443,6 +472,7 @@ function normalizeLooseTransactionInput(value: TransactionFormValues) {
     installmentCount: value.condition === "installment" ? Number(value.installmentCount) : null,
     startInstallment:
       value.condition === "installment" ? Number(value.startInstallment) : undefined,
+    installmentAmountMode: getInstallmentAmountModeInput(value),
     recurrenceFrequency: value.condition === "recurring" ? value.recurrenceFrequency : null,
     recurrenceEndDate: value.condition === "recurring" ? value.recurrenceEndDate || null : null,
     settledDate:

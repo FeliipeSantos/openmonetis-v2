@@ -44,6 +44,7 @@ import {
   pgTable,
   primaryKey,
   text,
+  time,
   timestamp,
   uniqueIndex,
   uuid,
@@ -860,6 +861,8 @@ export const transactions = pgTable(
     settledAmount: numeric("settled_amount", { precision: 12, scale: 2 }),
     settledDate: date("settled_date", { mode: "date" }),
     purchaseDate: date("purchase_date", { mode: "date" }).notNull(),
+    /** Optional local (America/Sao_Paulo) time of the purchase, "HH:MM:SS". */
+    purchaseTime: time("purchase_time"),
     period: varchar("period", { length: 7 }).notNull(),
     accountId: uuid("account_id").references(() => financialAccounts.id, { onDelete: "restrict" }),
     cardId: uuid("card_id").references(() => cards.id, { onDelete: "restrict" }),

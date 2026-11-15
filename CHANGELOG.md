@@ -9,6 +9,35 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Adicionado
 
+- Horário nos lançamentos: despesa, receita e transferência ganham o campo opcional **Horário**,
+  ao lado da data. O horário aparece nos detalhes do lançamento, é mantido ao copiar e desempata a
+  ordem da lista dentro do mesmo dia. Ao confirmar um item da Caixa de entrada, o horário já vem
+  preenchido com o da notificação. Recorrências não têm horário. A API aceita e devolve
+  `purchaseTime` (`HH:MM`) nos lançamentos; a migração `0035_transaction_purchase_time` cria
+  `purchase_time` em `transactions`. O horário é escolhido num seletor próprio, no mesmo padrão do
+  seletor de data, e o rótulo da data da despesa passa a ser "Data da despesa".
+- Lançamentos em abas: a tela separa Despesas (padrão), Receitas e Transferências. A aba faz o
+  papel do filtro de tipo, e o botão de criação fica na linha das abas, seguindo a aba aberta. Os
+  atalhos "Suas receitas" e "Suas despesas" do painel abrem a aba correspondente sem filtrar por
+  pessoa.
+- Soma da lista de lançamentos: o rodapé mostra Efetivadas, Pendentes e Total de tudo o que está
+  listado, em todas as páginas, respeitando a aba e os filtros. Compras no cartão ainda na fatura
+  contam como pendentes. A API devolve `totals` (`settled`, `pending`, `total`) na listagem.
+- Compra parcelada: o campo passa a se chamar "Valor" e, numa compra parcelada nova, dá para
+  indicar se o valor digitado é o total ou o de cada parcela. As opções de parcelamento mostram o
+  total resultante. A API aceita `installmentAmountMode` (`total`/`perInstallment`) na criação e
+  `amountMode` na prévia de parcelas, e sempre grava o total da compra.
+- Lançamentos: as compras no cartão de crédito deixam de aparecer uma a uma e viram uma linha por
+  fatura, com o nome e a bandeira do cartão, a soma das compras do mês, o vencimento e a situação
+  da fatura. A linha entra na ordem da lista pelo vencimento, leva à fatura, e clicar na situação
+  ("Em aberto") abre o registro de pagamento. Filtrar por cartão ou pela forma "Cartão de crédito"
+  volta a mostrar as compras, e a exportação continua detalhada. A API aceita
+  `collapseCardPurchases=true` na listagem e devolve os totais em `cardInvoices`, com `dueDate` e
+  a posição na página (`beforeTransactionId`).
+- Fatura do cartão agrupada por dia: os lançamentos ficam sob o cabeçalho de cada dia (data e dia
+  da semana), ordenados por data e hora, e cada dia fecha com as saídas, as entradas e o valor
+  acumulado da fatura até aquele dia. A API passa a devolver `dailySummaries` na listagem de
+  lançamentos, com o consolidado de todos os itens filtrados, não só da página.
 - Categorias: o painel de subcategorias também mostra o gasto do mês de cada subcategoria (ou a
   barra do orçamento, quando ela tem um). A API passa a devolver, em `GET /dashboard/category-breakdown`,
   o total do mês de cada subcategoria (`subcategories`).

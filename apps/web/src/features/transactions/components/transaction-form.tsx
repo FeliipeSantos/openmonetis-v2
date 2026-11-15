@@ -12,6 +12,7 @@ import { TransactionDueDateField } from "./transaction-due-date-field";
 import type { TransactionFormProps } from "./transaction-form.types";
 import { TransactionFormActions } from "./transaction-form-actions";
 import { TransactionFormScopeDialogs } from "./transaction-form-scope-dialogs";
+import { TransactionInstallmentAmountModeField } from "./transaction-installment-amount-mode-field";
 import { TransactionPaymentFields } from "./transaction-payment-fields";
 import { TransactionPeopleFields } from "./transaction-people-fields";
 import { TransactionRelatedRecordDialog } from "./transaction-related-record-dialog";
@@ -144,9 +145,7 @@ export function TransactionForm({
             const startInstallment = Number(values.startInstallment);
             const showStartInstallment = values.condition === "installment" && mode !== "edit";
 
-            const amountField = (
-              <TransactionAmountField form={form} isSubmitting={isSubmitting} values={values} />
-            );
+            const amountField = <TransactionAmountField form={form} isSubmitting={isSubmitting} />;
 
             return (
               <>
@@ -218,6 +217,16 @@ export function TransactionForm({
                       isTransfer={isTransfer}
                       isSeriesEdit={isSeriesEdit}
                     />
+
+                    {mode !== "edit" &&
+                    !isTransfer &&
+                    !isSeriesEdit &&
+                    values.condition === "installment" ? (
+                      <TransactionInstallmentAmountModeField
+                        form={form}
+                        isSubmitting={isSubmitting}
+                      />
+                    ) : null}
 
                     <TransactionSettlementField
                       form={form}

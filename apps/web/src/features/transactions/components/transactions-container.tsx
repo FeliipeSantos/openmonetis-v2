@@ -25,7 +25,9 @@ import {
 import {
   buildFilterSlugMap,
   getTransactionMutationErrorMessage,
+  getTransactionTypeTab,
   parseFilterSlugs,
+  type TransactionDaySummaryOptions,
   type TransactionsSearch,
 } from "../transactions.presentation";
 import { transactionsQueryOptions } from "../transactions.queries";
@@ -43,6 +45,8 @@ import {
 
 type TransactionsContainerProps = {
   search: TransactionsSearch;
+  /** Splits the listing into Despesas / Receitas / Transferências tabs. */
+  typeTabs?: boolean;
   onSearchChange: (search: Partial<TransactionsSearch>) => void;
   scope?: TransactionsScope;
 };
@@ -64,12 +68,15 @@ type TransactionsScope = {
   contentNavigation?: ReactNode;
   contentOverride?: ReactNode;
   export?: { fileLabel: string };
+  /** Groups the listing by day with a consolidated footer (e.g. card invoices). */
+  daySummary?: TransactionDaySummaryOptions;
 };
 
 export function TransactionsContainer({
   search,
   onSearchChange,
   scope,
+  typeTabs = false,
 }: TransactionsContainerProps) {
   const accountsQuery = useQuery(accountsQueryOptions());
   const cardsQuery = useQuery(cardsQueryOptions());
@@ -93,6 +100,7 @@ export function TransactionsContainer({
   const restrictToAdminPerson = scope?.adminPersonOnly || scope?.adminSettledOnly;
   const transactionsSearch = {
     ...search,
+    type: typeTabs ? getTransactionTypeTab(search.type) : search.type,
     period: selectedPeriod,
     pageSize: effectivePageSize,
     personIds:
@@ -104,6 +112,8 @@ export function TransactionsContainer({
         : resolveFilterIds(search.people, peopleSlugMap.slugToId)),
     settlement: scope?.adminSettledOnly ? ("paid" as const) : search.settlement,
     view: scope?.view,
+    // The main listing shows card spending as one total per invoice; card pages itemize it.
+    collapseCardPurchases: !scope,
     tagIds: parseFilterSlugs(search.tags),
     categoryIds:
       scope?.categoryIds ?? resolveFilterIds(search.categories, categoriesSlugMap.slugToId),
@@ -169,6 +179,11 @@ export function TransactionsContainer({
         }
         isExporting={exportMutation.isPending}
         accountStatement={scope?.view === "accountStatement"}
+        cardInvoices={transactionsQuery.data?.cardInvoices}
+        totals={transactionsQuery.data?.totals}
+        typeTabs={typeTabs}
+        dailySummaries={transactionsQuery.data?.dailySummaries}
+        daySummary={scope?.daySummary}
         onRetry={() => {
           void transactionsQuery.refetch();
           void accountsQuery.refetch();

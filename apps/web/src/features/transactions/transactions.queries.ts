@@ -17,18 +17,26 @@ export const transactionKeys = {
   list: (search: TransactionsApiSearch) => [...transactionKeys.all, search] as const,
   detail: (id: string) => [...transactionKeys.all, "detail", id] as const,
   suggestions: () => [...transactionKeys.all, "suggestions"] as const,
-  installmentOptions: (amount: number | null) =>
-    [...transactionKeys.all, "installment-options", amount] as const,
+  installmentOptions: (amount: number | null, amountMode: string) =>
+    [...transactionKeys.all, "installment-options", amount, amountMode] as const,
   recurrenceEndDate: (query: RecurrenceEndDateQuery) =>
     [...transactionKeys.all, "recurrence-end-date", query] as const,
 };
 
-export function installmentOptionsQueryOptions(amount: string, enabled: boolean) {
-  const parsed = InstallmentOptionsQuerySchema.safeParse({ amount });
+export function installmentOptionsQueryOptions(
+  amount: string,
+  enabled: boolean,
+  amountMode: "total" | "perInstallment" = "total",
+) {
+  const parsed = InstallmentOptionsQuerySchema.safeParse({ amount, amountMode });
   return queryOptions({
-    queryKey: transactionKeys.installmentOptions(parsed.success ? parsed.data.amount : null),
+    queryKey: transactionKeys.installmentOptions(
+      parsed.success ? parsed.data.amount : null,
+      amountMode,
+    ),
     enabled: enabled && parsed.success,
-    queryFn: () => getInstallmentOptions(InstallmentOptionsQuerySchema.parse({ amount }).amount),
+    queryFn: () =>
+      getInstallmentOptions(InstallmentOptionsQuerySchema.parse({ amount, amountMode })),
     staleTime: 60_000,
   });
 }

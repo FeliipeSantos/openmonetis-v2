@@ -5,18 +5,24 @@ import {
   describeBulkTransactionAction,
   findTransactionSuggestions,
   formatBulkTransactionResult,
+  formatCardInvoiceTotalDetail,
   formatDate,
   formatInstallmentOption,
   formatPaymentMethod,
   formatPaymentMethodTable,
   formatTransactionConditionSummary,
+  formatTransactionDayLabel,
   formatTransactionSettlementSummary,
   getTransactionDateLabel,
+  getTransactionDaySummaryLines,
   getTransactionSettlementAction,
   getTransactionSettlementLabel,
   getTransactionSettlementShortLabel,
   getTransactionSuggestionDetail,
+  getTransactionTypeTab,
   groupTransactionRows,
+  groupTransactionsByDay,
+  isTransactionListGroupedByDay,
   labelTransactionExportFileName,
   selectBulkTransactionIds,
   validateTransactionsSearch,
@@ -94,18 +100,28 @@ test("balance adjustments identify their internal balance correction", () => {
 
 test("installment labels do not hide cent redistribution", () => {
   assert.equal(
-    formatInstallmentOption(2, { count: 2, minimumAmount: 1.5, maximumAmount: 1.5 }),
+    formatInstallmentOption(2, {
+      count: 2,
+      minimumAmount: 1.5,
+      maximumAmount: 1.5,
+      totalAmount: 3,
+    }),
     "2x de R$\u00a01,50",
   );
   assert.equal(
-    formatInstallmentOption(7, { count: 7, minimumAmount: 0.42, maximumAmount: 0.43 }),
+    formatInstallmentOption(7, {
+      count: 7,
+      minimumAmount: 0.42,
+      maximumAmount: 0.43,
+      totalAmount: 3,
+    }),
     "7 parcelas · de R$\u00a00,42 a R$\u00a00,43",
   );
   assert.equal(formatInstallmentOption(7), "7x");
 });
 
 test("transaction dates describe their financial meaning", () => {
-  assert.equal(getTransactionDateLabel("expense", "single"), "Data da compra");
+  assert.equal(getTransactionDateLabel("expense", "single"), "Data da despesa");
   assert.equal(getTransactionDateLabel("income", "single"), "Data do recebimento");
   assert.equal(getTransactionDateLabel("transfer", "single"), "Data da transferência");
   assert.equal(getTransactionDateLabel("expense", "recurring"), "Início da recorrência");
@@ -338,4 +354,51 @@ test("transaction export file names include the scoped label as a slug", () => {
     labelTransactionExportFileName("lancamentos-2026-11.csv", "!!!"),
     "lancamentos-2026-11.csv",
   );
+});
+
+test("day groups follow the listing order and close with the day's consolidation", () => {
+  assert.deepEqual(
+    groupTransactionsByDay(["2026-10-23", "2026-10-23", "2026-10-22"], (date) => date),
+    [
+      { date: "2026-10-23", items: ["2026-10-23", "2026-10-23"] },
+      { date: "2026-10-22", items: ["2026-10-22"] },
+    ],
+  );
+  assert.equal(formatTransactionDayLabel("2026-10-23"), "23/10/2026 • sexta-feira");
+  assert.equal(isTransactionListGroupedByDay(undefined), true);
+  assert.equal(isTransactionListGroupedByDay("oldest"), true);
+  assert.equal(isTransactionListGroupedByDay("amount"), false);
+  const summary = {
+    date: "2026-10-23",
+    inflow: 0,
+    outflow: 124.19,
+    balance: -124.19,
+    runningBalance: -4567.32,
+  };
+  assert.deepEqual(
+    getTransactionDaySummaryLines(summary, { runningLabel: "Fatura", runningAsDebt: true }).map(
+      ({ label, amount }) => [label, amount],
+    ),
+    [
+      ["Saídas", -124.19],
+      ["Fatura", 4567.32],
+    ],
+  );
+  assert.deepEqual(
+    getTransactionDaySummaryLines({ ...summary, inflow: 10 }, { runningLabel: "Saldo" }).map(
+      ({ label }) => label,
+    ),
+    ["Saídas", "Entradas", "Saldo"],
+  );
+});
+
+test("card invoice totals describe how many purchases they stand for", () => {
+  assert.equal(formatCardInvoiceTotalDetail({ transactionCount: 1 }), "1 lançamento");
+  assert.equal(formatCardInvoiceTotalDetail({ transactionCount: 4 }), "4 lançamentos");
+});
+
+test("the main listing opens on expenses and each tab keeps its type", () => {
+  assert.equal(getTransactionTypeTab(undefined), "expense");
+  assert.equal(getTransactionTypeTab("income"), "income");
+  assert.equal(getTransactionTypeTab("transfer"), "transfer");
 });

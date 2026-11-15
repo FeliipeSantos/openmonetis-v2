@@ -55,7 +55,11 @@ import {
   previewInstallmentOptions,
   projectTransactionAllocations,
   resolveEditedTransactionPeriod,
+  resolveInstallmentPurchaseTotal,
   splitAmountIntoInstallments,
+  summarizeCardInvoiceTotals,
+  summarizeListingTotals,
+  summarizeTransactionsByDay,
   toDisplayAmount,
 } from "@openmonetis/domain/transactions";
 import { getCurrentDateInBrazil, getCurrentPeriodInBrazil } from "@openmonetis/shared/date-time";
@@ -144,6 +148,11 @@ export type TransactionsServiceDependencies = Pick<
   | "updateTransferPairForUser"
 > & {
   dueDateRules?: DueDateRulesReader;
+  /** Invoice due dates per card for the given periods (rule- and holiday-adjusted). */
+  listCardInvoiceDueDates?: (
+    userId: string,
+    periods: string[],
+  ) => Promise<Array<{ cardId: string; period: string; dueDate: string }>>;
   transitionRecurringRuleForUser: typeof import("../repositories/recurring-transactions.repository").transitionRecurringRuleForUser;
   listTagsByIdsForUser?: (ids: string[], userId: string) => Promise<Array<{ id: string }>>;
   getAccountBalanceSnapshotForUser: (
@@ -413,6 +422,52 @@ export function createTransactionsService(
     return addMonthsToPeriod(period, -2);
   }
 
+  /** Postgres returns `time` as "HH:MM:SS"; the public contract uses "HH:MM". */
+  function toPurchaseTime(value: string | null | undefined) {
+    return value ? value.slice(0, 5) : null;
+  }
+
+  /** Values a listing can be ordered by, shared by purchases and card invoice totals. */
+  type ListingSortKey = { moment: string; dueDate: string; amount: number };
+
+  function getListingSortKey(item: TransactionOutput, accountStatement: boolean): ListingSortKey {
+    return {
+      moment: getListingMoment(item, accountStatement),
+      dueDate: item.dueDate ?? "9999-12-31",
+      amount: Math.abs(item.amount),
+    };
+  }
+
+  function compareListingSortKeys(
+    a: ListingSortKey,
+    b: ListingSortKey,
+    sort: ListTransactionsQuery["sort"],
+  ) {
+    if (sort === "oldest") return a.moment.localeCompare(b.moment);
+    if (sort === "dueDate") return a.dueDate.localeCompare(b.dueDate);
+    if (sort === "amount") return b.amount - a.amount;
+    return b.moment.localeCompare(a.moment);
+  }
+
+  /** One purchase or recurring occurrence; its per-person shares share this key. */
+  function getPurchaseKey(item: TransactionOutput) {
+    return (
+      item.recordId ??
+      (item.recurringRuleId ? `${item.recurringRuleId}:${item.purchaseDate}` : item.id)
+    );
+  }
+
+  /** Day a listed item belongs to: the posting date on account statements, else the purchase date. */
+  function getListingDate(item: TransactionOutput, accountStatement: boolean) {
+    return accountStatement && item.postingDate ? item.postingDate : item.purchaseDate;
+  }
+
+  /** Date used to order a listing; the purchase time breaks ties within the same day. */
+  function getListingMoment(item: TransactionOutput, accountStatement: boolean) {
+    if (accountStatement && item.postingDate) return item.postingDate;
+    return `${item.purchaseDate} ${item.purchaseTime ?? ""}`;
+  }
+
   function toTransactionOutput(transaction: TransactionWithRelations): TransactionOutput {
     const amount = Number(transaction.amount);
 
@@ -436,6 +491,7 @@ export function createTransactionsService(
       settledDate: transaction.settledDate ? toDateString(transaction.settledDate) : null,
       allocation: null,
       purchaseDate: toDateString(transaction.purchaseDate),
+      purchaseTime: toPurchaseTime(transaction.purchaseTime),
       postingDate: deriveTransactionPostingDate({
         paymentMethod: transaction.paymentMethod,
         settledDate: transaction.settledDate ? toDateString(transaction.settledDate) : null,
@@ -684,6 +740,7 @@ export function createTransactionsService(
       condition: data.condition,
       paymentMethod: data.paymentMethod,
       name: data.name,
+      purchaseTime: data.condition === "recurring" ? null : (data.purchaseTime ?? null),
       accountId: isCreditCard || isTransfer ? null : (data.accountId as string),
       cardId: isCreditCard ? (data.cardId as string) : null,
       categoryId: context.category.id,
@@ -1022,8 +1079,25 @@ export function createTransactionsService(
     return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : null;
   }
 
+  /** Installment purchases typed per installment are stored by their total, like any other. */
+  function toPurchaseTotalInput<T extends TransactionInput>(data: T): T {
+    if (data.condition !== "installment" || data.installmentAmountMode !== "perInstallment") {
+      return data;
+    }
+    const count = data.installmentCount as number;
+    return {
+      ...data,
+      installmentAmountMode: undefined,
+      amount: resolveInstallmentPurchaseTotal(data.amount, count, "perInstallment"),
+      splitShares: data.splitShares?.map((share) => ({
+        ...share,
+        amount: resolveInstallmentPurchaseTotal(share.amount, count, "perInstallment"),
+      })),
+    };
+  }
+
   async function createTransaction(
-    data: TransactionInput & { userId: string },
+    input: TransactionInput & { userId: string },
     confirmation?:
       | { source: "inbox"; sourceId: string; confirmedAt: Date }
       | {
@@ -1034,6 +1108,7 @@ export function createTransactionsService(
           installmentAmounts?: number[];
         },
   ) {
+    const data = toPurchaseTotalInput(input);
     assertBoletoPaymentDateIsNotFuture(data);
     const persistedConfirmation = confirmation
       ? { ...confirmation, userId: data.userId }
@@ -1674,44 +1749,120 @@ export function createTransactionsService(
       })
       .sort(
         (a, b) =>
-          (query.sort === "oldest"
-            ? (accountStatement ? (a.postingDate ?? a.purchaseDate) : a.purchaseDate).localeCompare(
-                accountStatement ? (b.postingDate ?? b.purchaseDate) : b.purchaseDate,
-              )
-            : query.sort === "dueDate"
-              ? (a.dueDate ?? "9999-12-31").localeCompare(b.dueDate ?? "9999-12-31")
-              : query.sort === "amount"
-                ? Math.abs(b.amount) - Math.abs(a.amount)
-                : (accountStatement
-                    ? (b.postingDate ?? b.purchaseDate)
-                    : b.purchaseDate
-                  ).localeCompare(
-                    accountStatement ? (a.postingDate ?? a.purchaseDate) : a.purchaseDate,
-                  )) ||
+          compareListingSortKeys(
+            getListingSortKey(a, accountStatement),
+            getListingSortKey(b, accountStatement),
+            query.sort,
+          ) ||
           a.name.localeCompare(b.name) ||
           (a.allocation?.personName ?? a.personName).localeCompare(
             b.allocation?.personName ?? b.personName,
           ) ||
           a.id.localeCompare(b.id),
       );
+    // A query that already targets cards keeps their purchases itemized.
+    const collapseCardPurchases =
+      query.collapseCardPurchases === true &&
+      !accountStatement &&
+      query.cardIds.length === 0 &&
+      query.paymentMethod !== "credit_card";
+    const isCollapsedCardPurchase = (item: TransactionOutput) =>
+      collapseCardPurchases && item.paymentMethod === "credit_card" && item.cardId !== null;
+    const listed = filtered.filter((item) => !isCollapsedCardPurchase(item));
+    const cardPurchases = filtered.filter(isCollapsedCardPurchase);
+    const cardDetails = new Map(
+      cardPurchases.map((item) => [item.cardId, { name: item.cardName, logo: item.cardLogo }]),
+    );
+    const invoicePeriods = [...new Set(cardPurchases.map((item) => item.period))];
+    const invoiceDueDates =
+      invoicePeriods.length && dependencies.listCardInvoiceDueDates
+        ? await dependencies.listCardInvoiceDueDates(userId, invoicePeriods)
+        : [];
+    const cardInvoices = summarizeCardInvoiceTotals(
+      cardPurchases.map((item) => ({
+        cardId: item.cardId as string,
+        period: item.period,
+        purchaseKey: getPurchaseKey(item),
+        amount: item.allocation?.amount ?? item.amount,
+        origin: item.origin,
+        type: item.type,
+      })),
+    )
+      .map((invoice) => ({
+        ...invoice,
+        cardName: cardDetails.get(invoice.cardId)?.name ?? "",
+        cardLogo: cardDetails.get(invoice.cardId)?.logo ?? null,
+        dueDate:
+          invoiceDueDates.find(
+            (entry) => entry.cardId === invoice.cardId && entry.period === invoice.period,
+          )?.dueDate ?? null,
+      }))
+      .sort((a, b) => a.cardName.localeCompare(b.cardName) || a.period.localeCompare(b.period));
+
     // Paginate purchases/occurrences, keeping every matching allocation together.
     const groups = new Map<string, TransactionOutput[]>();
-    for (const item of filtered) {
-      const key =
-        item.recordId ??
-        (item.recurringRuleId ? `${item.recurringRuleId}:${item.purchaseDate}` : item.id);
+    for (const item of listed) {
+      const key = getPurchaseKey(item);
       const group = groups.get(key);
       if (group) group.push(item);
       else groups.set(key, [item]);
     }
+    // Card invoices take their place in the listing order by due date (or total, by amount).
+    type ListingEntry =
+      | { kind: "purchase"; items: TransactionOutput[]; key: ListingSortKey }
+      | { kind: "cardInvoice"; invoice: (typeof cardInvoices)[number]; key: ListingSortKey };
+    const entries: ListingEntry[] = [...groups.values()].map((items) => ({
+      kind: "purchase",
+      items,
+      key: getListingSortKey(items[0] as TransactionOutput, accountStatement),
+    }));
+    for (const invoice of cardInvoices) {
+      const key = {
+        moment: invoice.dueDate ?? "9999-12-31",
+        dueDate: invoice.dueDate ?? "9999-12-31",
+        amount: Math.abs(invoice.amount),
+      };
+      const index = entries.findIndex(
+        (entry) => compareListingSortKeys(key, entry.key, query.sort) < 0,
+      );
+      entries.splice(index === -1 ? entries.length : index, 0, {
+        kind: "cardInvoice",
+        invoice,
+        key,
+      });
+    }
     const start = (query.page - 1) * query.pageSize;
+    const pageEntries = paginate ? entries.slice(start, start + query.pageSize) : entries;
 
     return {
-      items: (paginate
-        ? [...groups.values()].slice(start, start + query.pageSize)
-        : [...groups.values()]
-      ).flat(),
-      total: groups.size,
+      items: pageEntries.flatMap((entry) => (entry.kind === "purchase" ? entry.items : [])),
+      cardInvoices: pageEntries.flatMap((entry, index) => {
+        if (entry.kind !== "cardInvoice") return [];
+        const next = pageEntries
+          .slice(index + 1)
+          .find((candidate) => candidate.kind === "purchase");
+        return [
+          {
+            ...entry.invoice,
+            beforeTransactionId: next?.kind === "purchase" ? (next.items[0]?.id ?? null) : null,
+          },
+        ];
+      }),
+      totals: summarizeListingTotals(
+        filtered.map((item) => ({
+          amount: item.allocation?.amount ?? item.amount,
+          isSettled: item.isSettled,
+        })),
+      ),
+      dailySummaries: summarizeTransactionsByDay(
+        filtered.map((item) => ({
+          date: getListingDate(item, accountStatement),
+          amount: item.allocation?.amount ?? item.amount,
+          origin: item.origin,
+          type: item.type,
+        })),
+      ),
+      total: entries.length,
       page: query.page,
       pageSize: query.pageSize,
     };
@@ -1719,7 +1870,12 @@ export function createTransactionsService(
 
   async function exportTransactions(userId: string, query: ExportTransactionsQuery) {
     const period = query.period ?? getCurrentPeriodInBrazil();
-    const result = await listTransactions(userId, { ...query, period }, false);
+    // Exports always itemize card purchases.
+    const result = await listTransactions(
+      userId,
+      { ...query, period, collapseCardPurchases: undefined },
+      false,
+    );
     return createTransactionsExport(result.items, { ...query, period });
   }
 
@@ -2072,6 +2228,12 @@ export function createTransactionsService(
       name: data.name ?? current.name,
       amount: data.amount ?? toDisplayAmount(current.plannedAmount ?? current.amount),
       purchaseDate: data.purchaseDate ?? toDateString(current.purchaseDate),
+      purchaseTime:
+        (data.condition ?? current.condition) === "recurring"
+          ? null
+          : data.purchaseTime === undefined
+            ? toPurchaseTime(current.purchaseTime)
+            : data.purchaseTime,
       invoicePeriod:
         (data.condition ?? current.condition) === "recurring"
           ? null
@@ -2837,6 +2999,7 @@ export function createTransactionsService(
       name: `${current.name} (cópia)`,
       amount,
       purchaseDate: toDateString(current.purchaseDate),
+      purchaseTime: toPurchaseTime(current.purchaseTime),
       personId: current.personId,
       accountId: current.accountId,
       cardId: current.cardId,
@@ -2905,7 +3068,7 @@ export function createTransactionsService(
   return {
     changeRecurringRuleStatus,
     previewInstallmentOptions: (input: InstallmentOptionsQuery, _userId: string) => ({
-      options: previewInstallmentOptions(input.amount),
+      options: previewInstallmentOptions(input.amount, input.amountMode),
     }),
     previewRecurrenceEndDate: (input: RecurrenceEndDateQuery, _userId: string) => ({
       endDate: calculateRecurrenceEndDate(input),

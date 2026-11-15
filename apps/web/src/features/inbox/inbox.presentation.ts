@@ -5,6 +5,7 @@ import {
   formatDateInBrazil,
   getBrazilDateParts,
   getCurrentDateInBrazil,
+  getCurrentTimeInBrazil,
 } from "@openmonetis/shared/date-time";
 import type { AccountOutput } from "@openmonetis/validators/accounts";
 import type { CardOutput } from "@openmonetis/validators/cards";
@@ -53,6 +54,10 @@ export function formatInboxTime(value: string) {
 
 export function getInboxPurchaseDate(value: string) {
   return getCurrentDateInBrazil(new Date(value));
+}
+
+export function getInboxPurchaseTime(value: string) {
+  return getCurrentTimeInBrazil(new Date(value));
 }
 
 export function formatInboxFilterDate(value: string, now = new Date()) {

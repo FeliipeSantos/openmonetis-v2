@@ -1,12 +1,24 @@
 import type {
+  CardInvoiceTotalOutput,
   RecurringOccurrenceActionInput,
   TransactionActionScope,
   TransactionOutput,
 } from "@openmonetis/validators/transactions";
+import type { TransactionDayGrouping } from "./transaction-day-summary";
 
 export type TransactionsTableProps = {
   accountStatement?: boolean;
   adminPersonId: string | null;
+  /** Card invoice totals shown above the itemized rows. */
+  cardInvoices?: CardInvoiceTotalOutput[];
+  /** Sum of every listed item across pages. */
+  totals?: import("./transactions-totals").TransactionsTotalsValue;
+  /** Shows the totals without sign (single-type listings). */
+  totalsUnsigned?: boolean;
+  /** Colors the total by the listed type (e.g. red for expenses). */
+  totalsTone?: import("./transactions-totals").TransactionsTotalsTone;
+  /** Groups rows by day with a consolidated footer per day. */
+  dayGrouping?: TransactionDayGrouping;
   selectionMode?: boolean;
   transactions: TransactionOutput[];
   pendingTransactionId: string | null;

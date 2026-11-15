@@ -149,6 +149,9 @@ export function TransactionRowDescription({
                     : transaction.purchaseDate,
                 )
               : null}
+            {showPurchaseDate && !accountStatement && transaction.purchaseTime ? (
+              <span className="tabular-nums">{transaction.purchaseTime}</span>
+            ) : null}
             {transaction.categoryName ? (
               <>
                 {showPurchaseDate ? <span aria-hidden="true">·</span> : null}

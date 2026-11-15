@@ -132,11 +132,13 @@ export type TransactionCreateRecord = Omit<
   | "frozenDueDate"
   | "dueDateRuleExcluded"
   | "excludeFromBudget"
+  | "purchaseTime"
 > & {
   dueDateAdjustment?: import("@openmonetis/domain/due-date-rules").DueDateAdjustmentDetails | null;
   frozenDueDate?: Date | null;
   dueDateRuleExcluded?: boolean;
   excludeFromBudget?: boolean;
+  purchaseTime?: string | null;
   settledAmount?: string | null;
   settledDate?: Date | null;
   tagIds?: string[];
@@ -288,6 +290,7 @@ export type TransactionUpdateRecord = Partial<
     | "name"
     | "amount"
     | "purchaseDate"
+    | "purchaseTime"
     | "period"
     | "accountId"
     | "cardId"
@@ -499,6 +502,7 @@ const transactionColumns = {
   settledAmount: transactions.settledAmount,
   settledDate: transactions.settledDate,
   purchaseDate: transactions.purchaseDate,
+  purchaseTime: transactions.purchaseTime,
   period: transactions.period,
   accountId: transactions.accountId,
   cardId: transactions.cardId,

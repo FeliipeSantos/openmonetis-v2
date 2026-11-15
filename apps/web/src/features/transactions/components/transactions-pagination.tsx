@@ -6,6 +6,11 @@ import { Button } from "@/components/ui/button";
 import { SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import type { TransactionsTableProps } from "./transactions-table.types";
+import {
+  TransactionsTotals,
+  type TransactionsTotalsTone,
+  type TransactionsTotalsValue,
+} from "./transactions-totals";
 
 export function TransactionsPagination({
   totalItems,
@@ -14,6 +19,9 @@ export function TransactionsPagination({
   pageSize,
   onPageChange,
   onPageSizeChange,
+  totals,
+  totalsUnsigned = false,
+  totalsTone,
 }: {
   totalItems: TransactionsTableProps["totalItems"];
   currentPage: TransactionsTableProps["currentPage"];
@@ -21,6 +29,9 @@ export function TransactionsPagination({
   pageSize: TransactionsTableProps["pageSize"];
   onPageChange: TransactionsTableProps["onPageChange"];
   onPageSizeChange: TransactionsTableProps["onPageSizeChange"];
+  totals?: TransactionsTotalsValue;
+  totalsUnsigned?: boolean;
+  totalsTone?: TransactionsTotalsTone;
 }) {
   return (
     <div className="mt-3 flex flex-col items-center justify-between gap-3 border-t px-1 pt-3 text-sm sm:flex-row">
@@ -42,6 +53,14 @@ export function TransactionsPagination({
           </SelectContent>
         </Select>
       </div>
+      {totals ? (
+        <TransactionsTotals
+          className="justify-center"
+          totals={totals}
+          tone={totalsTone}
+          unsigned={totalsUnsigned}
+        />
+      ) : null}
       <div className="flex items-center gap-1">
         <span className="mr-2 text-muted-foreground">
           Página {currentPage} de {pageCount}

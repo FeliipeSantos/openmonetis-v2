@@ -1,18 +1,33 @@
 import { CircleDollarSign } from "lucide-react";
+import { Fragment } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { groupTransactionRows } from "../transactions.presentation";
+import {
+  getTransactionListingDate,
+  groupTransactionRows,
+  groupTransactionsByDay,
+} from "../transactions.presentation";
 import { useTransactionSelection } from "../useTransactionSelection";
 import { TransactionBulkActionDock } from "./transaction-bulk-action-dock";
+import { CardInvoiceTotalRow } from "./transaction-card-invoice-total";
+import { TransactionDayHeaderRow, TransactionDaySummaryRows } from "./transaction-day-summary";
 import { TransactionRow } from "./transaction-row";
 import { TransactionsPagination } from "./transactions-pagination";
 import type { TransactionsTableProps } from "./transactions-table.types";
 
+/** Columns after "Valor": Condição, Forma, Conta/Cartão, Situação, Ações. */
+const TRAILING_COLUMNS = 5;
+
 export function TransactionsTable({
   accountStatement = false,
   adminPersonId,
+  cardInvoices = [],
+  totals,
+  totalsUnsigned,
+  totalsTone,
+  dayGrouping,
   selectionMode = false,
   transactions,
   pendingTransactionId,
@@ -38,13 +53,64 @@ export function TransactionsTable({
   const rows = groupTransactionRows(transactions);
   // Selection follows the rendered order so Shift+click ranges match what the user sees.
   const selection = useTransactionSelection(rows.map((row) => row.transaction));
+  const columnCount = (selectionMode ? 1 : 0) + 2 + TRAILING_COLUMNS;
+
+  function renderRow({ transaction, splitConnector }: (typeof rows)[number]) {
+    return (
+      <TransactionRow
+        accountStatement={accountStatement}
+        adminPersonId={adminPersonId}
+        key={transaction.id}
+        selectionMode={selectionMode}
+        selected={selection.isSelected(transaction.id)}
+        selectable={selection.isSelectable(transaction)}
+        splitConnector={splitConnector}
+        onEdit={onEdit}
+        onView={onView}
+        onDelete={onDelete}
+        onCopy={onCopy}
+        onAnticipate={onAnticipate}
+        onUndoAnticipation={onUndoAnticipation}
+        onRefund={onRefund}
+        onRecurringAction={onRecurringAction}
+        onSettle={onSettle}
+        onSettleRecurringOccurrence={onSettleRecurringOccurrence}
+        onSelectionChange={(selected, extendRange) =>
+          selection.setSelected(transaction.id, selected, extendRange)
+        }
+        pending={pendingTransactionId !== null && pendingTransactionId === transaction.recordId}
+        period={period}
+        settlementPending={
+          pendingSettlementKey ===
+          (transaction.recordId ??
+            (transaction.recurringRuleId
+              ? `${transaction.recurringRuleId}:${transaction.purchaseDate}`
+              : null))
+        }
+        transaction={transaction}
+      />
+    );
+  }
+
+  /** Card invoice totals placed by the API right before a row (or at the end, for `null`). */
+  function renderCardInvoices(beforeTransactionId: string | null) {
+    return cardInvoices
+      .filter((invoice) => invoice.beforeTransactionId === beforeTransactionId)
+      .map((invoice) => (
+        <CardInvoiceTotalRow
+          invoice={invoice}
+          key={`${invoice.cardId}:${invoice.period}`}
+          selectionMode={selectionMode}
+        />
+      ));
+  }
 
   return (
     <TooltipProvider>
       <div className="grid gap-3">
         <Card className="py-2">
           <CardContent className="px-2 sm:px-4">
-            {transactions.length ? (
+            {transactions.length || cardInvoices.length ? (
               <>
                 <div className="overflow-x-auto">
                   <Table>
@@ -70,47 +136,35 @@ export function TransactionsTable({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {rows.map(({ transaction, splitConnector }) => (
-                        <TransactionRow
-                          accountStatement={accountStatement}
-                          adminPersonId={adminPersonId}
-                          key={transaction.id}
-                          selectionMode={selectionMode}
-                          selected={selection.isSelected(transaction.id)}
-                          selectable={selection.isSelectable(transaction)}
-                          splitConnector={splitConnector}
-                          onEdit={onEdit}
-                          onView={onView}
-                          onDelete={onDelete}
-                          onCopy={onCopy}
-                          onAnticipate={onAnticipate}
-                          onUndoAnticipation={onUndoAnticipation}
-                          onRefund={onRefund}
-                          onRecurringAction={onRecurringAction}
-                          onSettle={onSettle}
-                          onSettleRecurringOccurrence={onSettleRecurringOccurrence}
-                          onSelectionChange={(selected, extendRange) =>
-                            selection.setSelected(transaction.id, selected, extendRange)
-                          }
-                          pending={
-                            pendingTransactionId !== null &&
-                            pendingTransactionId === transaction.recordId
-                          }
-                          period={period}
-                          settlementPending={
-                            pendingSettlementKey ===
-                            (transaction.recordId ??
-                              (transaction.recurringRuleId
-                                ? `${transaction.recurringRuleId}:${transaction.purchaseDate}`
-                                : null))
-                          }
-                          transaction={transaction}
-                        />
-                      ))}
+                      {dayGrouping
+                        ? groupTransactionsByDay(rows, (row) =>
+                            getTransactionListingDate(row.transaction, accountStatement),
+                          ).map((group) => (
+                            <Fragment key={group.date}>
+                              <TransactionDayHeaderRow columns={columnCount} date={group.date} />
+                              {group.items.map(renderRow)}
+                              <TransactionDaySummaryRows
+                                date={group.date}
+                                grouping={dayGrouping}
+                                leadingColumns={selectionMode ? 1 : 0}
+                                trailingColumns={TRAILING_COLUMNS}
+                              />
+                            </Fragment>
+                          ))
+                        : rows.map((row) => (
+                            <Fragment key={row.transaction.id}>
+                              {renderCardInvoices(row.transaction.id)}
+                              {renderRow(row)}
+                            </Fragment>
+                          ))}
+                      {renderCardInvoices(null)}
                     </TableBody>
                   </Table>
                 </div>
                 <TransactionsPagination
+                  totals={totals}
+                  totalsUnsigned={totalsUnsigned}
+                  totalsTone={totalsTone}
                   totalItems={totalItems}
                   currentPage={currentPage}
                   pageCount={pageCount}

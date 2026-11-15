@@ -231,6 +231,77 @@ test("source confirmation metadata reaches the write with owner and expected ver
   });
 });
 
+test("purchase time is stored with the transaction and returned as HH:MM", async () => {
+  const f = copyFixture();
+  const created = await f.service.createTransactionFromInbox(
+    regularInput({ purchaseTime: "18:05" }),
+    userId,
+    "inbox-item",
+    new Date("2026-09-01"),
+  );
+  assert.equal(f.writes[0][0][0].purchaseTime, "18:05");
+  assert.equal(created.purchaseTime, "18:05");
+
+  await f.service.createTransactionFromInbox(
+    regularInput(),
+    userId,
+    "inbox-item-2",
+    new Date("2026-09-01"),
+  );
+  assert.equal(f.writes[1][0][0].purchaseTime, null);
+
+  const persisted = copyFixture({ purchaseTime: "07:45:00" });
+  const copied = await persisted.service.copyTransaction(transactionId, userId);
+  assert.equal(copied.purchaseTime, "07:45");
+});
+
+test("installment purchases typed per installment are stored by their total", async () => {
+  const f = copyFixture();
+  let records: Array<{ amount: string }> = [];
+  f.dependencies.insertInstallmentSeriesWithTransactions = async (_series, inserted) => {
+    records = inserted;
+    return [];
+  };
+  // The write result does not matter here; only what reaches persistence.
+  await f.service
+    .createTransaction({
+      ...regularInput({
+        condition: "installment",
+        installmentCount: 3,
+        installmentAmountMode: "perInstallment",
+        amount: 10.15,
+      }),
+      userId,
+    })
+    .catch(() => undefined);
+  assert.equal(records.length, 3);
+  assert.deepEqual(
+    records.map((record) => Number(record.amount)),
+    [-10.15, -10.15, -10.15],
+  );
+  assert.equal(
+    TransactionInputSchema.safeParse({ ...regularInput(), installmentAmountMode: "perInstallment" })
+      .success,
+    false,
+  );
+});
+
+test("purchase time is validated and unavailable for recurring transactions", () => {
+  assert.equal(
+    TransactionInputSchema.safeParse({ ...regularInput(), purchaseTime: "24:00" }).success,
+    false,
+  );
+  assert.equal(
+    TransactionInputSchema.safeParse({
+      ...regularInput(),
+      condition: "recurring",
+      recurrenceFrequency: "monthly",
+      purchaseTime: "18:05",
+    }).success,
+    false,
+  );
+});
+
 for (const [label, method, result, input, code] of [
   ["inactive person", "findPersonByIdForUser", { status: "inactive" }, {}, "PERSON_NOT_FOUND"],
   ["wrong category type", "findCategoryByIdForUser", { type: "income" }, {}, "CATEGORY_NOT_FOUND"],
@@ -1217,6 +1288,7 @@ test("installment preview HTTP contract validates amounts and returns domain opt
       count: 7,
       minimumAmount: 0.42,
       maximumAmount: 0.43,
+      totalAmount: 3,
     },
   );
 });
@@ -1376,6 +1448,7 @@ function transactionFixture(
     name: "Conta de energia",
     amount: "-100.00",
     purchaseDate: new Date("2026-08-23T00:00:00.000Z"),
+    purchaseTime: null,
     period: "2026-09",
     accountId: "50000000-0000-4000-8000-000000000005",
     cardId: null,
@@ -1890,6 +1963,12 @@ test("divided transactions become allocation rows linked to the same editable re
       ],
       listRecurringSplitsForUser: async () => [],
       listRecurringOccurrencesForUser: async () => [],
+      listCardInvoiceDueDates: async (_userId: string, periods: string[]) =>
+        periods.map((period) => ({
+          cardId: "70000000-0000-4000-8000-000000000007",
+          period,
+          dueDate: "2026-09-10",
+        })),
       listTransactionIdsWithAttachmentsForUser: async () => [],
     },
     {
@@ -2000,6 +2079,48 @@ test("divided transactions become allocation rows linked to the same editable re
   );
   assert.equal(invoiceOnly.total, 1);
   assert.ok(invoiceOnly.items.every((item) => item.isSettled === null));
+
+  // The main listing can show one total per card invoice instead of each purchase.
+  const collapsed = await service.listTransactions(
+    userId,
+    ListTransactionsQuerySchema.parse({ period: "2026-09", collapseCardPurchases: "true" }),
+  );
+  // One regular purchase plus one invoice total, ordered together.
+  assert.equal(collapsed.total, 2);
+  // Totals cover every matching item, card purchases included.
+  assert.deepEqual(collapsed.totals, { settled: -100, pending: -100, total: -200 });
+  assert.ok(collapsed.items.every((item) => item.paymentMethod !== "credit_card"));
+  assert.deepEqual(
+    collapsed.cardInvoices.map(({ cardId, period, amount, transactionCount }) => [
+      cardId,
+      period,
+      amount,
+      transactionCount,
+    ]),
+    [["70000000-0000-4000-8000-000000000007", "2026-09", -100, 1]],
+  );
+  // Newest first: the invoice due on 2026-09-10 comes before the August purchase.
+  assert.equal(collapsed.cardInvoices[0]?.dueDate, "2026-09-10");
+  assert.equal(collapsed.cardInvoices[0]?.beforeTransactionId, collapsed.items[0]?.id);
+  const collapsedOldest = await service.listTransactions(
+    userId,
+    ListTransactionsQuerySchema.parse({
+      period: "2026-09",
+      collapseCardPurchases: "true",
+      sort: "oldest",
+    }),
+  );
+  assert.equal(collapsedOldest.cardInvoices[0]?.beforeTransactionId, null);
+  const byCard = await service.listTransactions(
+    userId,
+    ListTransactionsQuerySchema.parse({
+      period: "2026-09",
+      collapseCardPurchases: "true",
+      cardIds: "70000000-0000-4000-8000-000000000007",
+    }),
+  );
+  assert.equal(byCard.cardInvoices.length, 0);
+  assert.ok(byCard.items.some((item) => item.paymentMethod === "credit_card"));
 });
 
 test("installment series reallocates divided shares proportionally for each target amount", async () => {

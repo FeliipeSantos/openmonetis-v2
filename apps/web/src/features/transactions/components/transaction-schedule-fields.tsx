@@ -51,7 +51,11 @@ export function TransactionScheduleFields({
   isSeriesEdit: boolean;
 }) {
   const preview = useQuery(
-    installmentOptionsQueryOptions(values.amount, values.condition === "installment"),
+    installmentOptionsQueryOptions(
+      values.amount,
+      values.condition === "installment",
+      values.installmentAmountMode,
+    ),
   );
   const [appliedOccurrenceCount, setAppliedOccurrenceCount] = useState<{
     endDate: string;
@@ -69,6 +73,7 @@ export function TransactionScheduleFields({
     formatInstallmentOption(
       count,
       preview.data?.options.find((option) => option.count === count),
+      values.installmentAmountMode,
     );
   return (
     <>

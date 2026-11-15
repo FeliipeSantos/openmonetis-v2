@@ -215,6 +215,20 @@ const transactionsService = createTransactionsService(
     findPersonByIdForUser,
     findSystemCategoryByNameForUser,
     getAccountBalanceSnapshotForUser: accountsService.getBalanceSnapshot,
+    listCardInvoiceDueDates: async (userId, periods) =>
+      (
+        await Promise.all(
+          periods.map(async (period) =>
+            (
+              await cardsService.list(userId, period)
+            ).map((card) => ({
+              cardId: card.id,
+              period,
+              dueDate: card.invoiceSummary.dueDate,
+            })),
+          ),
+        )
+      ).flat(),
     listCategoriesByIdsForUser,
     listCategoryFamilyIdsForUser,
     listTagsByIdsForUser,

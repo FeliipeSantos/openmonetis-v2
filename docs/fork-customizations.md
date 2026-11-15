@@ -59,6 +59,9 @@ para a lista completa.
 | Subcategoria obrigatória quando a categoria tem subcategorias; categorias sem subcategorias (ex.: Ajuste de saldo) ficam liberadas, com campo cinza e aviso | `transaction-form.validation.ts`, `categories.presentation.ts` (`getCategorySelectionError`) | `7d3811f` |
 | "+ Criar subcategoria" no campo Subcategoria | `subcategory-picker.tsx`, `category-dialog.tsx`, `category-form.tsx` | `87fd5a9` |
 | "Ignorar nos orçamentos" em despesas, com círculo cinza e tooltip na lista (também no celular) | `transaction-advanced-fields.tsx`, `transaction-row-description.tsx`, `transactions-mobile-list.tsx`, `transaction-details-content.tsx`, migração `0033` | `9282f31` |
+| Campo opcional "Horário" ao lado da data (despesa, receita e transferência; recorrência não tem), exibido nos detalhes e preenchido pela Caixa de entrada | `transaction-basic-fields.tsx`, `transaction-form.validation.ts`, `transactions.service.ts` (`purchaseTime`), `inbox-process-defaults.ts`, migração `0035` | — |
+| Fatura do cartão agrupada por dia, com Saídas/Entradas e "Fatura" acumulada no fim de cada dia; horário visível em cada linha | `summarizeTransactionsByDay` (domain), `dailySummaries` em `transactions.service.ts`, `transaction-day-summary.tsx`, `card-invoices-page.tsx` (`daySummary`) | — |
+| Em Lançamentos, compras no cartão viram uma linha por fatura (soma do mês, link para a fatura); filtro de cartão ou "Cartão de crédito" mostra as compras | `summarizeCardInvoiceTotals` (domain), `collapseCardPurchases`/`cardInvoices` em `transactions.service.ts`, `transaction-card-invoice-total.tsx`, `transactions-container.tsx` | — |
 
 ### Orçamentos
 
@@ -82,10 +85,11 @@ para a lista completa.
 | `0032_category_positions` | Coluna `categories.position`, preenchida em ordem alfabética |
 | `0033_exclude_from_budget` | Coluna `exclude_from_budget` em `transactions` e `recurring_transaction_rules` |
 | `0034_recurring_budgets` | Colunas `budgets.is_recurring` e `recurrence_end_period`, com check constraint |
+| `0035_transaction_purchase_time` | Coluna opcional `purchase_time` (`time`) em `transactions` |
 
-Essas migrações **já foram aplicadas na VPS**. Por isso:
+Essas migrações **já foram aplicadas na VPS** (a `0035` entra no próximo deploy). Por isso:
 
-- **nunca renomeie, renumere nem altere** `0032`, `0033` e `0034`;
+- **nunca renomeie, renumere nem altere** `0032`, `0033`, `0034` e `0035`;
 - o `drizzle-kit migrate` aplica só as migrações com `when` (no `_journal.json`) **maior** que a
   última aplicada. Uma migração com data anterior seria **ignorada em silêncio**.
 
@@ -264,6 +268,9 @@ seus dados. Uma conta nova já confere a lista padrão de categorias.
 | 11 | Lançamentos | Digitar "Merc" na descrição | Sugestões só depois de digitar, abaixo do campo |
 | 12 | Lançamentos | Escolher a sugestão | Preenche valor, categoria, subcategoria, forma de pagamento e conta |
 | 13 | Lançamentos | Nova receita e nova transferência | Sugestões também aparecem |
+| 13a | Lançamentos | Nova despesa com horário 18:05; abrir os detalhes | "Data da compra" mostra a data "às 18:05"; em Recorrente o campo Horário some |
+| 13b | Cartões | Abrir a fatura de um cartão com compras em dias diferentes | Lançamentos agrupados por dia ("23/10/2026 • sexta-feira"), do mais recente ao mais antigo, e cada dia termina com Saídas e Fatura acumulada |
+| 13c | Lançamentos | Abrir Lançamentos com compras no cartão; depois filtrar por esse cartão | Uma linha com o nome do cartão com a soma e a quantidade de lançamentos, levando à fatura; com o filtro, as compras aparecem uma a uma |
 | 14 | Lançamentos | Ver a lista | Círculo cinza com tooltip "Fora do orçamento" em "Jantar fora do orçamento" (também no celular) |
 | 15 | Orçamentos | Novembro | Alimentação 230/500 (sem os R$ 60); Supermercado 150/100 "Limite excedido"; resumo com R$ 230 lançado e R$ 50 acima do limite |
 | 16 | Orçamentos | Cartões | Supermercado com "Alimentação · Só este mês"; Alimentação com "Mensal"; nomes longos não cortam o selo |

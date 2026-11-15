@@ -179,6 +179,7 @@ export function CardInvoicesPage({ cardId, search, onSearchChange }: CardInvoice
                 ),
               },
               hiddenFilters: ["type", "paymentMethod", "accountCard"] as const,
+              daySummary: { runningLabel: "Fatura", runningAsDebt: true },
               contentNavigation: (
                 <CardSpendingFlow
                   cardId={cardQuery.data.id}

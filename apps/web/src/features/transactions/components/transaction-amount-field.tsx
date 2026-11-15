@@ -3,7 +3,6 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import type { useTransactionForm } from "../useTransactionForm";
 
 import { FieldShell } from "./transaction-field-shell";
-import type { TransactionFormValues } from "./transaction-form.validation";
 import {
   getTransactionFormErrorMessage,
   validateTransactionAmount,
@@ -11,11 +10,9 @@ import {
 export function TransactionAmountField({
   form,
   isSubmitting,
-  values,
 }: {
   form: ReturnType<typeof useTransactionForm>["form"];
   isSubmitting: boolean;
-  values: TransactionFormValues;
 }) {
   return (
     <form.Field
@@ -25,7 +22,7 @@ export function TransactionAmountField({
       {(field) => (
         <FieldShell
           error={getTransactionFormErrorMessage("amount", field.state.meta.errors)}
-          label={values.condition === "installment" ? "Valor total da compra" : "Valor"}
+          label="Valor"
         >
           <CurrencyInput
             data-mobile-amount

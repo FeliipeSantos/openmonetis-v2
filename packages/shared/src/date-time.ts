@@ -52,6 +52,18 @@ export function getCurrentHourInBrazil(date: Date = new Date()) {
   return getBrazilDateParts(date).hour;
 }
 
+const brazilTimeFormatter = new Intl.DateTimeFormat("en-GB", {
+  hour: "2-digit",
+  hourCycle: "h23",
+  minute: "2-digit",
+  timeZone: BRAZIL_TIME_ZONE,
+});
+
+/** Wall-clock time in Brazil as 24-hour "HH:MM". */
+export function getCurrentTimeInBrazil(date: Date = new Date()) {
+  return brazilTimeFormatter.format(date);
+}
+
 export function formatDateInBrazil(
   date: Date,
   options: Omit<Intl.DateTimeFormatOptions, "timeZone">,

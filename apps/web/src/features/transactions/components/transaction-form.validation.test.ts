@@ -15,6 +15,7 @@ const paidBoleto = {
   name: "Conta de energia",
   amount: "100",
   purchaseDate: "2026-08-20",
+  purchaseTime: "",
   invoicePeriod: "",
   personId: "10000000-0000-4000-8000-000000000001",
   accountId: "20000000-0000-4000-8000-000000000002",
@@ -26,6 +27,7 @@ const paidBoleto = {
   boletoPaymentDate: "2026-08-20",
   installmentCount: "2",
   startInstallment: "1",
+  installmentAmountMode: "total",
   recurrenceFrequency: "monthly",
   recurrenceEndDate: "",
   dueDateRuleExcluded: false,
@@ -66,6 +68,35 @@ test("recurrence deadlines are optional, inclusive and validated in the form", (
       recurring,
     ),
     { recurrenceEndDate: null },
+  );
+});
+
+test("purchase time is optional, validated and dropped for recurring transactions", () => {
+  assert.equal(normalizeTransactionInput(paidBoleto).purchaseTime, null);
+  assert.equal(
+    normalizeTransactionInput({ ...paidBoleto, purchaseTime: "18:05" }).purchaseTime,
+    "18:05",
+  );
+  assert.ok(
+    validateTransactionForm({ value: { ...paidBoleto, purchaseTime: "25:00" } })?.fields
+      .purchaseTime,
+  );
+  const recurring: TransactionFormValues = {
+    ...paidBoleto,
+    condition: "recurring",
+    paymentMethod: "pix",
+    boletoPaymentDate: "",
+    purchaseTime: "18:05",
+  };
+  assert.equal(validateTransactionForm({ value: recurring }), undefined);
+  assert.equal(normalizeTransactionInput(recurring).purchaseTime, null);
+  assert.deepEqual(
+    getChangedTransactionInput(
+      normalizeTransactionInput({ ...paidBoleto, purchaseTime: "" }),
+      { ...paidBoleto, purchaseTime: "" },
+      { ...paidBoleto, purchaseTime: "09:30" },
+    ),
+    { purchaseTime: null },
   );
 });
 
@@ -148,5 +179,38 @@ test("only expenses can be left out of budgets", () => {
     normalizeTransactionInput({ ...paidBoleto, type: "income", excludeFromBudget: true })
       .excludeFromBudget,
     false,
+  );
+});
+
+test("new transactions start with the current Brazil time unless a caller provides one", () => {
+  assert.match(
+    getDefaultTransactionFormValues([], [], [], "expense").purchaseTime,
+    /^\d{2}:\d{2}$/,
+  );
+  assert.equal(
+    getDefaultTransactionFormValues([], [], [], "income", undefined, { purchaseTime: "07:45" })
+      .purchaseTime,
+    "07:45",
+  );
+});
+
+test("only new installment purchases typed per installment send the amount mode", () => {
+  const installment: TransactionFormValues = {
+    ...paidBoleto,
+    condition: "installment",
+    paymentMethod: "pix",
+    boletoPaymentDate: "",
+    installmentCount: "3",
+    installmentAmountMode: "perInstallment",
+  };
+  assert.equal(normalizeTransactionInput(installment).installmentAmountMode, "perInstallment");
+  assert.equal(
+    normalizeTransactionInput({ ...installment, installmentAmountMode: "total" })
+      .installmentAmountMode,
+    undefined,
+  );
+  assert.equal(
+    normalizeTransactionInput({ ...installment, condition: "single" }).installmentAmountMode,
+    undefined,
   );
 });

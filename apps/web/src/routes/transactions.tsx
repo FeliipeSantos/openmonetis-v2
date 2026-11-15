@@ -27,6 +27,7 @@ function TransactionsRoute() {
             })
           }
           search={search}
+          typeTabs
         />
         <TransactionDeepLinkDialog
           onOpenChange={(open) => {

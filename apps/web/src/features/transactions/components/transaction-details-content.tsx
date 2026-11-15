@@ -20,6 +20,7 @@ import {
   formatDate,
   formatDateTime,
   formatPaymentMethod,
+  formatPurchaseDate,
   recurrenceFrequencyLabels,
   transactionConditionLabels,
   transactionOriginLabels,
@@ -75,7 +76,10 @@ export function TransactionDetailsContent({
 
       <DetailsSection icon={<ReceiptText />} title="Informações">
         <DetailRow label="Tipo" value={<TransactionTypeBadge type={detail.type} />} />
-        <DetailRow label="Data da compra" value={formatDate(detail.purchaseDate)} />
+        <DetailRow
+          label="Data da compra"
+          value={formatPurchaseDate(detail.purchaseDate, detail.purchaseTime)}
+        />
         <DetailRow label="Competência" value={formatPeriod(detail.period)} />
         {detail.plannedAmount != null ? (
           <DetailRow

@@ -4,7 +4,10 @@ import {
   yieldCategoryName,
 } from "@openmonetis/domain/categories";
 import { dateOnlyToSafeInstant, formatDateInBrazil } from "@openmonetis/shared/date-time";
-import type { TransactionOutput } from "@openmonetis/validators/transactions";
+import type {
+  CardInvoiceTotalOutput,
+  TransactionOutput,
+} from "@openmonetis/validators/transactions";
 import { Link } from "@tanstack/react-router";
 import { Image } from "@unpic/react";
 import {
@@ -30,17 +33,32 @@ import {
 } from "../transactions.presentation";
 import { useTransactionSelection } from "../useTransactionSelection";
 import { TransactionBulkActionDock } from "./transaction-bulk-action-dock";
+import { CardInvoiceTotalItem } from "./transaction-card-invoice-total";
+import { type TransactionDayGrouping, TransactionDaySummaryList } from "./transaction-day-summary";
 import { TransactionDueDate } from "./transaction-due-date";
 import {
   TransactionsMobileActionsMenu,
   type TransactionsMobileExport,
 } from "./transactions-mobile-actions-menu";
+import {
+  TransactionsTotals,
+  type TransactionsTotalsTone,
+  type TransactionsTotalsValue,
+} from "./transactions-totals";
 
 type TransactionsMobileListProps = {
   accountStatement?: boolean;
   allowImport?: boolean;
   exportOptions?: TransactionsMobileExport;
   transactions: TransactionOutput[];
+  /** Sum of every listed item across pages. */
+  totals?: TransactionsTotalsValue;
+  totalsUnsigned?: boolean;
+  totalsTone?: TransactionsTotalsTone;
+  /** Card invoice totals shown above the itemized days. */
+  cardInvoices?: CardInvoiceTotalOutput[];
+  /** Adds a consolidated footer to each day group. */
+  dayGrouping?: TransactionDayGrouping;
   currentPage: number;
   pageCount: number;
   totalItems: number;
@@ -48,18 +66,33 @@ type TransactionsMobileListProps = {
   onPageChange: (page: number) => void;
 };
 
+type MobileListEntry =
+  | { kind: "transaction"; transaction: TransactionOutput }
+  | { kind: "cardInvoice"; invoice: CardInvoiceTotalOutput };
+
 export function TransactionsMobileList(props: TransactionsMobileListProps) {
   const [selectionMode, setSelectionMode] = useState(false);
   const selection = useTransactionSelection(props.transactions);
-  const groups = new Map<string, TransactionOutput[]>();
+  const cardInvoices = props.cardInvoices ?? [];
+  // Card invoice totals sit under their due date, at the position the API gave them.
+  const groups = new Map<string, MobileListEntry[]>();
+  const addEntry = (date: string, entry: MobileListEntry) =>
+    groups.set(date, [...(groups.get(date) ?? []), entry]);
+  const addCardInvoices = (beforeTransactionId: string | null, fallbackDate: string) => {
+    for (const invoice of cardInvoices) {
+      if (invoice.beforeTransactionId !== beforeTransactionId) continue;
+      addEntry(invoice.dueDate ?? fallbackDate, { kind: "cardInvoice", invoice });
+    }
+  };
   for (const transaction of props.transactions) {
     const date = props.accountStatement
       ? (transaction.postingDate ?? transaction.purchaseDate)
       : transaction.purchaseDate;
-    groups.set(date, [...(groups.get(date) ?? []), transaction]);
+    addCardInvoices(transaction.id, date);
+    addEntry(date, { kind: "transaction", transaction });
   }
-
-  if (!props.transactions.length) {
+  addCardInvoices(null, props.transactions.at(-1)?.purchaseDate ?? "");
+  if (!props.transactions.length && !cardInvoices.length) {
     return (
       <Card className="grid min-h-52 place-items-center border-dashed p-8 text-center">
         <div>
@@ -121,7 +154,7 @@ export function TransactionsMobileList(props: TransactionsMobileListProps) {
       {/* One continuous list; `overflow-clip` keeps the rounded corners without breaking sticky.
           Date headers stick right below the sticky month navigation. */}
       <Card className="min-w-0 gap-0 overflow-clip py-0">
-        {[...groups.entries()].map(([date, transactions]) => (
+        {[...groups.entries()].map(([date, entries]) => (
           <section
             aria-labelledby={`transactions-${date}`}
             className="border-t first:border-t-0"
@@ -133,23 +166,35 @@ export function TransactionsMobileList(props: TransactionsMobileListProps) {
             >
               {formatGroupDate(date)}
               <span className="font-normal tabular-nums">
-                {transactions.length}
+                {entries.length}
                 <span className="sr-only"> lançamentos</span>
               </span>
             </h2>
             <ul className="divide-y">
-              {transactions.map((transaction) => (
-                <MobileTransactionRow
-                  key={transaction.id}
-                  {...props}
-                  onSelectionChange={(selected) => selection.setSelected(transaction.id, selected)}
-                  selected={selection.isSelected(transaction.id)}
-                  selectable={selection.isSelectable(transaction)}
-                  selectionMode={selectionMode}
-                  transaction={transaction}
-                />
-              ))}
+              {entries.map((entry) =>
+                entry.kind === "cardInvoice" ? (
+                  <CardInvoiceTotalItem
+                    invoice={entry.invoice}
+                    key={`${entry.invoice.cardId}:${entry.invoice.period}`}
+                  />
+                ) : (
+                  <MobileTransactionRow
+                    key={entry.transaction.id}
+                    {...props}
+                    onSelectionChange={(selected) =>
+                      selection.setSelected(entry.transaction.id, selected)
+                    }
+                    selected={selection.isSelected(entry.transaction.id)}
+                    selectable={selection.isSelectable(entry.transaction)}
+                    selectionMode={selectionMode}
+                    transaction={entry.transaction}
+                  />
+                ),
+              )}
             </ul>
+            {props.dayGrouping ? (
+              <TransactionDaySummaryList date={date} grouping={props.dayGrouping} />
+            ) : null}
           </section>
         ))}
       </Card>
@@ -159,6 +204,14 @@ export function TransactionsMobileList(props: TransactionsMobileListProps) {
         transactions={selection.selectedTransactions}
       />
 
+      {props.totals ? (
+        <TransactionsTotals
+          className="border-t pt-3"
+          totals={props.totals}
+          tone={props.totalsTone}
+          unsigned={props.totalsUnsigned}
+        />
+      ) : null}
       <footer className="flex items-center justify-between gap-3 border-t pt-3 text-sm">
         <span className="text-muted-foreground">{props.totalItems} lançamentos</span>
         <div className="flex items-center gap-2">
@@ -320,6 +373,9 @@ function MobileTransactionRow({
                 <CreditCard aria-hidden="true" className="size-4 shrink-0" />
               ) : transaction.accountId || transaction.type === "transfer" ? (
                 <Landmark aria-hidden="true" className="size-4 shrink-0" />
+              ) : null}
+              {transaction.purchaseTime && !accountStatement ? (
+                <span className="shrink-0 tabular-nums">{transaction.purchaseTime} ·</span>
               ) : null}
               <span className="truncate">{transaction.categoryName ?? "Sem categoria"}</span>
             </span>

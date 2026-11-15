@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { MobileDatePicker as DatePicker } from "@/components/forms/mobile-date-picker";
 import { MobileSelect as Select } from "@/components/forms/mobile-select";
 import { MobileSelectContent as SelectContent } from "@/components/forms/mobile-select-content";
+import { MobileTimePicker as TimePicker } from "@/components/forms/mobile-time-picker";
 import { SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   getCategoryLabel,
@@ -18,6 +19,7 @@ import { CategoryPicker } from "@/features/categories/components/category-picker
 import { SubcategoryPicker } from "@/features/categories/components/subcategory-picker";
 import {
   getTransactionDateLabel,
+  getTransactionDateRowClassName,
   getTransactionSuggestionDetail,
   transactionTypeLabels,
 } from "../transactions.presentation";
@@ -70,6 +72,8 @@ export function TransactionBasicFields({
   const categoryLabels = new Map(
     visibleCategories.map((category) => [category.id, getCategoryLabel(category)]),
   );
+  // Recurring rules repeat by date only, so they carry no purchase time.
+  const showTime = values.condition !== "recurring";
   return (
     <section className="grid gap-4">
       {mobile ? amountField : null}
@@ -112,7 +116,7 @@ export function TransactionBasicFields({
         )}
       </form.Field>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className={getTransactionDateRowClassName({ mobile: Boolean(mobile), showTime })}>
         <form.Field name="purchaseDate">
           {(field) => (
             <FieldShell
@@ -128,6 +132,25 @@ export function TransactionBasicFields({
             </FieldShell>
           )}
         </form.Field>
+
+        {showTime ? (
+          <form.Field name="purchaseTime">
+            {(field) => (
+              <FieldShell
+                error={getTransactionFormErrorMessage("purchaseTime", field.state.meta.errors)}
+                label="Horário"
+              >
+                <TimePicker
+                  aria-invalid={field.state.meta.errors.length > 0}
+                  aria-label="Horário (opcional)"
+                  disabled={isSubmitting}
+                  onChange={field.handleChange}
+                  value={field.state.value}
+                />
+              </FieldShell>
+            )}
+          </form.Field>
+        ) : null}
 
         {!mobile ? amountField : null}
       </div>

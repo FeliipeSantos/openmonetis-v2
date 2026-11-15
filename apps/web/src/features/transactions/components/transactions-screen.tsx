@@ -3,14 +3,18 @@ import { ArrowLeftRight, FileUp, ListChecks } from "lucide-react";
 import { useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCategoryLabel } from "@/features/categories/categories.presentation";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { cn } from "@/lib/utils";
 import {
   buildFilterSlugMap,
+  getTransactionTypeTab,
+  isTransactionListGroupedByDay,
   parseFilterSlugs,
   serializeFilterSlugs,
   type TransactionsSearch,
+  transactionTypeTabs,
 } from "../transactions.presentation";
 import { useTransactionsDialogs } from "../useTransactionsDialogs";
 import { TransactionsActiveFilters } from "./transactions-active-filters";
@@ -21,7 +25,7 @@ import { TransactionsFilters } from "./transactions-filters";
 import { TransactionsLoading } from "./transactions-loading";
 import { TransactionsMobileList } from "./transactions-mobile-list";
 import { TransactionsPeriodNavigation } from "./transactions-period-navigation";
-import type { TransactionsScreenProps } from "./transactions-screen.types";
+import type { TransactionsFilterKey, TransactionsScreenProps } from "./transactions-screen.types";
 import { defaultCreateTypes } from "./transactions-screen-options";
 import { TransactionsSearchControls } from "./transactions-search-controls";
 import { TransactionsTable } from "./transactions-table";
@@ -34,7 +38,12 @@ export type {
 
 export function TransactionsScreen({
   accountStatement = false,
+  typeTabs = false,
   transactions,
+  cardInvoices,
+  totals,
+  dailySummaries,
+  daySummary,
   accounts,
   cards,
   categories,
@@ -71,6 +80,10 @@ export function TransactionsScreen({
   const isMobile = useIsMobile();
   const [selectionMode, setSelectionMode] = useState(false);
   const adminPersonId = people.find((person) => person.role === "admin")?.id ?? null;
+  const dayGrouping =
+    daySummary && dailySummaries && isTransactionListGroupedByDay(urlSearch.sort)
+      ? { options: daySummary, summaries: dailySummaries }
+      : undefined;
   const {
     isDialogOpen,
     setIsDialogOpen,
@@ -110,7 +123,11 @@ export function TransactionsScreen({
   const page = urlSearch.page ?? 1;
   const pageSize = urlSearch.pageSize ?? defaultPageSize;
   const selectionScopeKey = JSON.stringify([period, page, { ...urlSearch, edit: undefined }]);
-  const hiddenFilterSet = new Set(hiddenFilters);
+  // With type tabs, the tab is the type filter.
+  const hiddenFilterSet = new Set<TransactionsFilterKey>(
+    typeTabs ? [...hiddenFilters, "type"] : hiddenFilters,
+  );
+  const activeTypeTab = typeTabs ? getTransactionTypeTab(typeFilter) : undefined;
   const showHeaderCreateMenu = !header && allowCreate && createTypes.length > 0;
   const showInlineCreateButtons = allowCreate && createTypes.length > 0 && !showHeaderCreateMenu;
   const pageHeader = header ?? {
@@ -236,6 +253,51 @@ export function TransactionsScreen({
     });
   }
 
+  // With type tabs, the create button sits on the tab row, at its right end.
+  const tabsCreateActions =
+    activeTypeTab && showHeaderCreateMenu && isMobile !== true ? (
+      // The tabs already pick the type, so only the open tab's button shows (no type menu).
+      <div className="pb-2">
+        <TransactionsCreateActions
+          createTypes={createTypes.filter((type) => type === activeTypeTab)}
+          createDefaults={createDefaults}
+          openCreateDialog={openCreateDialog}
+          primaryType={activeTypeTab}
+        />
+      </div>
+    ) : null;
+  const typeTabsSection = activeTypeTab ? (
+    <div className="flex items-end justify-between gap-3 border-b">
+      <Tabs
+        onValueChange={(value) =>
+          onSearchChange({
+            type: value === "expense" ? undefined : (value as TransactionsSearch["type"]),
+            page: undefined,
+          })
+        }
+        value={activeTypeTab}
+      >
+        <TabsList
+          aria-label="Tipo de lançamento"
+          // Same identity as the main navigation: coral for the active item.
+          className="w-auto border-b-0 [&_[data-slot=tabs-indicator]]:bg-brand"
+          variant="line"
+        >
+          {transactionTypeTabs.map((tab) => (
+            <TabsTrigger
+              className="px-3 font-medium text-foreground hover:text-brand-strong data-active:text-brand-strong dark:text-foreground dark:data-active:text-brand-strong"
+              key={tab.value}
+              value={tab.value}
+            >
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+      {tabsCreateActions}
+    </div>
+  ) : null;
+
   if (contentOverride) {
     return (
       <section className="app-page project-container">
@@ -256,11 +318,12 @@ export function TransactionsScreen({
     <section className="app-page project-container">
       <PageHeader
         actions={
-          showHeaderCreateMenu && isMobile !== true ? (
+          showHeaderCreateMenu && isMobile !== true && !activeTypeTab ? (
             <TransactionsCreateActions
               createTypes={createTypes}
               createDefaults={createDefaults}
               openCreateDialog={openCreateDialog}
+              primaryType={activeTypeTab}
             />
           ) : null
         }
@@ -275,6 +338,7 @@ export function TransactionsScreen({
       />
       {periodNavigationPlacement === "afterPageHeader" ? periodNavigation : null}
       {contextNavigationSection}
+      {typeTabsSection}
       <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 md:flex md:flex-wrap">
         {showInlineCreateButtons || allowImport || onExport ? (
           <div
@@ -288,6 +352,7 @@ export function TransactionsScreen({
                 createTypes={createTypes}
                 createDefaults={createDefaults}
                 openCreateDialog={openCreateDialog}
+                primaryType={activeTypeTab}
               />
             ) : null}
             {allowImport && isMobile !== true ? (
@@ -408,6 +473,11 @@ export function TransactionsScreen({
       {!isLoading && !hasLoadError && isMobile === true ? (
         <TransactionsMobileList
           accountStatement={accountStatement}
+          cardInvoices={cardInvoices}
+          totals={totals}
+          totalsTone={activeTypeTab}
+          totalsUnsigned={typeTabs}
+          dayGrouping={dayGrouping}
           key={`mobile:${selectionScopeKey}`}
           allowImport={allowImport}
           exportOptions={
@@ -430,6 +500,11 @@ export function TransactionsScreen({
       {!isLoading && !hasLoadError && isMobile === false ? (
         <TransactionsTable
           accountStatement={accountStatement}
+          cardInvoices={cardInvoices}
+          totals={totals}
+          totalsTone={activeTypeTab}
+          totalsUnsigned={typeTabs}
+          dayGrouping={dayGrouping}
           key={`desktop:${selectionScopeKey}:${selectionMode}`}
           selectionMode={selectionMode}
           adminPersonId={adminPersonId}

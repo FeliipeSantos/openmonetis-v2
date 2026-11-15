@@ -21,13 +21,16 @@ export function TransactionsCreateActions({
   createTypes,
   createDefaults,
   openCreateDialog,
+  primaryType: requestedPrimaryType = preferredPrimaryType,
 }: {
+  /** Type of the main button (e.g. the open tab); the others go to its menu. */
+  primaryType?: TransactionCreateType;
   createTypes: readonly TransactionCreateType[];
   createDefaults: TransactionsScreenProps["createDefaults"];
   openCreateDialog: ReturnType<typeof useTransactionsDialogs>["openCreateDialog"];
 }) {
-  const primaryType = createTypes.includes(preferredPrimaryType)
-    ? preferredPrimaryType
+  const primaryType = createTypes.includes(requestedPrimaryType)
+    ? requestedPrimaryType
     : createTypes[0];
   if (!primaryType) return null;
   const secondaryTypes = createTypes.filter((type) => type !== primaryType);

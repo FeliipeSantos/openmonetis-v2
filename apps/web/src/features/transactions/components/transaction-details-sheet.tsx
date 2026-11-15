@@ -13,7 +13,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { EstablishmentLogo } from "@/features/establishments/components/establishment-logo";
-import { formatDate } from "../transactions.presentation";
+import { formatPurchaseDate } from "../transactions.presentation";
 import { transactionDetailQueryOptions } from "../transactions.queries";
 import { TransactionDetailsActionDialogs } from "./transaction-details-action-dialogs";
 import { TransactionDetailsContent } from "./transaction-details-content";
@@ -81,7 +81,9 @@ export function TransactionDetailsSheet({
                 {detail?.name ?? "Detalhes do lançamento"}
               </SheetTitle>
               <SheetDescription className="sr-only sm:not-sr-only">
-                {detail ? formatDate(detail.purchaseDate) : "Carregando lançamento…"}
+                {detail
+                  ? formatPurchaseDate(detail.purchaseDate, detail.purchaseTime)
+                  : "Carregando lançamento…"}
               </SheetDescription>
             </div>
           </div>

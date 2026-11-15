@@ -1,6 +1,8 @@
 import type { BulkTransactionTarget } from "@openmonetis/domain/transactions";
 import { dateOnlyToSafeInstant, formatDateInBrazil } from "@openmonetis/shared/date-time";
 import type {
+  CardInvoiceTotalOutput,
+  DailyTransactionSummaryOutput,
   InstallmentOptionOutput,
   TransactionInput,
   TransactionOutput,
@@ -257,9 +259,22 @@ export const recurrenceFrequencyOptionLabels: Record<RecurrenceFrequency, string
   annual: "Anual (A cada 12 meses)",
 };
 
-export function formatInstallmentOption(count: number, option?: InstallmentOptionOutput) {
+/** How the amount of a new installment purchase was typed. */
+export const installmentAmountModeOptions = [
+  { value: "total", label: "Valor total" },
+  { value: "perInstallment", label: "Valor da parcela" },
+] as const;
+
+export function formatInstallmentOption(
+  count: number,
+  option?: InstallmentOptionOutput,
+  amountMode: "total" | "perInstallment" = "total",
+) {
   if (!Number.isInteger(count) || count < 2) return "Selecione";
   if (!option) return `${count}x`;
+  // Typed per installment, the total is what changes with the count.
+  if (amountMode === "perInstallment")
+    return `${count}x de ${formatCurrency(option.maximumAmount)} · total ${formatCurrency(option.totalAmount)}`;
   return option.minimumAmount === option.maximumAmount
     ? `${count}x de ${formatCurrency(option.maximumAmount)}`
     : `${count} parcelas · de ${formatCurrency(option.minimumAmount)} a ${formatCurrency(option.maximumAmount)}`;
@@ -269,11 +284,29 @@ export function getTransactionDateLabel(type: TransactionType, condition: Transa
   if (condition === "recurring") return "Início da recorrência";
   if (type === "income") return "Data do recebimento";
   if (type === "transfer") return "Data da transferência";
-  return "Data da compra";
+  return "Data da despesa";
+}
+
+/** Date, optional time and (outside mobile) amount share one row of the form. */
+export function getTransactionDateRowClassName({
+  mobile,
+  showTime,
+}: {
+  mobile: boolean;
+  showTime: boolean;
+}) {
+  if (!showTime) return "grid gap-4 sm:grid-cols-2";
+  if (mobile) return "grid grid-cols-[minmax(0,1fr)_7rem] gap-4";
+  return "grid gap-4 sm:grid-cols-[minmax(0,1fr)_7rem_minmax(0,0.8fr)]";
 }
 
 export function formatDate(value: string) {
   return formatDateInBrazil(dateOnlyToSafeInstant(value), {});
+}
+
+/** Purchase date with its optional time, e.g. "14/11/2026 às 18:05". */
+export function formatPurchaseDate(value: string, time?: string | null) {
+  return time ? `${formatDate(value)} às ${time}` : formatDate(value);
 }
 
 export function formatDateTime(value: string) {
@@ -674,4 +707,88 @@ export function getTransactionSuggestionDetail(
     names.account ??
     (suggestion.paymentMethod ? paymentMethodLabels[suggestion.paymentMethod] : null);
   return [names.category, payment, amount].filter(Boolean).join(" · ");
+}
+
+/** Day-grouped listing options: the running line's label and whether it reads as a debt. */
+export type TransactionDaySummaryOptions = {
+  runningLabel: string;
+  /** Shows the accumulated outflow as a positive amount (e.g. a card invoice). */
+  runningAsDebt?: boolean;
+};
+
+export type TransactionDaySummaryLine = {
+  key: "outflow" | "inflow" | "running";
+  label: string;
+  amount: number;
+  tone: "expense" | "income" | "running";
+};
+
+/** Day groups only make sense while the listing is ordered by date. */
+export function isTransactionListGroupedByDay(sort: TransactionsSearch["sort"]) {
+  return sort === undefined || sort === "recent" || sort === "oldest";
+}
+
+export function getTransactionListingDate(
+  transaction: Pick<TransactionOutput, "postingDate" | "purchaseDate">,
+  accountStatement: boolean,
+) {
+  return accountStatement
+    ? (transaction.postingDate ?? transaction.purchaseDate)
+    : transaction.purchaseDate;
+}
+
+/** Splits an ordered list into consecutive day groups, keeping the incoming order. */
+export function groupTransactionsByDay<T>(items: readonly T[], getDate: (item: T) => string) {
+  const groups: Array<{ date: string; items: T[] }> = [];
+  for (const item of items) {
+    const date = getDate(item);
+    const last = groups.at(-1);
+    if (last?.date === date) last.items.push(item);
+    else groups.push({ date, items: [item] });
+  }
+  return groups;
+}
+
+/** "23/10/2026 • sexta-feira". */
+export function formatTransactionDayLabel(value: string) {
+  const date = dateOnlyToSafeInstant(value);
+  return `${formatDate(value)} • ${formatDateInBrazil(date, { weekday: "long" })}`;
+}
+
+export function getTransactionDaySummaryLines(
+  summary: DailyTransactionSummaryOutput,
+  options: TransactionDaySummaryOptions,
+): TransactionDaySummaryLine[] {
+  const lines: TransactionDaySummaryLine[] = [];
+  if (summary.outflow > 0)
+    lines.push({ key: "outflow", label: "Saídas", amount: -summary.outflow, tone: "expense" });
+  if (summary.inflow > 0)
+    lines.push({ key: "inflow", label: "Entradas", amount: summary.inflow, tone: "income" });
+  lines.push({
+    key: "running",
+    label: options.runningLabel,
+    amount: options.runningAsDebt ? -summary.runningBalance : summary.runningBalance,
+    tone: "running",
+  });
+  return lines;
+}
+
+/** "3 lançamentos". */
+export function formatCardInvoiceTotalDetail(
+  invoice: Pick<CardInvoiceTotalOutput, "transactionCount">,
+) {
+  return invoice.transactionCount === 1
+    ? "1 lançamento"
+    : `${invoice.transactionCount} lançamentos`;
+}
+
+/** Tabs splitting the main listing by type; expenses open by default. */
+export const transactionTypeTabs = [
+  { value: "expense", label: "Despesas" },
+  { value: "income", label: "Receitas" },
+  { value: "transfer", label: "Transferências" },
+] as const satisfies ReadonlyArray<{ value: TransactionType; label: string }>;
+
+export function getTransactionTypeTab(type: TransactionsSearch["type"]): TransactionType {
+  return type ?? "expense";
 }

@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   formatInboxTimestamp,
   getInboxPurchaseDate,
+  getInboxPurchaseTime,
   groupInboxItemsByDate,
 } from "./inbox.presentation";
 
@@ -31,6 +32,12 @@ test("inbox purchases use the Sao Paulo calendar date around the UTC day boundar
   for (const simulation of simulations) {
     assert.equal(getInboxPurchaseDate(simulation.timestamp), simulation.expectedDate);
   }
+});
+
+test("inbox purchases prefill the Sao Paulo wall-clock time", () => {
+  assert.equal(getInboxPurchaseTime("2026-08-18T02:59:00.000Z"), "23:59");
+  assert.equal(getInboxPurchaseTime("2026-08-18T03:01:00.000Z"), "00:01");
+  assert.equal(getInboxPurchaseTime("2026-11-14T18:05:30-03:00"), "18:05");
 });
 
 test("inbox grouping and purchase defaults agree on the local purchase date", () => {

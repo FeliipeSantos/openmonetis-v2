@@ -126,7 +126,15 @@ test("financial summary uses the person's allocation instead of the full transac
                 } as TransactionOutput,
               ]
             : [];
-        return { items, total: items.length, page: 1, pageSize: 100 };
+        return {
+          items,
+          cardInvoices: [],
+          dailySummaries: [],
+          totals: { settled: 0, pending: 0, total: 0 },
+          total: items.length,
+          page: 1,
+          pageSize: 100,
+        };
       },
     },
   );

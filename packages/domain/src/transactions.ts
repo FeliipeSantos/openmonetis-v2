@@ -13,6 +13,8 @@ export const transactionOrigins = [
 export const transactionConditions = ["single", "installment", "recurring"] as const;
 export const minimumInstallmentCount = 2;
 export const maximumInstallmentCount = 60;
+/** Whether an installment purchase's amount is the whole purchase or each installment. */
+export const installmentAmountModes = ["total", "perInstallment"] as const;
 export const minimumRecurrenceOccurrenceCount = 2;
 export const maximumRecurrenceOccurrenceCount = 360;
 export const paymentMethods = [
@@ -37,6 +39,7 @@ export type TransactionType = (typeof transactionTypes)[number];
 export type TransactionOrigin = (typeof transactionOrigins)[number];
 export type TransactionCondition = (typeof transactionConditions)[number];
 export type PaymentMethod = (typeof paymentMethods)[number];
+export type InstallmentAmountMode = (typeof installmentAmountModes)[number];
 export type RecurrenceFrequency = (typeof recurrenceFrequencies)[number];
 export type TransactionSplitInput = { personId: string; amount: number };
 export type TransactionAllocation = {
@@ -127,6 +130,112 @@ export function summarizeTransactionSelection(
     balance: (inflowCents - outflowCents) / 100,
     neutralCount,
   };
+}
+
+export type ListingTotals = {
+  /** Net of the settled items. */
+  settled: number;
+  /** Net of the items still open (including card purchases awaiting their invoice). */
+  pending: number;
+  total: number;
+};
+
+/** Signed totals of a listing split by settlement, in cents to avoid float drift. */
+export function summarizeListingTotals(
+  items: ReadonlyArray<{ amount: number; isSettled: boolean | null }>,
+): ListingTotals {
+  let settledCents = 0;
+  let pendingCents = 0;
+  for (const item of items) {
+    const cents = Math.round(item.amount * 100);
+    if (item.isSettled === true) settledCents += cents;
+    else pendingCents += cents;
+  }
+  return {
+    settled: settledCents / 100,
+    pending: pendingCents / 100,
+    total: (settledCents + pendingCents) / 100,
+  };
+}
+
+export type DailyTransactionItem = TransactionSelectionItem & {
+  /** Day the item is listed under ("YYYY-MM-DD"). */
+  date: string;
+};
+
+export type DailyTransactionSummary = {
+  date: string;
+  inflow: number;
+  outflow: number;
+  /** Net movement of the day (inflow − outflow). */
+  balance: number;
+  /** Net movement accumulated from the first listed day through this one. */
+  runningBalance: number;
+};
+
+/**
+ * Consolidates listed items per day in chronological order, with the running net balance.
+ * Transfers and neutral bookkeeping entries follow the same rule as selection summaries.
+ */
+export function summarizeTransactionsByDay(
+  items: readonly DailyTransactionItem[],
+): DailyTransactionSummary[] {
+  const days = new Map<string, { inflowCents: number; outflowCents: number }>();
+  for (const item of items) {
+    const day = days.get(item.date) ?? { inflowCents: 0, outflowCents: 0 };
+    days.set(item.date, day);
+    if (isNeutralTransactionSelectionItem(item)) continue;
+    const amountCents = Math.round(item.amount * 100);
+    if (amountCents >= 0) day.inflowCents += amountCents;
+    else day.outflowCents += Math.abs(amountCents);
+  }
+
+  let runningCents = 0;
+  return [...days.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, { inflowCents, outflowCents }]) => {
+      runningCents += inflowCents - outflowCents;
+      return {
+        date,
+        inflow: inflowCents / 100,
+        outflow: outflowCents / 100,
+        balance: (inflowCents - outflowCents) / 100,
+        runningBalance: runningCents / 100,
+      };
+    });
+}
+
+export type CardInvoicePurchaseItem = TransactionSelectionItem & {
+  cardId: string;
+  /** Invoice period ("YYYY-MM"). */
+  period: string;
+  /** Identifies one purchase, so its per-person shares count once. */
+  purchaseKey: string;
+};
+
+export type CardInvoiceTotal = {
+  cardId: string;
+  period: string;
+  /** Net of the purchases (negative for spending). */
+  amount: number;
+  transactionCount: number;
+};
+
+/** Consolidates credit card purchases into one total per card invoice. */
+export function summarizeCardInvoiceTotals(
+  items: readonly CardInvoicePurchaseItem[],
+): CardInvoiceTotal[] {
+  const invoices = new Map<string, CardInvoicePurchaseItem[]>();
+  for (const item of items) {
+    const key = `${item.cardId}:${item.period}`;
+    invoices.set(key, [...(invoices.get(key) ?? []), item]);
+  }
+  return [...invoices.values()].map((purchases) => ({
+    cardId: purchases[0].cardId,
+    period: purchases[0].period,
+    amount: summarizeTransactionSelection(purchases).balance,
+    transactionCount: new Set(purchases.map((purchase) => purchase.purchaseKey)).size,
+  }));
 }
 
 export function canDeleteTransactionOrigin(origin: TransactionOrigin) {
@@ -843,16 +952,28 @@ export function splitAmountIntoInstallments(amount: number, count: number) {
   return splitAmountEqually(amount, count);
 }
 
-export function previewInstallmentOptions(amount: number) {
+/** Total of an installment purchase, from either its total or the amount of each installment. */
+export function resolveInstallmentPurchaseTotal(
+  amount: number,
+  installmentCount: number,
+  mode: InstallmentAmountMode = "total",
+) {
+  if (mode === "total") return amount;
+  return (Math.round(amount * 100) * installmentCount) / 100;
+}
+
+export function previewInstallmentOptions(amount: number, mode: InstallmentAmountMode = "total") {
   return Array.from(
     { length: maximumInstallmentCount - minimumInstallmentCount + 1 },
     (_, index) => {
       const count = index + minimumInstallmentCount;
-      const installments = splitAmountIntoInstallments(amount, count);
+      const totalAmount = resolveInstallmentPurchaseTotal(amount, count, mode);
+      const installments = splitAmountIntoInstallments(totalAmount, count);
       return {
         count,
         minimumAmount: Math.min(...installments),
         maximumAmount: Math.max(...installments),
+        totalAmount,
       };
     },
   );

@@ -16,6 +16,8 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
   `purchaseTime` (`HH:MM`) nos lançamentos; a migração `0035_transaction_purchase_time` cria
   `purchase_time` em `transactions`. O horário é escolhido num seletor próprio, no mesmo padrão do
   seletor de data, e o rótulo da data da despesa passa a ser "Data da despesa".
+- Lançamentos pagos ou recebidos (e faturas de cartão pagas) vão para o fim da lista, em qualquer
+  ordenação e em todas as páginas; o que está em aberto fica sempre no topo.
 - Lançamentos em abas: a tela separa Despesas (padrão), Receitas e Transferências. A aba faz o
   papel do filtro de tipo, e o botão de criação fica na linha das abas, seguindo a aba aberta. Os
   atalhos "Suas receitas" e "Suas despesas" do painel abrem a aba correspondente sem filtrar por

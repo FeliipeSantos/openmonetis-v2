@@ -152,7 +152,7 @@ export type TransactionsServiceDependencies = Pick<
   listCardInvoiceDueDates?: (
     userId: string,
     periods: string[],
-  ) => Promise<Array<{ cardId: string; period: string; dueDate: string }>>;
+  ) => Promise<Array<{ cardId: string; period: string; dueDate: string; isPaid?: boolean }>>;
   transitionRecurringRuleForUser: typeof import("../repositories/recurring-transactions.repository").transitionRecurringRuleForUser;
   listTagsByIdsForUser?: (ids: string[], userId: string) => Promise<Array<{ id: string }>>;
   getAccountBalanceSnapshotForUser: (
@@ -428,10 +428,11 @@ export function createTransactionsService(
   }
 
   /** Values a listing can be ordered by, shared by purchases and card invoice totals. */
-  type ListingSortKey = { moment: string; dueDate: string; amount: number };
+  type ListingSortKey = { settled: boolean; moment: string; dueDate: string; amount: number };
 
   function getListingSortKey(item: TransactionOutput, accountStatement: boolean): ListingSortKey {
     return {
+      settled: item.isSettled === true,
       moment: getListingMoment(item, accountStatement),
       dueDate: item.dueDate ?? "9999-12-31",
       amount: Math.abs(item.amount),
@@ -443,6 +444,8 @@ export function createTransactionsService(
     b: ListingSortKey,
     sort: ListTransactionsQuery["sort"],
   ) {
+    // Whatever is already paid or received moves to the end of the listing, in any order.
+    if (a.settled !== b.settled) return a.settled ? 1 : -1;
     if (sort === "oldest") return a.moment.localeCompare(b.moment);
     if (sort === "dueDate") return a.dueDate.localeCompare(b.dueDate);
     if (sort === "amount") return b.amount - a.amount;
@@ -1788,15 +1791,18 @@ export function createTransactionsService(
         type: item.type,
       })),
     )
-      .map((invoice) => ({
-        ...invoice,
-        cardName: cardDetails.get(invoice.cardId)?.name ?? "",
-        cardLogo: cardDetails.get(invoice.cardId)?.logo ?? null,
-        dueDate:
-          invoiceDueDates.find(
-            (entry) => entry.cardId === invoice.cardId && entry.period === invoice.period,
-          )?.dueDate ?? null,
-      }))
+      .map((invoice) => {
+        const dates = invoiceDueDates.find(
+          (entry) => entry.cardId === invoice.cardId && entry.period === invoice.period,
+        );
+        return {
+          ...invoice,
+          cardName: cardDetails.get(invoice.cardId)?.name ?? "",
+          cardLogo: cardDetails.get(invoice.cardId)?.logo ?? null,
+          dueDate: dates?.dueDate ?? null,
+          isPaid: dates?.isPaid === true,
+        };
+      })
       .sort((a, b) => a.cardName.localeCompare(b.cardName) || a.period.localeCompare(b.period));
 
     // Paginate purchases/occurrences, keeping every matching allocation together.
@@ -1818,6 +1824,7 @@ export function createTransactionsService(
     }));
     for (const invoice of cardInvoices) {
       const key = {
+        settled: invoice.isPaid,
         moment: invoice.dueDate ?? "9999-12-31",
         dueDate: invoice.dueDate ?? "9999-12-31",
         amount: Math.abs(invoice.amount),
@@ -1841,9 +1848,10 @@ export function createTransactionsService(
         const next = pageEntries
           .slice(index + 1)
           .find((candidate) => candidate.kind === "purchase");
+        const { isPaid: _isPaid, ...invoiceOutput } = entry.invoice;
         return [
           {
-            ...entry.invoice,
+            ...invoiceOutput,
             beforeTransactionId: next?.kind === "purchase" ? (next.items[0]?.id ?? null) : null,
           },
         ];

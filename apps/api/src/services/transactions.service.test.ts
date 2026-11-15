@@ -2080,6 +2080,21 @@ test("divided transactions become allocation rows linked to the same editable re
   assert.equal(invoiceOnly.total, 1);
   assert.ok(invoiceOnly.items.every((item) => item.isSettled === null));
 
+  // Paid or received items go to the end of the listing in every order.
+  for (const sort of ["recent", "oldest", "amount", "dueDate"] as const) {
+    const ordered = await service.listTransactions(
+      userId,
+      ListTransactionsQuerySchema.parse({ period: "2026-09", sort }),
+    );
+    const settled = ordered.items.map((item) => item.isSettled === true);
+    assert.deepEqual(
+      settled,
+      [...settled].sort((a, b) => Number(a) - Number(b)),
+      sort,
+    );
+    assert.equal(settled.at(-1), true, sort);
+  }
+
   // The main listing can show one total per card invoice instead of each purchase.
   const collapsed = await service.listTransactions(
     userId,
@@ -2110,7 +2125,9 @@ test("divided transactions become allocation rows linked to the same editable re
       sort: "oldest",
     }),
   );
-  assert.equal(collapsedOldest.cardInvoices[0]?.beforeTransactionId, null);
+  // The settled purchase goes to the end even when sorted oldest first.
+  assert.equal(collapsedOldest.cardInvoices[0]?.beforeTransactionId, collapsedOldest.items[0]?.id);
+  assert.equal(collapsedOldest.items[0]?.isSettled, true);
   const byCard = await service.listTransactions(
     userId,
     ListTransactionsQuerySchema.parse({

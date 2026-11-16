@@ -9,6 +9,9 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Adicionado
 
+- Exportar na fatura do cartão e no extrato da conta: o botão fica ao lado de "Selecionar" e
+  exporta só os lançamentos da fatura ou da conta no mês aberto, respeitando busca e filtros; o
+  nome do arquivo leva o nome do cartão ou da conta.
 - Horário nos lançamentos: despesa, receita e transferência ganham o campo opcional **Horário**,
   ao lado da data. O horário aparece nos detalhes do lançamento, é mantido ao copiar e desempata a
   ordem da lista dentro do mesmo dia. Ao confirmar um item da Caixa de entrada, o horário já vem

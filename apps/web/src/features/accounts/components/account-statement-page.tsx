@@ -115,6 +115,7 @@ export function AccountStatementPage({
               scope={{
                 accountIds: [accountQuery.data.id],
                 allowCreate: !accountQuery.data.isArchived,
+                export: { fileLabel: accountQuery.data.name },
                 createDefaults: {
                   accountId: accountQuery.data.id,
                   sourceAccountId: accountQuery.data.id,

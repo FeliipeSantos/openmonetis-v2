@@ -62,6 +62,7 @@ para a lista completa.
 | Campo opcional "Horário" ao lado da data (despesa, receita e transferência; recorrência não tem), exibido nos detalhes e preenchido pela Caixa de entrada | `transaction-basic-fields.tsx`, `transaction-form.validation.ts`, `transactions.service.ts` (`purchaseTime`), `inbox-process-defaults.ts`, migração `0035` | — |
 | Fatura do cartão agrupada por dia, com Saídas/Entradas e "Fatura" acumulada no fim de cada dia; horário visível em cada linha | `summarizeTransactionsByDay` (domain), `dailySummaries` em `transactions.service.ts`, `transaction-day-summary.tsx`, `card-invoices-page.tsx` (`daySummary`) | — |
 | Em Lançamentos, compras no cartão viram uma linha por fatura (soma do mês, link para a fatura); filtro de cartão ou "Cartão de crédito" mostra as compras | `summarizeCardInvoiceTotals` (domain), `collapseCardPurchases`/`cardInvoices` em `transactions.service.ts`, `transaction-card-invoice-total.tsx`, `transactions-container.tsx` | — |
+| Botão Exportar na fatura do cartão e no extrato da conta, ao lado de "Selecionar" | `card-invoices-page.tsx`, `account-statement-page.tsx` (`export` no `scope`) | — |
 
 ### Orçamentos
 

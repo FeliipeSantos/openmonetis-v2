@@ -157,6 +157,7 @@ export function CardInvoicesPage({ cardId, search, onSearchChange }: CardInvoice
                 paymentMethod: "credit_card" as const,
               },
               createTypes: ["income", "expense"] as const,
+              export: { fileLabel: cardQuery.data.name },
               header: {
                 breadcrumbs: [
                   { label: "Visão geral", href: "/dashboard" },

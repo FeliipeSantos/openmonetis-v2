@@ -72,11 +72,8 @@ type MobileListEntry =
 
 export function TransactionsMobileList(props: TransactionsMobileListProps) {
   const [selectionMode, setSelectionMode] = useState(false);
+  const selection = useTransactionSelection(props.transactions);
   const cardInvoices = props.cardInvoices ?? [];
-  const selection = useTransactionSelection([
-    ...props.transactions,
-    ...cardInvoices.flatMap((invoice) => invoice.matchedItems),
-  ]);
   // Card invoice totals sit under their due date, at the position the API gave them.
   const groups = new Map<string, MobileListEntry[]>();
   const addEntry = (date: string, entry: MobileListEntry) =>
@@ -84,12 +81,7 @@ export function TransactionsMobileList(props: TransactionsMobileListProps) {
   const addCardInvoices = (beforeTransactionId: string | null, fallbackDate: string) => {
     for (const invoice of cardInvoices) {
       if (invoice.beforeTransactionId !== beforeTransactionId) continue;
-      const date = invoice.dueDate ?? fallbackDate;
-      addEntry(date, { kind: "cardInvoice", invoice });
-      // A search lists the matching purchases right under their invoice total.
-      for (const transaction of invoice.matchedItems) {
-        addEntry(date, { kind: "transaction", transaction });
-      }
+      addEntry(invoice.dueDate ?? fallbackDate, { kind: "cardInvoice", invoice });
     }
   };
   for (const transaction of props.transactions) {

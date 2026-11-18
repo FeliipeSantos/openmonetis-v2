@@ -862,10 +862,6 @@ export const CardInvoiceTotalOutputSchema = z
       description:
         "Listing position: the invoice comes right before this item on the page (null: at the end).",
     }),
-    matchedItems: z.array(TransactionOutputSchema).openapi({
-      description:
-        "Purchases on this invoice matching the text search `q`, in listing order; empty without a search.",
-    }),
   })
   .openapi("CardInvoiceTotal");
 

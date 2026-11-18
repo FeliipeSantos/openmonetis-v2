@@ -9,9 +9,12 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Adicionado
 
-- Busca em Lançamentos com faturas de cartão: ao buscar, as compras do cartão que batem com o
-  texto aparecem logo abaixo da linha consolidada da fatura; sem busca, volta a aparecer só o
-  consolidado. A API devolve `matchedItems` em cada item de `cardInvoices` quando há `q`.
+- Extrato da fatura em Lançamentos: clicar no cartão abre um modal com as compras daquela
+  fatura em linha do tempo, dia a dia, com Saídas e Fatura acumulada de cada dia, setas para
+  trocar o mês, datas de fechamento e vencimento e atalho para a fatura completa.
+- Busca em Lançamentos com compras no cartão: ao buscar, as compras do cartão que batem com o
+  texto aparecem uma a uma, sem a linha consolidada da fatura; sem busca, volta a aparecer só o
+  consolidado de cada cartão.
 - Exportar na fatura do cartão e no extrato da conta: o botão fica ao lado de "Selecionar" e
   exporta só os lançamentos da fatura ou da conta no mês aberto, respeitando busca e filtros; o
   nome do arquivo leva o nome do cartão ou da conta.
@@ -144,7 +147,8 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Corrigido
 
-- A tela não volta mais para o topo ao digitar na busca, filtrar ou paginar lançamentos.
+- A tela não volta mais para o topo ao digitar na busca, filtrar ou paginar lançamentos, nem
+  quando a busca deixa a lista curta.
 - Subcategorias passam a exibir o próprio ícone na lista de categorias e nas tendências por
   categoria, usando o ícone da categoria principal só quando não têm um ícone definido.
 

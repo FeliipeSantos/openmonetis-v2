@@ -2117,8 +2117,7 @@ test("divided transactions become allocation rows linked to the same editable re
   // Newest first: the invoice due on 2026-09-10 comes before the August purchase.
   assert.equal(collapsed.cardInvoices[0]?.dueDate, "2026-09-10");
   assert.equal(collapsed.cardInvoices[0]?.beforeTransactionId, collapsed.items[0]?.id);
-  // Without a search the invoice stays consolidated; a search lists its matching purchases.
-  assert.deepEqual(collapsed.cardInvoices[0]?.matchedItems, []);
+  // A text search lists the matching card purchases themselves, without the invoice total.
   const collapsedSearch = await service.listTransactions(
     userId,
     ListTransactionsQuerySchema.parse({
@@ -2127,14 +2126,10 @@ test("divided transactions become allocation rows linked to the same editable re
       q: "única",
     }),
   );
-  const matched = collapsedSearch.cardInvoices[0]?.matchedItems ?? [];
-  assert.ok(matched.length > 0);
+  assert.deepEqual(collapsedSearch.cardInvoices, []);
   assert.ok(
-    matched.every(
-      (item) => item.cardId === "70000000-0000-4000-8000-000000000007" && item.period === "2026-09",
-    ),
+    collapsedSearch.items.some((item) => item.cardId === "70000000-0000-4000-8000-000000000007"),
   );
-  assert.ok(collapsedSearch.items.every((item) => item.paymentMethod !== "credit_card"));
   const collapsedOldest = await service.listTransactions(
     userId,
     ListTransactionsQuerySchema.parse({

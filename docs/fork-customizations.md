@@ -63,8 +63,9 @@ para a lista completa.
 | Fatura do cartão agrupada por dia, com Saídas/Entradas e "Fatura" acumulada no fim de cada dia; horário visível em cada linha | `summarizeTransactionsByDay` (domain), `dailySummaries` em `transactions.service.ts`, `transaction-day-summary.tsx`, `card-invoices-page.tsx` (`daySummary`) | — |
 | Em Lançamentos, compras no cartão viram uma linha por fatura (soma do mês, link para a fatura); filtro de cartão ou "Cartão de crédito" mostra as compras | `summarizeCardInvoiceTotals` (domain), `collapseCardPurchases`/`cardInvoices` em `transactions.service.ts`, `transaction-card-invoice-total.tsx`, `transactions-container.tsx` | — |
 | Botão Exportar na fatura do cartão e no extrato da conta, ao lado de "Selecionar" | `card-invoices-page.tsx`, `account-statement-page.tsx` (`export` no `scope`) | — |
-| Busca em Lançamentos mostra as compras do cartão que bateram, logo abaixo da linha da fatura | `matchedItems` em `transactions.service.ts`, `transactions-table.tsx`, `transactions-mobile-list.tsx` | — |
-| Busca, filtros e paginação não levam a tela de volta ao topo (`resetScroll: false`) | `routes/transactions.tsx`, `routes/cards_.$cardId.tsx`, `routes/accounts_.$accountId.tsx`, `routes/people_.$personId.tsx` | — |
+| Clicar no cartão em Lançamentos abre o extrato da fatura num modal (linha do tempo por dia, Saídas/Fatura, troca de mês, fechamento e vencimento) | `transaction-card-invoice-statement-dialog.tsx`, `transaction-card-invoice-total.tsx` | — |
+| Busca em Lançamentos mostra as compras do cartão uma a uma, sem a linha consolidada da fatura | `collapseCardPurchases` (`!query.q`) em `transactions.service.ts` | — |
+| Busca, filtros e paginação não levam a tela de volta ao topo (`resetScroll: false`; resultados com altura mínima de uma tela durante a busca) | `routes/transactions.tsx`, `routes/cards_.$cardId.tsx`, `routes/accounts_.$accountId.tsx`, `routes/people_.$personId.tsx`, `transactions-screen.tsx` | — |
 
 ### Orçamentos
 

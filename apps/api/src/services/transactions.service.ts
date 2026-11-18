@@ -1763,9 +1763,10 @@ export function createTransactionsService(
           ) ||
           a.id.localeCompare(b.id),
       );
-    // A query that already targets cards keeps their purchases itemized.
+    // A query that already targets cards, or a text search, keeps their purchases itemized.
     const collapseCardPurchases =
       query.collapseCardPurchases === true &&
+      !query.q &&
       !accountStatement &&
       query.cardIds.length === 0 &&
       query.paymentMethod !== "credit_card";
@@ -1801,12 +1802,6 @@ export function createTransactionsService(
           cardLogo: cardDetails.get(invoice.cardId)?.logo ?? null,
           dueDate: dates?.dueDate ?? null,
           isPaid: dates?.isPaid === true,
-          // A text search shows which purchases inside the invoice matched it.
-          matchedItems: query.q
-            ? cardPurchases.filter(
-                (item) => item.cardId === invoice.cardId && item.period === invoice.period,
-              )
-            : [],
         };
       })
       .sort((a, b) => a.cardName.localeCompare(b.cardName) || a.period.localeCompare(b.period));

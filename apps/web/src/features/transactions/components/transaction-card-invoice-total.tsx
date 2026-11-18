@@ -27,6 +27,7 @@ import { InvoicePaymentDialog } from "@/features/invoices/components/invoice-pay
 import { invoicesQueryOptions } from "@/features/invoices/invoices.queries";
 import { cn } from "@/lib/utils";
 import { formatCardInvoiceTotalDetail, formatCompactDate } from "../transactions.presentation";
+import { CardInvoiceStatementDialog } from "./transaction-card-invoice-statement-dialog";
 
 function CardInvoiceLogo({ invoice }: { invoice: CardInvoiceTotalOutput }) {
   return invoice.cardLogo ? (
@@ -254,14 +255,17 @@ export function CardInvoiceTotalRow({
   selectionMode: boolean;
 }) {
   const { brand, payable, summary } = useInvoiceCard(invoice);
+  const [statementOpen, setStatementOpen] = useState(false);
 
   return (
     <TableRow>
       {selectionMode ? <TableCell /> : null}
       <TableCell>
-        <CardInvoiceLink
-          className="flex min-w-0 items-center gap-3 rounded-sm hover:text-brand-strong focus-visible:ring-2 focus-visible:ring-ring"
-          invoice={invoice}
+        <button
+          aria-label={`Ver lançamentos da fatura ${invoice.cardName}`}
+          className="flex min-w-0 items-center gap-3 rounded-sm text-left hover:text-brand-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          onClick={() => setStatementOpen(true)}
+          type="button"
         >
           <CardInvoiceLogo invoice={invoice} />
           <span className="grid min-w-0">
@@ -272,7 +276,12 @@ export function CardInvoiceTotalRow({
             />
             <CardInvoiceDetail dueDate={summary?.dueDate} invoice={invoice} />
           </span>
-        </CardInvoiceLink>
+        </button>
+        <CardInvoiceStatementDialog
+          invoice={invoice}
+          onOpenChange={setStatementOpen}
+          open={statementOpen}
+        />
       </TableCell>
       <TableCell className="text-right whitespace-nowrap">
         <MoneyValue amount={invoice.amount} className="font-semibold" />
@@ -300,7 +309,10 @@ export function CardInvoiceTotalRow({
       </TableCell>
       <TableCell className="text-right">
         <Button asChild size="icon-sm" variant="ghost">
-          <CardInvoiceLink aria-label={`Ver fatura ${invoice.cardName}`} invoice={invoice}>
+          <CardInvoiceLink
+            aria-label={`Abrir fatura completa ${invoice.cardName}`}
+            invoice={invoice}
+          >
             <ChevronRight aria-hidden="true" />
           </CardInvoiceLink>
         </Button>
@@ -312,12 +324,15 @@ export function CardInvoiceTotalRow({
 /** One mobile list item standing for every purchase on a card invoice. */
 export function CardInvoiceTotalItem({ invoice }: { invoice: CardInvoiceTotalOutput }) {
   const { brand, summary } = useInvoiceCard(invoice);
+  const [statementOpen, setStatementOpen] = useState(false);
 
   return (
     <li>
-      <CardInvoiceLink
-        className="flex items-center gap-3 px-3 py-3 hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
-        invoice={invoice}
+      <button
+        aria-label={`Ver lançamentos da fatura ${invoice.cardName}`}
+        className="flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        onClick={() => setStatementOpen(true)}
+        type="button"
       >
         <CardInvoiceLogo invoice={invoice} />
         <span className="grid min-w-0 flex-1">
@@ -333,7 +348,12 @@ export function CardInvoiceTotalItem({ invoice }: { invoice: CardInvoiceTotalOut
           <CardInvoiceStatus className="gap-1 text-xs [&_svg]:size-3" status={summary?.status} />
         </span>
         <ChevronRight aria-hidden="true" className="size-4 text-muted-foreground" />
-      </CardInvoiceLink>
+      </button>
+      <CardInvoiceStatementDialog
+        invoice={invoice}
+        onOpenChange={setStatementOpen}
+        open={statementOpen}
+      />
     </li>
   );
 }

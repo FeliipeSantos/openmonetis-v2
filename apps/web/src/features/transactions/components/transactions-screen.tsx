@@ -453,89 +453,95 @@ export function TransactionsScreen({
         clearFilters={clearFilters}
         setMultipleFilter={setMultipleFilter}
       />
-      {isUpdating ? (
-        <span role="status" className="text-muted-foreground text-xs">
-          Atualizando resultados…
-        </span>
-      ) : null}
-      {isLoading ? <TransactionsLoading /> : null}
-      {hasLoadError ? (
-        <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-10 text-center">
-          <p className="font-medium text-destructive">Não foi possível carregar os lançamentos.</p>
-          <p className="mt-1 text-muted-foreground text-sm">
-            Verifique sua conexão e tente novamente.
-          </p>
-          <Button variant="outline" className="mt-3" onClick={onRetry}>
-            Tentar novamente
-          </Button>
-        </div>
-      ) : null}
-      {!isLoading && !hasLoadError && isMobile === true ? (
-        <TransactionsMobileList
-          accountStatement={accountStatement}
-          cardInvoices={cardInvoices}
-          totals={totals}
-          totalsTone={activeTypeTab}
-          totalsUnsigned={typeTabs}
-          dayGrouping={dayGrouping}
-          key={`mobile:${selectionScopeKey}`}
-          allowImport={allowImport}
-          exportOptions={
-            onExport
-              ? {
-                  onExport,
-                  pending: isExporting,
-                  disabled: isUpdating === true || totalItems === 0,
-                }
-              : undefined
-          }
-          currentPage={Math.min(page, pageCount)}
-          onPageChange={setPage}
-          onView={setViewingTransaction}
-          pageCount={pageCount}
-          totalItems={totalItems}
-          transactions={transactions}
-        />
-      ) : null}
-      {!isLoading && !hasLoadError && isMobile === false ? (
-        <TransactionsTable
-          accountStatement={accountStatement}
-          cardInvoices={cardInvoices}
-          totals={totals}
-          totalsTone={activeTypeTab}
-          totalsUnsigned={typeTabs}
-          dayGrouping={dayGrouping}
-          key={`desktop:${selectionScopeKey}:${selectionMode}`}
-          selectionMode={selectionMode}
-          adminPersonId={adminPersonId}
-          currentPage={Math.min(page, pageCount)}
-          onAnticipate={setAnticipatingTransaction}
-          onUndoAnticipation={setUndoingAnticipation}
-          onCopy={openCopyDialog}
-          onDelete={onDeleteTransaction}
-          onEdit={openEditDialog}
-          onView={setViewingTransaction}
-          onPageChange={setPage}
-          onRefund={setRefundingTransaction}
-          onPageSizeChange={(size) =>
-            onSearchChange({
-              pageSize:
-                size === defaultPageSize ? undefined : (size as TransactionsSearch["pageSize"]),
-              page: undefined,
-            })
-          }
-          onRecurringAction={onRecurringAction}
-          onSettle={onSettleTransactions}
-          onSettleRecurringOccurrence={onSettleRecurringOccurrence}
-          pendingTransactionId={pendingTransactionId}
-          pendingSettlementKey={pendingSettlementKey}
-          pageCount={pageCount}
-          pageSize={pageSize}
-          period={period}
-          totalItems={totalItems}
-          transactions={transactions}
-        />
-      ) : null}
+      {/* While searching, the results keep at least a screen of height: a short result list would
+          otherwise shrink the page and the browser would pull the scroll back up. */}
+      <div className={cn("grid min-w-0 content-start gap-[inherit]", search && "min-h-svh")}>
+        {isUpdating ? (
+          <span role="status" className="text-muted-foreground text-xs">
+            Atualizando resultados…
+          </span>
+        ) : null}
+        {isLoading ? <TransactionsLoading /> : null}
+        {hasLoadError ? (
+          <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-10 text-center">
+            <p className="font-medium text-destructive">
+              Não foi possível carregar os lançamentos.
+            </p>
+            <p className="mt-1 text-muted-foreground text-sm">
+              Verifique sua conexão e tente novamente.
+            </p>
+            <Button variant="outline" className="mt-3" onClick={onRetry}>
+              Tentar novamente
+            </Button>
+          </div>
+        ) : null}
+        {!isLoading && !hasLoadError && isMobile === true ? (
+          <TransactionsMobileList
+            accountStatement={accountStatement}
+            cardInvoices={cardInvoices}
+            totals={totals}
+            totalsTone={activeTypeTab}
+            totalsUnsigned={typeTabs}
+            dayGrouping={dayGrouping}
+            key={`mobile:${selectionScopeKey}`}
+            allowImport={allowImport}
+            exportOptions={
+              onExport
+                ? {
+                    onExport,
+                    pending: isExporting,
+                    disabled: isUpdating === true || totalItems === 0,
+                  }
+                : undefined
+            }
+            currentPage={Math.min(page, pageCount)}
+            onPageChange={setPage}
+            onView={setViewingTransaction}
+            pageCount={pageCount}
+            totalItems={totalItems}
+            transactions={transactions}
+          />
+        ) : null}
+        {!isLoading && !hasLoadError && isMobile === false ? (
+          <TransactionsTable
+            accountStatement={accountStatement}
+            cardInvoices={cardInvoices}
+            totals={totals}
+            totalsTone={activeTypeTab}
+            totalsUnsigned={typeTabs}
+            dayGrouping={dayGrouping}
+            key={`desktop:${selectionScopeKey}:${selectionMode}`}
+            selectionMode={selectionMode}
+            adminPersonId={adminPersonId}
+            currentPage={Math.min(page, pageCount)}
+            onAnticipate={setAnticipatingTransaction}
+            onUndoAnticipation={setUndoingAnticipation}
+            onCopy={openCopyDialog}
+            onDelete={onDeleteTransaction}
+            onEdit={openEditDialog}
+            onView={setViewingTransaction}
+            onPageChange={setPage}
+            onRefund={setRefundingTransaction}
+            onPageSizeChange={(size) =>
+              onSearchChange({
+                pageSize:
+                  size === defaultPageSize ? undefined : (size as TransactionsSearch["pageSize"]),
+                page: undefined,
+              })
+            }
+            onRecurringAction={onRecurringAction}
+            onSettle={onSettleTransactions}
+            onSettleRecurringOccurrence={onSettleRecurringOccurrence}
+            pendingTransactionId={pendingTransactionId}
+            pendingSettlementKey={pendingSettlementKey}
+            pageCount={pageCount}
+            pageSize={pageSize}
+            period={period}
+            totalItems={totalItems}
+            transactions={transactions}
+          />
+        ) : null}
+      </div>
       <TransactionsDialogs
         accounts={accounts}
         cards={cards}

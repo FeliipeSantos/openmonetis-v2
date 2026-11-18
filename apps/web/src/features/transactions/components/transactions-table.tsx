@@ -51,8 +51,18 @@ export function TransactionsTable({
   onPageSizeChange,
 }: TransactionsTableProps) {
   const rows = groupTransactionRows(transactions);
+  // Purchases matched by a search are shown right under their card invoice total.
+  const invoiceRows = new Map(
+    cardInvoices.map((invoice) => [
+      `${invoice.cardId}:${invoice.period}`,
+      groupTransactionRows(invoice.matchedItems),
+    ]),
+  );
   // Selection follows the rendered order so Shift+click ranges match what the user sees.
-  const selection = useTransactionSelection(rows.map((row) => row.transaction));
+  const selection = useTransactionSelection([
+    ...rows.map((row) => row.transaction),
+    ...[...invoiceRows.values()].flat().map((row) => row.transaction),
+  ]);
   const columnCount = (selectionMode ? 1 : 0) + 2 + TRAILING_COLUMNS;
 
   function renderRow({ transaction, splitConnector }: (typeof rows)[number]) {
@@ -96,13 +106,15 @@ export function TransactionsTable({
   function renderCardInvoices(beforeTransactionId: string | null) {
     return cardInvoices
       .filter((invoice) => invoice.beforeTransactionId === beforeTransactionId)
-      .map((invoice) => (
-        <CardInvoiceTotalRow
-          invoice={invoice}
-          key={`${invoice.cardId}:${invoice.period}`}
-          selectionMode={selectionMode}
-        />
-      ));
+      .map((invoice) => {
+        const key = `${invoice.cardId}:${invoice.period}`;
+        return (
+          <Fragment key={key}>
+            <CardInvoiceTotalRow invoice={invoice} selectionMode={selectionMode} />
+            {invoiceRows.get(key)?.map(renderRow)}
+          </Fragment>
+        );
+      });
   }
 
   return (

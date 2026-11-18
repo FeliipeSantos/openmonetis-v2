@@ -9,6 +9,9 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Adicionado
 
+- Busca em Lançamentos com faturas de cartão: ao buscar, as compras do cartão que batem com o
+  texto aparecem logo abaixo da linha consolidada da fatura; sem busca, volta a aparecer só o
+  consolidado. A API devolve `matchedItems` em cada item de `cardInvoices` quando há `q`.
 - Exportar na fatura do cartão e no extrato da conta: o botão fica ao lado de "Selecionar" e
   exporta só os lançamentos da fatura ou da conta no mês aberto, respeitando busca e filtros; o
   nome do arquivo leva o nome do cartão ou da conta.
@@ -98,9 +101,6 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
   container da API: `node --import tsx src/scripts/sync-default-categories.ts --email=<email>`.
   O comando também preenche o ícone padrão das categorias da lista que estiverem sem ícone, sem
   trocar os ícones já escolhidos.
-
-### Corrigido
-
 - Visão geral: widgets como Despesas parceladas, Orçamentos, Metas, Faturas e Pessoas mostravam
   uma barra de rolagem horizontal quando um nome era longo. Agora o nome é cortado com reticências
   dentro da largura do widget.
@@ -144,6 +144,7 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Corrigido
 
+- A tela não volta mais para o topo ao digitar na busca, filtrar ou paginar lançamentos.
 - Subcategorias passam a exibir o próprio ícone na lista de categorias e nas tendências por
   categoria, usando o ícone da categoria principal só quando não têm um ícone definido.
 

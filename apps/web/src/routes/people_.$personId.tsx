@@ -21,6 +21,8 @@ function PersonDetailsRoute() {
       onSearchChange={(nextSearch) =>
         navigate({
           replace: true,
+          // Search, filters and paging update the URL in place; keep the reader where they are.
+          resetScroll: false,
           search: (previous) => ({ ...previous, ...nextSearch }),
         })
       }

@@ -1801,6 +1801,12 @@ export function createTransactionsService(
           cardLogo: cardDetails.get(invoice.cardId)?.logo ?? null,
           dueDate: dates?.dueDate ?? null,
           isPaid: dates?.isPaid === true,
+          // A text search shows which purchases inside the invoice matched it.
+          matchedItems: query.q
+            ? cardPurchases.filter(
+                (item) => item.cardId === invoice.cardId && item.period === invoice.period,
+              )
+            : [],
         };
       })
       .sort((a, b) => a.cardName.localeCompare(b.cardName) || a.period.localeCompare(b.period));

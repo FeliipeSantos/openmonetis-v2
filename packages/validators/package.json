@@ -1,12 +1,13 @@
 {
   "name": "@openmonetis/validators",
-  "version": "0.17.1",
+  "version": "0.18.0",
   "private": true,
   "type": "module",
   "exports": {
     "./accounts": "./src/accounts.ts",
     "./auth": "./src/auth.ts",
     "./auth-config": "./src/auth-config.ts",
+    "./calendar": "./src/calendar.ts",
     "./cards": "./src/cards.ts",
     "./categories": "./src/categories.ts",
     "./category-trends": "./src/category-trends.ts",

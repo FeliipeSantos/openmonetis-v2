@@ -253,6 +253,13 @@
       "when": 1794692829775,
       "tag": "0035_transaction_purchase_time",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1795020389204,
+      "tag": "0036_goal_contributions",
+      "breakpoints": true
     }
   ]
 }

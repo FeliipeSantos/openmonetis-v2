@@ -18,7 +18,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/licen%C3%A7a-Sustainable%20Use%201.0-f97316" alt="Licença Sustainable Use 1.0" /></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-0.17.1-f97316" alt="Versão 0.17.1" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-0.18.0-f97316" alt="Versão 0.18.0" /></a>
   <img src="https://img.shields.io/badge/Docker-self--hosted-2496ED?logo=docker&logoColor=white" alt="Aplicação self-hosted com Docker" />
 </p>
 
@@ -37,7 +37,9 @@
 ## O que você encontra
 
 - contas, cartões, faturas, transações e transferências;
-- parcelas, recorrências, orçamentos e contas a pagar;
+- parcelas, recorrências, orçamentos que se repetem todo mês, metas com histórico de aportes e
+  contas a pagar;
+- calendário do mês com vencimentos, faturas e tarefas, e busca global com **Ctrl K**;
 - pessoas, divisões, repasses e gastos compartilhados entre contas;
 - categorias e subcategorias, etiquetas, estabelecimentos, notas e checklists, além de anexos quando um storage S3 está
   configurado;
@@ -152,6 +154,8 @@ detalhes e as convenções no [`guia de arquitetura`](docs/architecture.md).
 - [`docs/environment-variables.md`](docs/environment-variables.md): configuração dos serviços e integrações;
 - [`docs/recurring-transactions.md`](docs/recurring-transactions.md): séries, versões, ocorrências e ações de recorrência;
 - [`docs/settlements.md`](docs/settlements.md): baixas efetivas, extratos e contas a pagar;
+- [`docs/calendar.md`](docs/calendar.md): calendário de vencimentos, faturas e tarefas do mês;
+- [`docs/budgets.md`](docs/budgets.md): limites do mês, orçamentos recorrentes e ajustes mensais;
 - [`docs/person-reports.md`](docs/person-reports.md): extrato mensal de cada pessoa externa;
 - [`docs/due-date-rules.md`](docs/due-date-rules.md): calendário compartilhado, ajustes e exceções de vencimento;
 - [`docs/ai-diagnoses.md`](docs/ai-diagnoses.md): assistente de IA, permissões de dados, serviço

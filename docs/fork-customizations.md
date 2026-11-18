@@ -19,7 +19,7 @@ novas versões do original sem perder essas mudanças:
 | Branch de trabalho | `custom` (é dele que a VPS constrói as imagens) |
 | Remote `origin` | `https://github.com/FeliipeSantos/openmonetis-v2` |
 | Remote `upstream` | `https://github.com/felipegcoutinho/openmonetis-v2`, somente leitura (o push aponta para um endereço inválido de propósito) |
-| Base atual | `v0.17.1` do upstream |
+| Base atual | `v0.18.0` do upstream (sem os orçamentos recorrentes dela; ver seção 8) |
 | Imagens | `compose.override.yml` constrói `api`, `web` e `migrator` a partir deste código; o serviço opcional `ai` continua com a imagem oficial |
 | Atualização da VPS | `sudo /home/ubuntu/openmonetis-update.sh` (backup, atualização do código, build e `up -d`; o `migrator` aplica as migrações) |
 
@@ -90,10 +90,11 @@ para a lista completa.
 | `0033_exclude_from_budget` | Coluna `exclude_from_budget` em `transactions` e `recurring_transaction_rules` |
 | `0034_recurring_budgets` | Colunas `budgets.is_recurring` e `recurrence_end_period`, com check constraint |
 | `0035_transaction_purchase_time` | Coluna opcional `purchase_time` (`time`) em `transactions` |
+| `0036_goal_contributions` | Do upstream (era a `0032` da v0.18.0, renumerada): tabela `goal_contributions` e o saldo atual das metas manuais como primeiro movimento |
 
-Essas migrações **já foram aplicadas na VPS** (a `0035` entra no próximo deploy). Por isso:
+Essas migrações **já foram aplicadas na VPS** (a `0035` e a `0036` entram no próximo deploy). Por isso:
 
-- **nunca renomeie, renumere nem altere** `0032`, `0033`, `0034` e `0035`;
+- **nunca renomeie, renumere nem altere** `0032` a `0036`;
 - o `drizzle-kit migrate` aplica só as migrações com `when` (no `_journal.json`) **maior** que a
   última aplicada. Uma migração com data anterior seria **ignorada em silêncio**.
 
@@ -129,6 +130,7 @@ atenção, mesmo quando o Git juntar sem conflito.
 | --- | --- | --- |
 | `categories-table.tsx` | O fork **apagou** este arquivo (substituído por `categories-panels.tsx`) | Manter apagado e levar as novidades do upstream para `categories-panels.tsx` (foi o que aconteceu na v0.17.1) |
 | `categories-page.tsx` | Usa os painéis, o arraste e a criação por tipo | Manter os painéis; trazer o resto do upstream |
+| Tudo em `budgets` (domain, validators, service, repository, rotas e telas) | Desde a v0.18.0 o upstream tem orçamentos recorrentes próprios (`budget_rules`), que o fork não adotou | Manter os arquivos do `custom` (`git checkout custom -- <arquivo>`, inclusive nos que juntaram sem conflito) e não trazer `budget_rules` para o schema |
 | `budget-card.tsx` | Título da subcategoria e recorrência mensal | Aceitar o layout do upstream e reaplicar `splitBudgetCategoryName` e `getBudgetRecurrenceLabel` |
 | `packages/domain/src/budgets.ts`, `budgets.service.ts`, `budgets.repository.ts` | Cálculo com subcategorias, `excludeFromBudget` e orçamento mensal | Conferir que os testes de orçamento continuam passando |
 | `packages/domain/src/categories.ts` | Lista padrão do fork | Manter a lista do fork; trazer só as mudanças de lógica |
@@ -313,3 +315,4 @@ em `~/openmonetis/backups`, porque o código antigo pode não funcionar com o ba
 | Data | De → para | Conflitos | Decisões |
 | --- | --- | --- | --- |
 | 2026-11-12 | v0.16.0 → v0.17.1 | `CHANGELOG.md`, `budget-card.tsx`, `categories-page.tsx`, `categories-table.tsx` (apagada no fork), `categories.presentation.test.ts`, `transactions.presentation.test.ts` | Sem migrações novas no upstream. O gasto do mês da tabela antiga foi levado aos dois painéis. O cartão de orçamento adotou o novo layout, mantendo o título da subcategoria e a recorrência. Testes: typecheck, 843 testes unitários e roteiro manual sem falhas. Revisão de segurança (feita depois, em 2026-11-13): só mudanças de versão nos `package.json`, avatares SVG, URLs de teste e um link para o GitHub original; nada suspeito. |
+| 2026-11-18 | v0.17.1 → v0.18.0 | `CHANGELOG.md`, `apps/web/package.json`, `pnpm-lock.yaml`, `_journal.json` e snapshots `0032`/`0033`, `categories.repository.ts` e todos os arquivos de orçamento | **Orçamentos recorrentes do upstream não entraram**: o fork mantém o próprio orçamento "Mensal" (`0034`), por subcategoria e com Ignorar nos orçamentos; todos os arquivos de `budgets` ficaram iguais ao `custom`, e a tabela `budget_rules` (migração `0033_budget_rules` do upstream) foi retirada do schema e das migrações. A `0032_goal_contributions` do upstream virou `0036`, com `when` depois da `0035`. Entraram calendário, busca Ctrl K, aportes nas metas, comparação da fatura por pessoa, filtros e formulários padronizados e dependências novas. Revisão de segurança: só versões novas de dependências já usadas, sem pacotes, scripts de instalação ou endereços externos novos. |

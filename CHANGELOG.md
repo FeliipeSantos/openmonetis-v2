@@ -152,6 +152,89 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 - Subcategorias passam a exibir o próprio ícone na lista de categorias e nas tendências por
   categoria, usando o ícone da categoria principal só quando não têm um ícone definido.
 
+## [0.18.0] - 2026-11-17
+
+Novo calendário do mês com vencimentos, faturas e tarefas, busca global com Ctrl K, orçamentos que
+se repetem todo mês e metas com histórico de aportes. A fatura do cartão compara os gastos por
+pessoa, os filtros de lançamentos e os formulários ganham um visual padronizado e as dependências
+foram atualizadas.
+
+### Adicionado
+
+- Fatura do cartão: a comparação com a fatura anterior em **Gastos do cartão** pode ser vista por
+  pessoa. Quando mais de uma pessoa tem lançamentos na fatura ou na anterior, um seletor discreto
+  ao lado do aviso troca entre **Todas as pessoas** e a parte de cada uma.
+- API: `cycleSpending.peopleComparisons` em `GET /cards` e `GET /cards/{id}` traz, por pessoa, o
+  total do ciclo e a mesma comparação da fatura inteira (`null` sem gastos na fatura anterior).
+- Busca global: o botão de lupa no cabeçalho, ou **Ctrl K** (**⌘K** no Mac), abre uma paleta para
+  ir a qualquer página, abrir contas, cartões, categorias e pessoas, criar despesa, receita,
+  transferência ou anotação e buscar lançamentos dos últimos 12 meses pelo nome. Um lançamento
+  encontrado abre direto para edição, e **Ver todos os lançamentos** leva à lista filtrada pelo
+  termo. Contas e cartões aparecem com seus logos, pessoas com o avatar, categorias com o próprio
+  ícone e lançamentos com o logo do estabelecimento e o avatar da pessoa. Num lançamento
+  dividido, cada pessoa aparece com a própria parte, e as linhas da mesma compra ficam ligadas
+  como na lista de lançamentos. A paleta abre sem animação e mostra os atalhos
+  de teclado no rodapé.
+- Metas: **Aportar** registra aportes e retiradas datados em metas manuais ativas ou pausadas, e
+  **Ver histórico** mostra o saldo da meta ao fim de cada um dos últimos 12 meses e a lista de
+  movimentos, que podem ser removidos. Metas com prazo mostram quanto guardar por mês para chegar
+  ao objetivo, e o aporte oferece usar esse valor com um clique. Editar o saldo de uma meta manual
+  passa a entrar no histórico como ajuste de saldo.
+- Calendário (**Finanças → Calendário**): grade do mês com contas a pagar, fechamentos e
+  vencimentos de faturas de cartão e tarefas com prazo, além de feriados e dias não úteis do
+  calendário de vencimentos. O resumo mostra quanto falta pagar, quanto já foi pago e o que está
+  em atraso, dizendo quantas contas, faturas e tarefas compõem cada número. A agenda do dia separa
+  os itens em **Contas a pagar**, **Faturas que vencem**, **Faturas que fecham** e **Tarefas com
+  prazo**; uma conta pode ser paga direto do dia, e faturas e tarefas abrem suas telas. Na grade,
+  cada item mostra o logo do estabelecimento ou do cartão (**Fatura** e **Fecha** antes do nome do
+  cartão) com um ícone de situação no canto (alerta para em atraso, relógio para a vencer, check
+  para pago ou concluída e cadeado para fechamento), e a legenda explica os ícones e o valor no
+  topo de cada dia. A agenda do dia usa os mesmos ícones. As setas do teclado mudam o dia selecionado. No celular, o mês vira uma lista dos dias
+  com compromissos. Veja `docs/calendar.md`.
+- Orçamentos recorrentes: **Repetir todo mês** (ligado por padrão ao criar) faz o limite valer do
+  mês escolhido em diante, sem copiar mês a mês. Editar um orçamento recorrente pergunta se a
+  mudança vale **só naquele mês** (um ajuste, que pode **voltar ao valor recorrente**) ou **daquele
+  mês em diante**, sem alterar os meses anteriores; **Encerrar a partir de** um mês mantém o
+  histórico. Um limite avulso pode passar a se repetir pelo menu do card. Cada card diz se o limite
+  vale só no mês, todo mês ou se foi ajustado. Veja `docs/budgets.md`.
+- API: `GET /calendar?period=YYYY-MM`; `GET`/`POST /goals/{id}/contributions` e
+  `DELETE /goals/{id}/contributions/{contributionId}`; `requiredMonthlyAmount` nas metas;
+  `repeatMonthly` em `POST /budgets` e `POST /budgets/copy-previous`,
+  `POST /budgets/{id}/repeat`, `PUT /budgets/recurring-rules/{ruleId}` e
+  `POST /budgets/recurring-rules/{ruleId}/stop`.
+
+### Alterado
+
+- Formulários: **Cancelar** e a ação principal (**Salvar …** ou **Atualizar**) ficam iguais em todos
+  os formulários, com um spinner durante o salvamento. Nas anotações, os erros dos campos só
+  aparecem depois de tentar salvar e somem assim que são corrigidos.
+- Orçamentos: o resumo do mês usa a mesma superfície dos resumos de categoria, com cada indicador em
+  um bloco com ícone.
+- Orçamentos: o botão fixo **Copiar limites do mês anterior** dá lugar a um aviso que só aparece
+  quando o mês anterior tem limites avulsos que ainda não existem no mês, com a opção de trazê-los
+  já repetindo todo mês.
+- Filtros de lançamentos: todos os campos do painel passam a ter o mesmo fundo e a mesma borda, as
+  seções ficam separadas por divisórias, as opções de **Outros** aparecem em lista e a faixa de
+  valor usa o formato em reais, sem as setas de incremento.
+- Dependências atualizadas: `better-auth`, `@better-auth/passkey` e `@better-auth/drizzle-adapter`
+  1.7.25, `hono` 4.13.19, `@hono/node-server` 2.1.8, AWS SDK 3.1169.0, `@tanstack/react-start`
+  1.169.5, TanStack Query 5.107.1, `vite` 8.3.8, Tailwind 4.3.5, `@vitejs/plugin-react` 6.3.0,
+  `lucide-react` 1.73.0, `oxlint` 1.94.0 e Playwright 1.65.1. `dotenv` passa para a 18 e `c8`
+  para a 12, sem mudanças de uso. O Biome continua na linha 2.5 (2.5.15).
+
+### Notas de atualização
+
+- Banco: a migration `0032_goal_contributions.sql` cria a tabela `goal_contributions` e registra o
+  valor já economizado de cada meta manual como o primeiro movimento do histórico (ajuste de
+  saldo na data de criação da meta), sem alterar o saldo das metas. Faça backup antes de atualizar
+  e acompanhe `docker compose logs migrator`.
+- Banco: a migration `0033_budget_rules.sql` cria a tabela `budget_rules`. Os orçamentos existentes
+  não são convertidos e continuam valendo só para o mês deles.
+- API: rotas novas; `GoalOutput` ganha `requiredMonthlyAmount`. Em
+  `BudgetOutput`, `id` passa a ser texto (`ruleId:período` quando o mês é coberto só por um
+  orçamento recorrente) e surgem `budgetId` e `recurrence`; para alterar ou excluir o limite do
+  mês, use `budgetId`.
+
 ## [0.17.1] - 2026-11-11
 
 O desfoque translúcido do cabeçalho, dos menus e dos painéis volta a aparecer em Chrome, Edge e
@@ -1506,7 +1589,8 @@ API-first, com cliente web em PT-BR, domínio financeiro isolado e implantação
 - Backup e restauração definidos como operações de infraestrutura, cobrindo PostgreSQL, objetos do
   storage e segredos da implantação.
 
-[Unreleased]: https://github.com/felipegcoutinho/openmonetis-v2/compare/v0.17.1...HEAD
+[Unreleased]: https://github.com/felipegcoutinho/openmonetis-v2/compare/v0.18.0...HEAD
+[0.18.0]: https://github.com/felipegcoutinho/openmonetis-v2/compare/v0.17.1...v0.18.0
 [0.17.1]: https://github.com/felipegcoutinho/openmonetis-v2/compare/v0.17.0...v0.17.1
 [0.17.0]: https://github.com/felipegcoutinho/openmonetis-v2/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/felipegcoutinho/openmonetis-v2/compare/v0.15.0...v0.16.0

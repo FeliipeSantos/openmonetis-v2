@@ -21,6 +21,7 @@ import {
   formatDateTime,
   formatPaymentMethod,
   formatPurchaseDate,
+  getTransactionOccurrenceDateLabel,
   recurrenceFrequencyLabels,
   transactionConditionLabels,
   transactionOriginLabels,
@@ -77,7 +78,7 @@ export function TransactionDetailsContent({
       <DetailsSection icon={<ReceiptText />} title="Informações">
         <DetailRow label="Tipo" value={<TransactionTypeBadge type={detail.type} />} />
         <DetailRow
-          label="Data da compra"
+          label={getTransactionOccurrenceDateLabel(detail.type)}
           value={formatPurchaseDate(detail.purchaseDate, detail.purchaseTime)}
         />
         <DetailRow label="Competência" value={formatPeriod(detail.period)} />

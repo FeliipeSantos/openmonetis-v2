@@ -286,6 +286,11 @@ export function formatInstallmentOption(
 
 export function getTransactionDateLabel(type: TransactionType, condition: TransactionCondition) {
   if (condition === "recurring") return "Início da recorrência";
+  return getTransactionOccurrenceDateLabel(type);
+}
+
+/** Label of the date one entry happened on (a recurring item shows its occurrence date). */
+export function getTransactionOccurrenceDateLabel(type: TransactionType) {
   if (type === "income") return "Data do recebimento";
   if (type === "transfer") return "Data da transferência";
   return "Data da despesa";

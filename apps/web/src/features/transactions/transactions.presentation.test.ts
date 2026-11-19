@@ -16,6 +16,7 @@ import {
   formatTransactionSettlementSummary,
   getTransactionDateLabel,
   getTransactionDaySummaryLines,
+  getTransactionOccurrenceDateLabel,
   getTransactionSettlementAction,
   getTransactionSettlementLabel,
   getTransactionSettlementShortLabel,
@@ -406,4 +407,10 @@ test("the main listing opens on expenses and each tab keeps its type", () => {
 
 test("paid invoice warning names the month and year", () => {
   assert.equal(formatPaidInvoicePeriod("2026-12"), "dezembro/2026");
+});
+
+test("details name the date after the entry type, also for recurring occurrences", () => {
+  assert.equal(getTransactionOccurrenceDateLabel("income"), "Data do recebimento");
+  assert.equal(getTransactionOccurrenceDateLabel("expense"), "Data da despesa");
+  assert.equal(getTransactionOccurrenceDateLabel("transfer"), "Data da transferência");
 });

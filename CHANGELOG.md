@@ -156,6 +156,10 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Corrigido
 
+- Comprometimento do mês e Compromissos futuros: a receita prevista passa a contar a parcela do
+  mês das receitas parceladas, batendo com "Suas receitas" no Dashboard.
+- Detalhes do lançamento: a data passa a se chamar "Data do recebimento" nas receitas, "Data da
+  despesa" nas despesas e "Data da transferência" nas transferências, no lugar de "Data da compra".
 - A tela não volta mais para o topo ao digitar na busca, filtrar ou paginar lançamentos, nem
   quando a busca deixa a lista curta.
 - Subcategorias passam a exibir o próprio ícone na lista de categorias e nas tendências por

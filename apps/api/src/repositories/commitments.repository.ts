@@ -45,7 +45,8 @@ export const commitmentsRepository = {
 
   /**
    * Single launches of the period (card purchases by invoice period), plus refunds and invoice
-   * adjustments that reduce them. Installments and recurring series are read apart.
+   * adjustments that reduce them, and each month's installment of an installment income (so the
+   * income matches the dashboard). Installment expenses and recurring series are read apart.
    */
   async listSingleEntriesForUser(userId, startPeriod, endPeriod) {
     const rows = await db
@@ -94,7 +95,10 @@ export const commitmentsRepository = {
           eq(transactions.userId, userId),
           inArray(transactions.type, ["income", "expense"]),
           inArray(transactions.origin, ["regular", "refund", "invoiceAdjustment"]),
-          eq(transactions.condition, "single"),
+          or(
+            eq(transactions.condition, "single"),
+            and(eq(transactions.condition, "installment"), eq(transactions.type, "income")),
+          ),
           gte(transactions.period, startPeriod),
           lte(transactions.period, endPeriod),
           sql`coalesce(${transactionAccounts.excludeFromBalance}, ${transactionCardAccounts.excludeFromBalance}, false) = false`,

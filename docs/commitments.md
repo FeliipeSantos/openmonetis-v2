@@ -17,7 +17,8 @@ Cada mês soma três camadas, sempre na parte da pessoa titular (`admin`):
 Estornos e descontos de antecipação lançados no mês são abatidos do total comprometido
 (**Estornos e descontos**), com a mesma regra do Dashboard, e nunca contam como receita.
 
-A **receita prevista** soma receitas recorrentes ativas e receitas avulsas lançadas no mês.
+A **receita prevista** soma receitas recorrentes ativas, receitas avulsas lançadas no mês e a
+parcela do mês das receitas parceladas, como em "Suas receitas" no Dashboard.
 Contas marcadas como **Fora do saldo total** são ignoradas em todas as camadas, inclusive parcelas
 (pela conta da transação ou, no cartão, pela conta do cartão).
 
@@ -29,7 +30,7 @@ parcelas e recorrentes, já que contas avulsas futuras raramente estão lançada
 que terminam no horizonte, com o valor mensal liberado.
 
 Limitações: faturas de cartão não são somadas à parte, para não duplicar as compras que já
-entram por mês de fatura; receitas parceladas não entram na receita prevista; não há saldo atual
+entram por mês de fatura; não há saldo atual
 das contas nem projeção de liquidez.
 
 `GET /reports/commitments` aceita `startPeriod=YYYY-MM` e `endPeriod=YYYY-MM` (faixa inclusiva de

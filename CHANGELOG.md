@@ -9,6 +9,18 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Adicionado
 
+- Fatura do cartão com compras de outras pessoas: o cabeçalho da fatura e o extrato em modal
+  mostram, junto do total, **Sua parte** e **Outras pessoas**, usando a divisão por pessoa da
+  fatura (inclusive compras divididas).
+- Acertos da pessoa: os lançamentos do mês aparecem um a um, com descrição, parcela (`1 de 2`),
+  data, categoria, forma de pagamento, conta ou cartão e valor. Os repasses já recebidos cobrem os mais antigos primeiro, e cada lançamento mostra
+  **Recebido**, quanto falta ou o botão **Efetivar**, que registra o repasse dele com um clique
+  (com a descrição e a parcela na observação). O **Registrar repasse** também já vem preenchido
+  com o que falta receber. A API devolve `items` no acerto da pessoa. O repasse passa a valer para o mês aberto na tela,
+  mesmo quando é recebido antes (por exemplo, uma fatura de dezembro paga pela pessoa em
+  novembro). A API aceita `period` em `POST /person-settlements` e devolve `period` nos repasses; a
+  migração `0037_person_settlement_period` cria a coluna, e repasses antigos continuam contando
+  pelo mês do recebimento.
 - Fatura paga antes do fechamento: ao lançar uma despesa no cartão numa fatura já quitada, um
   aviso pergunta como salvar. **Salvar como paga** registra a despesa e paga o valor novo pela
   última conta usada no pagamento da fatura, recalculando os saldos; **Salvar como pendente**
@@ -20,7 +32,8 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
   valor que ainda falta pagar.
 - Extrato da fatura em Lançamentos: clicar no cartão abre um modal com as compras daquela
   fatura em linha do tempo, dia a dia, com Saídas e Fatura acumulada de cada dia, setas para
-  trocar o mês, datas de fechamento e vencimento e atalho para a fatura completa.
+  trocar o mês, datas de fechamento e vencimento e atalho para a fatura completa. Compras de
+  outra pessoa ou divididas mostram o avatar, como na lista.
 - Busca em Lançamentos com compras no cartão: ao buscar, as compras do cartão que batem com o
   texto aparecem uma a uma, sem a linha consolidada da fatura; sem busca, volta a aparecer só o
   consolidado de cada cartão.
@@ -156,6 +169,10 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Corrigido
 
+- Acertos e Extrato da pessoa: a parte dela registrada no pagamento da fatura ("Registrar parte
+  da pessoa" ou a divisão da fatura inteira) volta a contar como repasse recebido no mês da fatura.
+- Soma da lista de lançamentos: compras no cartão de uma fatura já paga passam a contar em
+  Efetivadas, e não mais em Pendentes.
 - Compromissos futuros: um parcelamento antecipado passa a terminar no mês para onde as parcelas
   foram, liberando o valor da parcela regular, em vez de aparecer no término original com R$ 0,00.
 - Comprometimento do mês e Compromissos futuros: a receita prevista passa a contar a parcela do

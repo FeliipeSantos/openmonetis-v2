@@ -20,6 +20,9 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { cardsQueryOptions } from "@/features/cards/cards.queries";
 import { CategoryIcon } from "@/features/categories/category-icons";
+import { getInvoiceOwnShare } from "@/features/invoices/invoices.presentation";
+import { invoicesQueryOptions } from "@/features/invoices/invoices.queries";
+import { peopleQueryOptions } from "@/features/people/people.queries";
 import { formatPeriod } from "@/lib/period-presentation";
 import { cn } from "@/lib/utils";
 import {
@@ -29,6 +32,7 @@ import {
   type TransactionDaySummaryLine,
 } from "../transactions.presentation";
 import { transactionsQueryOptions } from "../transactions.queries";
+import { TransactionPeople } from "./transaction-people";
 
 /** Largest page the listing API serves; bigger invoices point to the full card page. */
 const STATEMENT_PAGE_SIZE = 100;
@@ -84,10 +88,13 @@ const summaryAmountClassNames: Record<TransactionDaySummaryLine["tone"], string>
 
 /** One day as a timeline: purchases and the day's totals hang from the same vertical line. */
 function StatementDay({
+  adminPersonId,
   date,
   items,
   summaryLines,
 }: {
+  /** The user's own person: their purchases show no avatar, like in the listing. */
+  adminPersonId: string | null;
   date: string;
   items: TransactionOutput[];
   summaryLines: TransactionDaySummaryLine[];
@@ -111,7 +118,16 @@ function StatementDay({
                   <CategoryIcon className="size-4" name={item.categoryIcon} />
                 </span>
                 <span className="grid min-w-0 flex-1">
-                  <span className="truncate font-medium text-sm">{item.name}</span>
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="truncate font-medium text-sm">{item.name}</span>
+                    {item.allocation !== null ||
+                    item.isDivided ||
+                    (adminPersonId !== null && item.personId !== adminPersonId) ? (
+                      <span className="shrink-0">
+                        <TransactionPeople transaction={item} />
+                      </span>
+                    ) : null}
+                  </span>
                   <span className="truncate text-muted-foreground text-xs">
                     {[
                       item.categoryName,
@@ -167,6 +183,8 @@ function StatementDay({
 function StatementBody({ invoice }: { invoice: CardInvoiceTotalOutput }) {
   const [period, setPeriod] = useState(invoice.period);
   const cardsQuery = useQuery(cardsQueryOptions(period));
+  const peopleQuery = useQuery(peopleQueryOptions());
+  const adminPersonId = peopleQuery.data?.find((person) => person.role === "admin")?.id ?? null;
   const card = cardsQuery.data?.find((item) => item.id === invoice.cardId);
   const summary = card?.invoiceSummary.period === period ? card.invoiceSummary : undefined;
   const query = useQuery(
@@ -186,6 +204,10 @@ function StatementBody({ invoice }: { invoice: CardInvoiceTotalOutput }) {
     return summary ? getTransactionDaySummaryLines(summary, invoiceDaySummaryOptions) : [];
   }
   const total = summary?.amount ?? Math.abs(query.data?.totals.total ?? 0);
+  const invoicesQuery = useQuery(invoicesQueryOptions(period));
+  const ownShare = getInvoiceOwnShare(
+    invoicesQuery.data?.items.find((item) => item.cardId === invoice.cardId),
+  );
 
   return (
     <>
@@ -223,6 +245,12 @@ function StatementBody({ invoice }: { invoice: CardInvoiceTotalOutput }) {
             ) : (
               <MoneyValue amount={total} className="text-muted-foreground text-sm" />
             )}
+            {ownShare ? (
+              <span className="text-muted-foreground text-xs">
+                Sua parte <MoneyValue amount={ownShare.ownAmount} className="text-foreground" /> ·
+                Outras pessoas <MoneyValue amount={ownShare.othersAmount} />
+              </span>
+            ) : null}
           </div>
           <InvoiceDate label="Fecha dia" value={summary?.closingDate} />
           <InvoiceDate label="Vence dia" value={summary?.dueDate} />
@@ -259,6 +287,7 @@ function StatementBody({ invoice }: { invoice: CardInvoiceTotalOutput }) {
           <div className="grid gap-3">
             {days.map((day) => (
               <StatementDay
+                adminPersonId={adminPersonId}
                 date={day.date}
                 items={day.items}
                 key={day.date}

@@ -63,8 +63,10 @@ para a lista completa.
 | Fatura do cartão agrupada por dia, com Saídas/Entradas e "Fatura" acumulada no fim de cada dia; horário visível em cada linha | `summarizeTransactionsByDay` (domain), `dailySummaries` em `transactions.service.ts`, `transaction-day-summary.tsx`, `card-invoices-page.tsx` (`daySummary`) | — |
 | Em Lançamentos, compras no cartão viram uma linha por fatura (soma do mês, link para a fatura); filtro de cartão ou "Cartão de crédito" mostra as compras | `summarizeCardInvoiceTotals` (domain), `collapseCardPurchases`/`cardInvoices` em `transactions.service.ts`, `transaction-card-invoice-total.tsx`, `transactions-container.tsx` | — |
 | Botão Exportar na fatura do cartão e no extrato da conta, ao lado de "Selecionar" | `card-invoices-page.tsx`, `account-statement-page.tsx` (`export` no `scope`) | — |
+| Rodapé de Lançamentos conta compras de fatura paga em Efetivadas | `summarizeListingTotals` (`invoicePaid`), `transactions.service.ts` | — |
 | Lançamento novo numa fatura já paga abre o aviso "Essa fatura já está paga": salvar como paga (paga o valor novo pela última conta usada) ou como pendente (reabre a fatura, o pagamento vira parcial); importação e cópia reabrem direto; estorno continua bloqueado | domain `invoices.ts` (`paidInvoiceChargeActions`, `buildInvoiceRemainderAllocations`, `selectInvoicePeriodsReopenedByCharge`), `reopenPaidInvoicesForUser`, `invoicesService.payRemainder`, `transactions.service.ts` (`paidInvoiceAction`), `transaction-paid-invoice-dialog.tsx`, `useTransactionFormSubmission.ts` | — |
 | Linha do cartão em Lançamentos mostra "Fatura" com o valor que falta pagar quando há pagamento parcial | `transaction-card-invoice-total.tsx` (`CardInvoiceAmount`) | — |
+| Fatura mostra o total, "Sua parte" e "Outras pessoas" (cabeçalho do cartão e modal) | `getInvoiceOwnShare` (`invoices.presentation.ts`), `card-invoices-page.tsx`, `transaction-card-invoice-statement-dialog.tsx` | — |
 | Clicar no cartão em Lançamentos abre o extrato da fatura num modal (linha do tempo por dia, Saídas/Fatura, troca de mês, fechamento e vencimento) | `transaction-card-invoice-statement-dialog.tsx`, `transaction-card-invoice-total.tsx` | — |
 | Busca em Lançamentos mostra as compras do cartão uma a uma, sem a linha consolidada da fatura | `collapseCardPurchases` (`!query.q`) em `transactions.service.ts` | — |
 | Busca, filtros e paginação não levam a tela de volta ao topo (`resetScroll: false`; resultados com altura mínima de uma tela durante a busca) | `routes/transactions.tsx`, `routes/cards_.$cardId.tsx`, `routes/accounts_.$accountId.tsx`, `routes/people_.$personId.tsx`, `transactions-screen.tsx` | — |
@@ -81,6 +83,8 @@ para a lista completa.
 
 | Alteração | Arquivos principais | Commit |
 | --- | --- | --- |
+| Parte da pessoa paga na fatura conta como repasse recebido (lida das alocações do pagamento; o upstream deixou de criar o repasse em `3f3b5bb`) | `person-settlements.repository.ts` (`listSettlementsForPerson`) | — |
+| Acertos: lançamentos do mês um a um (descrição, parcela, valor) com Recebido/Falta/Efetivar; Registrar repasse preenchido com o que falta receber; o repasse vale para o mês aberto (coluna `period`) | `allocatePersonSettlementItems` (domain), `person-settlements.service.ts` (`items`), `person-settlements.repository.ts`, `person-settlement-item-row.tsx`, `person-settlements-card.tsx`, `person-settlement-dialog.tsx`, migração `0037` | — |
 | Compromissos futuros: parcelamento antecipado termina no mês para onde as parcelas foram (não no término original com R$ 0,00) | `packages/domain/src/commitments.ts` (`endingSeries`) | — |
 | Compromissos/Comprometimento do mês contam a parcela do mês das receitas parceladas, batendo com "Suas receitas" | `commitments.repository.ts` (`listSingleEntriesForUser`), `docs/commitments.md` | — |
 | Widgets da Visão geral sem rolagem horizontal com nomes longos (`grid-cols-1` na coluna de texto de cada linha) | `installment-expenses-widget.tsx`, `budgets-widget.tsx`, `goals-widget.tsx`, `invoices-widget.tsx`, `people-widget.tsx`, `category-breakdown-widget.tsx`, `dashboard-monthly-insight.tsx`, `expense-distribution-list.tsx` | — |
@@ -95,10 +99,11 @@ para a lista completa.
 | `0034_recurring_budgets` | Colunas `budgets.is_recurring` e `recurrence_end_period`, com check constraint |
 | `0035_transaction_purchase_time` | Coluna opcional `purchase_time` (`time`) em `transactions` |
 | `0036_goal_contributions` | Do upstream (era a `0032` da v0.18.0, renumerada): tabela `goal_contributions` e o saldo atual das metas manuais como primeiro movimento |
+| `0037_person_settlement_period` | Coluna opcional `period` em `person_settlements` (mês que o repasse acerta); nula nos repasses antigos |
 
-Essas migrações **já foram aplicadas na VPS** (a `0035` e a `0036` entram no próximo deploy). Por isso:
+Essas migrações **já foram aplicadas na VPS** (a `0035`, a `0036` e a `0037` entram no próximo deploy). Por isso:
 
-- **nunca renomeie, renumere nem altere** `0032` a `0036`;
+- **nunca renomeie, renumere nem altere** `0032` a `0037`;
 - o `drizzle-kit migrate` aplica só as migrações com `when` (no `_journal.json`) **maior** que a
   última aplicada. Uma migração com data anterior seria **ignorada em silêncio**.
 

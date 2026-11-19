@@ -57,7 +57,10 @@ import {
   useReopenInvoiceMutation,
   useUndoInvoicePaymentMutation,
 } from "@/features/invoices/invoices.mutations";
-import { formatInvoicePaymentOption } from "@/features/invoices/invoices.presentation";
+import {
+  formatInvoicePaymentOption,
+  getInvoiceOwnShare,
+} from "@/features/invoices/invoices.presentation";
 import { invoicesQueryOptions } from "@/features/invoices/invoices.queries";
 import { peopleQueryOptions } from "@/features/people/people.queries";
 import { TransactionsContainer } from "@/features/transactions/components/transactions-container";
@@ -239,6 +242,10 @@ function CardInvoiceSummary({
 }) {
   const summary = card.invoiceSummary;
   const payments = summary.payments;
+  const invoicesQuery = useQuery(invoicesQueryOptions(period));
+  const ownShare = getInvoiceOwnShare(
+    invoicesQuery.data?.items.find((item) => item.cardId === card.id),
+  );
   const isActive = card.status === "active";
   const brandAsset = getCardBrandAsset(card.brand);
   const adjustMutation = useAdjustInvoiceMutation();
@@ -382,12 +389,25 @@ function CardInvoiceSummary({
           },
         ]}
         primaryDescription={
-          summary.paidAmount > 0 ? (
+          summary.paidAmount > 0 || ownShare ? (
             <>
-              <span>
-                Pago <MoneyValue amount={summary.paidAmount} className="text-current" />
-              </span>
-              {summary.remainingAmount > 0 ? (
+              {ownShare ? (
+                <>
+                  <span>
+                    Sua parte <MoneyValue amount={ownShare.ownAmount} className="text-current" />
+                  </span>
+                  <span>
+                    Outras pessoas{" "}
+                    <MoneyValue amount={ownShare.othersAmount} className="text-current" />
+                  </span>
+                </>
+              ) : null}
+              {summary.paidAmount > 0 ? (
+                <span>
+                  Pago <MoneyValue amount={summary.paidAmount} className="text-current" />
+                </span>
+              ) : null}
+              {summary.remainingAmount > 0 && summary.paidAmount > 0 ? (
                 <span>
                   Restante <MoneyValue amount={summary.remainingAmount} className="text-current" />
                 </span>

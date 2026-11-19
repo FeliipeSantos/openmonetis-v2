@@ -4,14 +4,18 @@ import { getTransactionMutationErrorMessage } from "../transactions.presentation
 import type { useTransactionForm } from "../useTransactionForm";
 import { InstallmentActionDialog } from "./installment-action-dialog";
 import { RecurringEditScopeDialog } from "./recurring-edit-scope-dialog";
-
 import type { TransactionFormProps } from "./transaction-form.types";
+import { TransactionPaidInvoiceDialog } from "./transaction-paid-invoice-dialog";
 
 export function TransactionFormScopeDialogs({
   pendingInstallmentUpdate,
   setPendingInstallmentUpdate,
   pendingRecurringUpdate,
   setPendingRecurringUpdate,
+  pendingPaidInvoiceCreate,
+  setPendingPaidInvoiceCreate,
+  persistTransactionCreate,
+  createTransaction,
   persistTransactionUpdate,
   updateTransaction,
   updateRecurringRule,
@@ -22,6 +26,10 @@ export function TransactionFormScopeDialogs({
   setPendingInstallmentUpdate: ReturnType<typeof useTransactionForm>["setPendingInstallmentUpdate"];
   pendingRecurringUpdate: ReturnType<typeof useTransactionForm>["pendingRecurringUpdate"];
   setPendingRecurringUpdate: ReturnType<typeof useTransactionForm>["setPendingRecurringUpdate"];
+  pendingPaidInvoiceCreate: ReturnType<typeof useTransactionForm>["pendingPaidInvoiceCreate"];
+  setPendingPaidInvoiceCreate: ReturnType<typeof useTransactionForm>["setPendingPaidInvoiceCreate"];
+  persistTransactionCreate: ReturnType<typeof useTransactionForm>["persistTransactionCreate"];
+  createTransaction: ReturnType<typeof useTransactionForm>["createTransaction"];
   persistTransactionUpdate: ReturnType<typeof useTransactionForm>["persistTransactionUpdate"];
   updateTransaction: ReturnType<typeof useTransactionForm>["updateTransaction"];
   updateRecurringRule: ReturnType<typeof useTransactionForm>["updateRecurringRule"];
@@ -30,6 +38,27 @@ export function TransactionFormScopeDialogs({
 }) {
   return (
     <>
+      <TransactionPaidInvoiceDialog
+        invoicePeriod={pendingPaidInvoiceCreate?.invoicePeriod}
+        onChoose={async (action) => {
+          if (!pendingPaidInvoiceCreate) return;
+          try {
+            await persistTransactionCreate({
+              ...pendingPaidInvoiceCreate,
+              paidInvoiceAction: action,
+            });
+          } catch (error) {
+            toast.error("Não foi possível salvar o lançamento", {
+              description: getTransactionMutationErrorMessage(error),
+            });
+          }
+        }}
+        onOpenChange={(open) => {
+          if (!open) setPendingPaidInvoiceCreate(null);
+        }}
+        open={Boolean(pendingPaidInvoiceCreate)}
+        pending={createTransaction.isPending}
+      />
       <InstallmentActionDialog
         action="edit"
         key={`edit-${transaction?.id ?? "closed"}`}

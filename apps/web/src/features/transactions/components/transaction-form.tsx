@@ -56,6 +56,10 @@ export function TransactionForm({
     setPendingInstallmentUpdate,
     pendingRecurringUpdate,
     setPendingRecurringUpdate,
+    pendingPaidInvoiceCreate,
+    setPendingPaidInvoiceCreate,
+    persistTransactionCreate,
+    createTransaction,
     isAdvancedOpen,
     setIsAdvancedOpen,
     activeAccounts,
@@ -282,6 +286,10 @@ export function TransactionForm({
           setPendingInstallmentUpdate={setPendingInstallmentUpdate}
           pendingRecurringUpdate={pendingRecurringUpdate}
           setPendingRecurringUpdate={setPendingRecurringUpdate}
+          pendingPaidInvoiceCreate={pendingPaidInvoiceCreate}
+          setPendingPaidInvoiceCreate={setPendingPaidInvoiceCreate}
+          persistTransactionCreate={persistTransactionCreate}
+          createTransaction={createTransaction}
           persistTransactionUpdate={persistTransactionUpdate}
           updateTransaction={updateTransaction}
           updateRecurringRule={updateRecurringRule}

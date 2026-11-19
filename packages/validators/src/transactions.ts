@@ -1,4 +1,5 @@
 import { z } from "@hono/zod-openapi";
+import { paidInvoiceChargeActions } from "@openmonetis/domain/invoices";
 import { recurringActions } from "@openmonetis/domain/recurring-transactions";
 import {
   installmentAmountModes,
@@ -167,6 +168,10 @@ const CreateTransactionFieldsSchema = TransactionFieldsSchema.extend({
   installmentAmountMode: z.enum(installmentAmountModes).optional().openapi({
     description:
       "For installment purchases: `perInstallment` means `amount` (and split shares) are per installment; defaults to `total`.",
+  }),
+  paidInvoiceAction: z.enum(paidInvoiceChargeActions).optional().openapi({
+    description:
+      "For a card charge on an invoice already paid in full: `reopen` leaves the new amount due, `pay` also pays it from the account last used for that invoice. Without it such a charge fails with `INVOICE_ALREADY_PAID`.",
   }),
 });
 

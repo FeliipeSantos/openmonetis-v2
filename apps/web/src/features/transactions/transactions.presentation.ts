@@ -1,5 +1,9 @@
 import type { BulkTransactionTarget } from "@openmonetis/domain/transactions";
-import { dateOnlyToSafeInstant, formatDateInBrazil } from "@openmonetis/shared/date-time";
+import {
+  dateOnlyToSafeInstant,
+  formatDateInBrazil,
+  periodToSafeInstant,
+} from "@openmonetis/shared/date-time";
 import type {
   CardInvoiceTotalOutput,
   DailyTransactionSummaryOutput,
@@ -791,4 +795,10 @@ export const transactionTypeTabs = [
 
 export function getTransactionTypeTab(type: TransactionsSearch["type"]): TransactionType {
   return type ?? "expense";
+}
+
+/** "dezembro/2026", for the warning about an invoice that was already paid. */
+export function formatPaidInvoicePeriod(period: string) {
+  const month = formatDateInBrazil(periodToSafeInstant(period), { month: "long" });
+  return `${month}/${period.slice(0, 4)}`;
 }

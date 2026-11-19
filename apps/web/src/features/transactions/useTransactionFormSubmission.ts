@@ -9,6 +9,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { toast } from "sonner";
 import { uploadAttachment } from "@/features/attachments/attachments.api";
 import { attachmentKeys } from "@/features/attachments/attachments.queries";
+import { ApiClientError } from "@/lib/api-client";
 import type { TransactionFormProps } from "./components/transaction-form.types";
 import {
   getChangedTransactionInput,
@@ -32,6 +33,7 @@ export function useTransactionFormSubmission({
   setPendingFiles,
   setPendingRecurringUpdate,
   setPendingInstallmentUpdate,
+  setPendingPaidInvoiceCreate,
   defaultValues,
   resetForm,
 }: {
@@ -46,6 +48,8 @@ export function useTransactionFormSubmission({
   setPendingInstallmentUpdate: Dispatch<
     SetStateAction<{ data: TransactionInput; value: TransactionFormValues } | null>
   >;
+  /** A card charge on an invoice already paid waits here until the user picks how to save it. */
+  setPendingPaidInvoiceCreate: Dispatch<SetStateAction<TransactionInput | null>>;
   defaultValues: TransactionFormValues;
   resetForm: () => void;
 }) {
@@ -95,52 +99,71 @@ export function useTransactionFormSubmission({
         return;
       }
 
-      const created = onCreate ? await onCreate(data) : await createTransaction.mutateAsync(data);
-      const uploadResults = created.recordId
-        ? await Promise.allSettled(
-            pendingFiles.map((file) => uploadAttachment(file, created.recordId as string)),
-          )
-        : [];
-      const failedUploads = created.recordId
-        ? uploadResults.filter((result) => result.status === "rejected").length
-        : pendingFiles.length;
-
-      if (pendingFiles.length) {
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: attachmentKeys.all }),
-          queryClient.invalidateQueries({ queryKey: transactionKeys.all }),
-        ]);
-      }
-
-      if (failedUploads) {
-        toast.warning("Lançamento salvo, mas houve falha nos anexos", {
-          description:
-            failedUploads === 1
-              ? "1 arquivo não foi enviado. Edite o lançamento para tentar novamente."
-              : `${failedUploads} arquivos não foram enviados. Edite o lançamento para tentar novamente.`,
-        });
-      } else {
-        toast.success("Lançamento salvo", {
-          description: `${data.name} foi cadastrado com sucesso.`,
-        });
-      }
-      resetForm();
-      setPendingFiles([]);
-      if (onCreated) {
-        try {
-          await onCreated(created);
-        } catch {
-          toast.warning("Lançamento salvo, mas o pré-lançamento continua pendente.", {
-            description: "Revise a caixa de pré-lançamentos antes de tentar novamente.",
-          });
-        }
-      }
-      onSaved();
+      await persistTransactionCreate(data);
     } catch (error) {
+      if (error instanceof ApiClientError && error.code === "INVOICE_ALREADY_PAID") {
+        setPendingPaidInvoiceCreate(
+          normalizeTransactionInput(value, { includeStartInstallment: true }),
+        );
+        return;
+      }
       toast.error("Não foi possível salvar o lançamento", {
         description: getTransactionMutationErrorMessage(error),
       });
     }
   }
-  return { submit, persistTransactionUpdate, updateTransaction, updateRecurringRule };
+
+  /** Saves a new transaction, then its attachments, and closes the form. */
+  async function persistTransactionCreate(data: TransactionInput) {
+    const created = onCreate ? await onCreate(data) : await createTransaction.mutateAsync(data);
+    const uploadResults = created.recordId
+      ? await Promise.allSettled(
+          pendingFiles.map((file) => uploadAttachment(file, created.recordId as string)),
+        )
+      : [];
+    const failedUploads = created.recordId
+      ? uploadResults.filter((result) => result.status === "rejected").length
+      : pendingFiles.length;
+
+    if (pendingFiles.length) {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: attachmentKeys.all }),
+        queryClient.invalidateQueries({ queryKey: transactionKeys.all }),
+      ]);
+    }
+
+    if (failedUploads) {
+      toast.warning("Lançamento salvo, mas houve falha nos anexos", {
+        description:
+          failedUploads === 1
+            ? "1 arquivo não foi enviado. Edite o lançamento para tentar novamente."
+            : `${failedUploads} arquivos não foram enviados. Edite o lançamento para tentar novamente.`,
+      });
+    } else {
+      toast.success("Lançamento salvo", {
+        description: `${data.name} foi cadastrado com sucesso.`,
+      });
+    }
+    resetForm();
+    setPendingFiles([]);
+    if (onCreated) {
+      try {
+        await onCreated(created);
+      } catch {
+        toast.warning("Lançamento salvo, mas o pré-lançamento continua pendente.", {
+          description: "Revise a caixa de pré-lançamentos antes de tentar novamente.",
+        });
+      }
+    }
+    setPendingPaidInvoiceCreate(null);
+    onSaved();
+  }
+  return {
+    submit,
+    persistTransactionCreate,
+    persistTransactionUpdate,
+    createTransaction,
+    updateTransaction,
+    updateRecurringRule,
+  };
 }

@@ -13,6 +13,7 @@ import {
   emptyDueDateRulesReader,
 } from "@openmonetis/domain/due-date-rules";
 import {
+  buildInvoiceRemainderAllocations,
   calculateInvoicePersonBalances,
   createInvoiceAdjustmentDraft,
   validateInvoicePaymentAllocations,
@@ -61,6 +62,7 @@ type InvoiceAllocationRecord = { cardId: string; personId: string; amount: strin
 type InvoicePaymentRecord = {
   id: string;
   cardId: string;
+  accountId: string | null;
   amount: string;
   paidAt: string;
 };
@@ -374,6 +376,29 @@ export function createInvoicesService(
         remainingAmount,
         status: remainingAmount === 0 ? "paid" : invoice.status,
       };
+    },
+    /**
+     * Pays whatever is still due on the invoice today, from the account used by its latest
+     * payment (a new charge on an invoice that had been paid in full). Null when nothing is due.
+     */
+    async payRemainder(cardId: string, period: string, userId: string) {
+      const snapshot = await get(period, userId);
+      const invoice = snapshot.items.find((item) => item.cardId === cardId);
+      if (!invoice || invoice.remainingAmount <= 0) return null;
+      const payments = await repository.listPayments(userId, period);
+      const accountId =
+        payments.find((payment) => payment.cardId === cardId && payment.accountId)?.accountId ??
+        null;
+      return this.pay(
+        cardId,
+        period,
+        {
+          accountId,
+          paidAt: today(),
+          allocations: buildInvoiceRemainderAllocations(invoice.people),
+        },
+        userId,
+      );
     },
     async undo(cardId: string, period: string, paymentId: string, userId: string) {
       const payment = await repository.deletePayment(userId, cardId, period, paymentId);

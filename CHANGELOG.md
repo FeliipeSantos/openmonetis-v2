@@ -9,6 +9,15 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Adicionado
 
+- Fatura paga antes do fechamento: ao lançar uma despesa no cartão numa fatura já quitada, um
+  aviso pergunta como salvar. **Salvar como paga** registra a despesa e paga o valor novo pela
+  última conta usada no pagamento da fatura, recalculando os saldos; **Salvar como pendente**
+  reabre a fatura, o pagamento feito passa a contar como parcial e só o valor novo fica a pagar.
+  Importação e cópia reabrem a fatura direto; estornos numa fatura paga continuam bloqueados. A
+  API aceita `paidInvoiceAction` (`reopen`/`pay`) na criação; sem ele, a resposta continua
+  `INVOICE_ALREADY_PAID`.
+- Fatura com pagamento parcial em Lançamentos: abaixo do total do cartão aparece "Fatura" com o
+  valor que ainda falta pagar.
 - Extrato da fatura em Lançamentos: clicar no cartão abre um modal com as compras daquela
   fatura em linha do tempo, dia a dia, com Saídas e Fatura acumulada de cada dia, setas para
   trocar o mês, datas de fechamento e vencimento e atalho para a fatura completa.

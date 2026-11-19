@@ -476,12 +476,11 @@ for (const [label, method, result, code] of [
   ["category", "listCategoriesByIdsForUser", [], "CATEGORY_NOT_FOUND"],
   ["account", "findAccountByIdForUser", { isArchived: true }, "ACCOUNT_NOT_FOUND"],
   ["card", "findCardByIdForUser", { status: "inactive" }, "CARD_NOT_FOUND"],
-  ["paid invoice", "listPaidInvoicePeriodsForUser", ["2026-10"], "INVOICE_ALREADY_PAID"],
   ["credit limit", "getCardExpenseTotalForUser", 1000, "CARD_LIMIT_EXCEEDED"],
 ] as Array<[string, keyof TransactionsServiceDependencies, unknown, string]>) {
   test(`import rejects unavailable ${label} before creating the batch`, async () => {
     const f = importFixture();
-    if (["card", "paid invoice", "credit limit"].includes(label))
+    if (["card", "credit limit"].includes(label))
       Object.assign(f.input, {
         destinationType: "card",
         destinationId: "80000000-0000-4000-8000-000000000008",
@@ -493,6 +492,29 @@ for (const [label, method, result, code] of [
     assert.deepEqual(f.batches, []);
   });
 }
+
+test("import into an invoice paid in full reopens it and keeps the batch", async () => {
+  const f = importFixture();
+  Object.assign(f.input, {
+    destinationType: "card",
+    destinationId: "80000000-0000-4000-8000-000000000008",
+    paymentMethod: "credit_card",
+    invoicePeriod: "2026-10",
+  });
+  const reopened: Array<[string, string[], string]> = [];
+  Object.assign(f.dependencies, {
+    listPaidInvoicePeriodsForUser: async () => [{ period: "2026-10" }],
+    reopenPaidInvoicesForUser: async (cardId: string, periods: string[], owner: string) => {
+      reopened.push([cardId, periods, owner]);
+    },
+  });
+  await f.service.importTransactions(f.input, userId);
+  assert.deepEqual(
+    reopened.map(([, periods, owner]) => [periods, owner]),
+    [[["2026-10"], userId]],
+  );
+  assert.equal(f.batches.length, 1);
+});
 
 test("import undo scopes the batch and returns not found when no owned records were deleted", async () => {
   const f = importFixture();
@@ -3037,19 +3059,63 @@ test("copying an installment purchase creates an independent series with conserv
   assert.equal(f.source.seriesId, originalSeriesId);
 });
 
-test("copying a card purchase rejects a paid invoice before inserting the copy or its links", async () => {
+test("a card purchase on a paid invoice asks first, then reopens or also pays the remainder", async () => {
+  for (const action of [undefined, "reopen", "pay"] as const) {
+    const f = copyFixture({
+      paymentMethod: "credit_card",
+      accountId: null,
+      cardId: "f0000000-0000-4000-8000-00000000000f",
+      isSettled: null,
+    });
+    const reopened: string[][] = [];
+    const paid: string[] = [];
+    f.dependencies.listPaidInvoicePeriodsForUser = async () => [{ period: "2026-10" }];
+    f.dependencies.reopenPaidInvoicesForUser = async (_cardId, periods) => {
+      reopened.push(periods);
+    };
+    f.dependencies.payInvoiceRemainderForUser = async (_cardId, period) => {
+      paid.push(period);
+    };
+    const input = {
+      type: "expense" as const,
+      condition: "single" as const,
+      paymentMethod: "credit_card" as const,
+      name: "Despesa Credito 3",
+      amount: 100,
+      purchaseDate: "2026-10-05",
+      personId: f.source.personId,
+      cardId: "f0000000-0000-4000-8000-00000000000f",
+      categoryId: f.source.categoryId,
+      paidInvoiceAction: action,
+      userId,
+    };
+    if (!action) {
+      await assert.rejects(f.service.createTransaction(input), { code: "INVOICE_ALREADY_PAID" });
+      assert.deepEqual(f.writes, [], "nothing is saved before the user chooses");
+      assert.deepEqual(reopened, []);
+      continue;
+    }
+    await f.service.createTransaction(input);
+    assert.deepEqual(reopened, [["2026-10"]], action);
+    assert.deepEqual(paid, action === "pay" ? ["2026-10"] : [], action);
+  }
+});
+
+test("copying a card purchase into a paid invoice reopens it, keeping the earlier payment", async () => {
   const f = copyFixture({
     paymentMethod: "credit_card",
     accountId: null,
     cardId: "f0000000-0000-4000-8000-00000000000f",
     isSettled: null,
   });
+  const reopened: Array<[string, string[]]> = [];
   f.dependencies.listPaidInvoicePeriodsForUser = async () => [{ period: "2026-10" }];
-  await assert.rejects(f.service.copyTransaction(transactionId, userId), {
-    code: "INVOICE_ALREADY_PAID",
-  });
-  assert.deepEqual(f.writes, []);
-  assert.deepEqual(f.links, []);
+  f.dependencies.reopenPaidInvoicesForUser = async (cardId, periods) => {
+    reopened.push([cardId, periods]);
+  };
+  await f.service.copyTransaction(transactionId, userId);
+  assert.deepEqual(reopened, [["f0000000-0000-4000-8000-00000000000f", ["2026-10"]]]);
+  assert.equal(f.writes.length, 1);
 });
 
 for (const selectedAmount of ["-33.34", "-33.33"]) {

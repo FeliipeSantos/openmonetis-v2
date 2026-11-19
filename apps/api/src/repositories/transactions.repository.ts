@@ -1176,6 +1176,25 @@ export async function listPaidInvoicePeriodsForUser(
     );
 }
 
+/**
+ * Reopens invoices paid in full that just received a new charge. Their payments stay in
+ * `invoice_payments`, so they now read as a partial payment of the larger invoice.
+ */
+export async function reopenPaidInvoicesForUser(cardId: string, periods: string[], userId: string) {
+  if (!periods.length) return;
+  await db
+    .update(invoices)
+    .set({ paymentStatus: "pending", paidAt: null, paymentAccountId: null, updatedAt: new Date() })
+    .where(
+      and(
+        eq(invoices.userId, userId),
+        eq(invoices.cardId, cardId),
+        eq(invoices.paymentStatus, "paid"),
+        inArray(invoices.period, periods),
+      ),
+    );
+}
+
 export async function getCardExpenseTotalForUser(cardId: string, userId: string) {
   const [result] = await db
     .select({

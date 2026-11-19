@@ -227,6 +227,7 @@ export const invoicesRepository = {
       .select({
         id: invoicePayments.id,
         cardId: invoicePayments.cardId,
+        accountId: invoicePayments.accountId,
         amount: invoicePayments.amount,
         paidAt: invoicePayments.paidAt,
       })

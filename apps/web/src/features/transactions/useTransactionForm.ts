@@ -38,6 +38,9 @@ export function useTransactionForm({
   const [pendingRecurringUpdate, setPendingRecurringUpdate] = useState<TransactionInput | null>(
     null,
   );
+  const [pendingPaidInvoiceCreate, setPendingPaidInvoiceCreate] = useState<TransactionInput | null>(
+    null,
+  );
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(mode !== "edit" && Boolean(transaction));
   const activeAccounts = useMemo(
     () => accounts.filter((account) => !account.isArchived),
@@ -73,30 +76,37 @@ export function useTransactionForm({
     "accountId" | "sourceAccountId" | "destinationAccountId"
   >("accountId");
   const [relatedRecord, setRelatedRecord] = useState<TransactionRelatedRecordKind | null>(null);
-  const { submit, persistTransactionUpdate, updateTransaction, updateRecurringRule } =
-    useTransactionFormSubmission({
-      mode,
-      transaction,
-      onCreate,
-      onCreated,
-      onSaved,
-      pendingFiles,
-      setPendingFiles,
-      setPendingRecurringUpdate,
-      setPendingInstallmentUpdate,
-      defaultValues,
-      resetForm: () =>
-        form.reset(
-          getDefaultTransactionFormValues(
-            accounts,
-            cards,
-            people,
-            defaultType,
-            defaultPeriod,
-            createDefaults,
-          ),
+  const {
+    submit,
+    persistTransactionCreate,
+    persistTransactionUpdate,
+    createTransaction,
+    updateTransaction,
+    updateRecurringRule,
+  } = useTransactionFormSubmission({
+    mode,
+    transaction,
+    onCreate,
+    onCreated,
+    onSaved,
+    pendingFiles,
+    setPendingFiles,
+    setPendingRecurringUpdate,
+    setPendingInstallmentUpdate,
+    setPendingPaidInvoiceCreate,
+    defaultValues,
+    resetForm: () =>
+      form.reset(
+        getDefaultTransactionFormValues(
+          accounts,
+          cards,
+          people,
+          defaultType,
+          defaultPeriod,
+          createDefaults,
         ),
-    });
+      ),
+  });
   const form = useForm({
     defaultValues,
     onSubmitInvalid: showInvalidFormToast,
@@ -208,6 +218,10 @@ export function useTransactionForm({
     setPendingInstallmentUpdate,
     pendingRecurringUpdate,
     setPendingRecurringUpdate,
+    pendingPaidInvoiceCreate,
+    setPendingPaidInvoiceCreate,
+    persistTransactionCreate,
+    createTransaction,
     isAdvancedOpen,
     setIsAdvancedOpen,
     activeAccounts,

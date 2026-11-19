@@ -100,6 +100,39 @@ function CardInvoiceName({
   );
 }
 
+type InvoiceSummary = CardOutput["invoiceSummary"];
+
+/**
+ * The listed total and, once part of the invoice was paid (e.g. an early payment), what is still
+ * due on it, signed like the total.
+ */
+function CardInvoiceAmount({
+  className,
+  invoice,
+  summary,
+}: {
+  className: string;
+  invoice: CardInvoiceTotalOutput;
+  summary: InvoiceSummary | undefined;
+}) {
+  const partlyPaid = summary !== undefined && summary.paidAmount > 0 && summary.remainingAmount > 0;
+
+  return (
+    <span className="grid justify-items-end">
+      <MoneyValue amount={invoice.amount} className={className} />
+      {partlyPaid ? (
+        <span
+          className="inline-flex items-baseline gap-1 text-muted-foreground text-xs"
+          title="Valor que ainda falta pagar da fatura"
+        >
+          Fatura
+          <MoneyValue amount={-summary.remainingAmount} className="font-medium" />
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
 /** "12 lançamentos · Venc. qui, 10 de dez". */
 function CardInvoiceDetail({
   dueDate,
@@ -284,7 +317,7 @@ export function CardInvoiceTotalRow({
         />
       </TableCell>
       <TableCell className="text-right whitespace-nowrap">
-        <MoneyValue amount={invoice.amount} className="font-semibold" />
+        <CardInvoiceAmount className="font-semibold" invoice={invoice} summary={summary} />
       </TableCell>
       <TableCell className="pl-5 whitespace-nowrap">
         <span className="inline-flex items-center gap-2">
@@ -344,7 +377,11 @@ export function CardInvoiceTotalItem({ invoice }: { invoice: CardInvoiceTotalOut
           <CardInvoiceDetail dueDate={summary?.dueDate} invoice={invoice} />
         </span>
         <span className="grid shrink-0 justify-items-end gap-0.5">
-          <MoneyValue amount={invoice.amount} className="font-semibold text-sm" />
+          <CardInvoiceAmount
+            className="font-semibold text-sm"
+            invoice={invoice}
+            summary={summary}
+          />
           <CardInvoiceStatus className="gap-1 text-xs [&_svg]:size-3" status={summary?.status} />
         </span>
         <ChevronRight aria-hidden="true" className="size-4 text-muted-foreground" />

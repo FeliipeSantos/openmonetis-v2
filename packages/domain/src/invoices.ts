@@ -100,3 +100,29 @@ export function createInvoiceAdjustmentDraft(
     type: "expense",
   };
 }
+
+/** What to do with an invoice paid in full that receives a new charge. */
+export const paidInvoiceChargeActions = ["reopen", "pay"] as const;
+export type PaidInvoiceChargeAction = (typeof paidInvoiceChargeActions)[number];
+
+/** Pays what is still due on an invoice, each person settling their own remaining share. */
+export function buildInvoiceRemainderAllocations(
+  people: ReadonlyArray<{ personId: string; remainingAmount: number }>,
+) {
+  return people
+    .filter((person) => person.remainingAmount > 0)
+    .map((person) => ({ personId: person.personId, amount: person.remainingAmount }));
+}
+
+/**
+ * Invoices paid in full that a new charge lands on. Instead of refusing the charge, these invoices
+ * reopen: the earlier payments stay recorded and now count as a partial payment, and the new
+ * charge is what remains due.
+ */
+export function selectInvoicePeriodsReopenedByCharge(
+  paidPeriods: readonly string[],
+  chargedPeriods: readonly string[],
+) {
+  const paid = new Set(paidPeriods);
+  return [...new Set(chargedPeriods)].filter((period) => paid.has(period));
+}

@@ -217,6 +217,8 @@ const transactionsService = createTransactionsService(
     findPersonByIdForUser,
     findSystemCategoryByNameForUser,
     getAccountBalanceSnapshotForUser: accountsService.getBalanceSnapshot,
+    payInvoiceRemainderForUser: (cardId, period, userId) =>
+      invoicesService.payRemainder(cardId, period, userId),
     listCardInvoiceDueDates: async (userId, periods) =>
       (
         await Promise.all(

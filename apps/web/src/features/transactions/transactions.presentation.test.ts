@@ -8,6 +8,7 @@ import {
   formatCardInvoiceTotalDetail,
   formatDate,
   formatInstallmentOption,
+  formatPaidInvoicePeriod,
   formatPaymentMethod,
   formatPaymentMethodTable,
   formatTransactionConditionSummary,
@@ -401,4 +402,8 @@ test("the main listing opens on expenses and each tab keeps its type", () => {
   assert.equal(getTransactionTypeTab(undefined), "expense");
   assert.equal(getTransactionTypeTab("income"), "income");
   assert.equal(getTransactionTypeTab("transfer"), "transfer");
+});
+
+test("paid invoice warning names the month and year", () => {
+  assert.equal(formatPaidInvoicePeriod("2026-12"), "dezembro/2026");
 });

@@ -15,6 +15,10 @@ import {
   resolveDueDate,
 } from "@openmonetis/domain/due-date-rules";
 import {
+  type PaidInvoiceChargeAction,
+  selectInvoicePeriodsReopenedByCharge,
+} from "@openmonetis/domain/invoices";
+import {
   getNextRecurringOccurrenceDate,
   getRecurringDueDate,
 } from "@openmonetis/domain/recurring-expenses";
@@ -149,6 +153,10 @@ export type TransactionsServiceDependencies = Pick<
 > & {
   dueDateRules?: DueDateRulesReader;
   /** Invoice due dates per card for the given periods (rule- and holiday-adjusted). */
+  /** Pays what is due on an invoice from the account last used for it (charge saved as paid). */
+  payInvoiceRemainderForUser?: (cardId: string, period: string, userId: string) => Promise<unknown>;
+  /** Reopens paid invoices that receive a new charge, keeping their payments. */
+  reopenPaidInvoicesForUser?: typeof import("../repositories/transactions.repository").reopenPaidInvoicesForUser;
   listCardInvoiceDueDates?: (
     userId: string,
     periods: string[],
@@ -908,14 +916,6 @@ export function createTransactionsService(
     }
 
     if (card && input.invoicePeriod) {
-      const paidPeriods = await listPaidInvoicePeriodsForUser(
-        card.id,
-        [input.invoicePeriod],
-        userId,
-      );
-      if (paidPeriods.length) {
-        throw badRequest("Paid invoices cannot receive transactions", "INVOICE_ALREADY_PAID");
-      }
       const importedExpenses = input.rows
         .filter((row) => row.type === "expense")
         .reduce((total, row) => total + row.amount, 0);
@@ -923,6 +923,7 @@ export function createTransactionsService(
       if (used + importedExpenses > Number(card.limit)) {
         throw badRequest("Card limit exceeded", "CARD_LIMIT_EXCEEDED");
       }
+      await reopenInvoicesReceivingCharge(card.id, [input.invoicePeriod], userId, "reopen");
     }
 
     const batchId = randomUUID();
@@ -1083,6 +1084,30 @@ export function createTransactionsService(
   }
 
   /** Installment purchases typed per installment are stored by their total, like any other. */
+  /**
+   * A charge on an invoice already paid in full reopens it instead of being refused: the earlier
+   * payment becomes a partial payment and the new charge is what remains due.
+   */
+  async function reopenInvoicesReceivingCharge(
+    cardId: string,
+    periods: string[],
+    userId: string,
+    action: PaidInvoiceChargeAction | undefined,
+  ) {
+    const paidPeriods = await listPaidInvoicePeriodsForUser(cardId, periods, userId);
+    const reopened = selectInvoicePeriodsReopenedByCharge(
+      paidPeriods.map((item) => item.period),
+      periods,
+    );
+    if (!reopened.length) return reopened;
+    // The client asks the user first: keep the new amount due, or pay it as well.
+    if (!action) {
+      throw badRequest("Paid invoices cannot receive transactions", "INVOICE_ALREADY_PAID");
+    }
+    await dependencies.reopenPaidInvoicesForUser?.(cardId, reopened, userId);
+    return reopened;
+  }
+
   function toPurchaseTotalInput<T extends TransactionInput>(data: T): T {
     if (data.condition !== "installment" || data.installmentAmountMode !== "perInstallment") {
       return data;
@@ -1099,7 +1124,29 @@ export function createTransactionsService(
     };
   }
 
+  /**
+   * Creates the transaction; when it reopened an invoice paid in full and the user chose to save
+   * it as paid, pays the new remainder from the account last used for that invoice.
+   */
   async function createTransaction(
+    input: TransactionInput & { userId: string },
+    confirmation?: Parameters<typeof createTransactionRecord>[1],
+  ) {
+    const reopenedInvoices = { cardId: "", periods: [] as string[] };
+    const created = await createTransactionRecord(input, confirmation, reopenedInvoices);
+    if (input.paidInvoiceAction === "pay" && dependencies.payInvoiceRemainderForUser) {
+      for (const period of reopenedInvoices.periods) {
+        await dependencies.payInvoiceRemainderForUser(
+          reopenedInvoices.cardId,
+          period,
+          input.userId,
+        );
+      }
+    }
+    return created;
+  }
+
+  async function createTransactionRecord(
     input: TransactionInput & { userId: string },
     confirmation?:
       | { source: "inbox"; sourceId: string; confirmedAt: Date }
@@ -1110,6 +1157,7 @@ export function createTransactionsService(
           confirmedAt: Date;
           installmentAmounts?: number[];
         },
+    reopenedInvoices: { cardId: string; periods: string[] } = { cardId: "", periods: [] },
   ) {
     const data = toPurchaseTotalInput(input);
     assertBoletoPaymentDateIsNotFuture(data);
@@ -1158,13 +1206,6 @@ export function createTransactionsService(
       const periods = installmentSchedule
         ? installmentSchedule.map((installment) => installment.period)
         : [basePeriod];
-      const paidPeriods = await listPaidInvoicePeriodsForUser(
-        context.card.id,
-        periods,
-        data.userId,
-      );
-      if (paidPeriods.length)
-        throw badRequest("Paid invoices cannot receive transactions", "INVOICE_ALREADY_PAID");
       if (data.type === "expense") {
         const used = await getCardExpenseTotalForUser(context.card.id, data.userId);
         const trackedAmount = installmentSchedule
@@ -1176,6 +1217,13 @@ export function createTransactionsService(
         if (used + trackedAmount > Number(context.card.limit))
           throw badRequest("Card limit exceeded", "CARD_LIMIT_EXCEEDED");
       }
+      reopenedInvoices.cardId = context.card.id;
+      reopenedInvoices.periods = await reopenInvoicesReceivingCharge(
+        context.card.id,
+        periods,
+        data.userId,
+        data.paidInvoiceAction,
+      );
     }
 
     if (data.type === "transfer") {
@@ -3022,6 +3070,8 @@ export function createTransactionsService(
       isSettled: current.isSettled,
       note: current.note,
       splitShares,
+      // A copy into an invoice already paid leaves the copied amount due on it.
+      paidInvoiceAction: "reopen",
     });
     if (copied.recordId) await copyTransactionAttachmentLinksForUser(id, copied.recordId, userId);
     return copied;

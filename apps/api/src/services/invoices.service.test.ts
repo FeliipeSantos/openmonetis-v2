@@ -224,7 +224,9 @@ test("invoice reduction is an expense adjustment assigned entirely to the select
 test("paid invoice must be reopened before it can be adjusted", async () => {
   const service = createInvoicesService(
     createRepository(() => undefined, {
-      listPayments: async () => [{ id: paymentId, cardId, amount: "100.00", paidAt: "2026-09-03" }],
+      listPayments: async () => [
+        { id: paymentId, cardId, accountId: null, amount: "100.00", paidAt: "2026-09-03" },
+      ],
     }),
     () => "2026-09-04",
   );
@@ -733,3 +735,33 @@ for (const operation of ["undo", "removeAdjustment", "updateDates"] as const) {
     assert.equal(calls, 1);
   });
 }
+
+test("paying the remainder uses the account of the latest payment and each person's balance", async () => {
+  let inserted: PaymentDraft | undefined;
+  const service = createInvoicesService(
+    createRepository(
+      (data) => {
+        inserted = data;
+      },
+      {
+        listPayments: async () => [
+          { id: paymentId, cardId, accountId, amount: "50.00", paidAt: "2026-09-02" },
+        ],
+      },
+    ),
+    () => "2026-09-04",
+  );
+
+  const result = await service.payRemainder(cardId, "2026-09", userId);
+
+  assert.equal(inserted?.accountId, accountId);
+  assert.equal(inserted?.paidAt, "2026-09-04");
+  assert.deepEqual(
+    [...(inserted?.allocations ?? [])].sort((a, b) => a.personId.localeCompare(b.personId)),
+    [
+      { personId: adminPersonId, amount: 1000 },
+      { personId: externalPersonId, amount: 9999.99 },
+    ].sort((a, b) => a.personId.localeCompare(b.personId)),
+  );
+  assert.equal(result?.remainingAmount, 0);
+});

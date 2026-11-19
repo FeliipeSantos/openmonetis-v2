@@ -172,7 +172,8 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 - Acertos e Extrato da pessoa: a parte dela registrada no pagamento da fatura ("Registrar parte
   da pessoa" ou a divisão da fatura inteira) volta a contar como repasse recebido no mês da fatura.
 - Soma da lista de lançamentos: compras no cartão de uma fatura já paga passam a contar em
-  Efetivadas, e não mais em Pendentes.
+  Efetivadas, e não mais em Pendentes; numa fatura com pagamento antecipado ou parcial, o valor já
+  pago conta em Efetivadas e só o restante fica em Pendentes.
 - Compromissos futuros: um parcelamento antecipado passa a terminar no mês para onde as parcelas
   foram, liberando o valor da parcela regular, em vez de aparecer no término original com R$ 0,00.
 - Comprometimento do mês e Compromissos futuros: a receita prevista passa a contar a parcela do

@@ -147,14 +147,28 @@ export function summarizeListingTotals(
     isSettled: boolean | null;
     /** Card purchase on an invoice already paid: it counts as settled with the invoice. */
     invoicePaid?: boolean;
+    /** Card purchase still open on its invoice: `cardId:period`, to count partial payments. */
+    invoiceKey?: string;
   }>,
+  /** Amount already paid on each open invoice (early or partial payments), by `cardId:period`. */
+  invoicePaidAmounts: ReadonlyMap<string, number> = new Map(),
 ): ListingTotals {
   let settledCents = 0;
   let pendingCents = 0;
+  const openInvoiceCents = new Map<string, number>();
   for (const item of items) {
     const cents = Math.round(item.amount * 100);
     if (item.isSettled === true || item.invoicePaid === true) settledCents += cents;
-    else pendingCents += cents;
+    else if (item.invoiceKey && invoicePaidAmounts.get(item.invoiceKey)) {
+      openInvoiceCents.set(item.invoiceKey, (openInvoiceCents.get(item.invoiceKey) ?? 0) + cents);
+    } else pendingCents += cents;
+  }
+  // What was already paid on an open invoice is settled; only the rest stays pending.
+  for (const [key, cents] of openInvoiceCents) {
+    const paidCents = Math.round((invoicePaidAmounts.get(key) ?? 0) * 100);
+    const coveredCents = Math.sign(cents) * Math.min(Math.abs(cents), paidCents);
+    settledCents += coveredCents;
+    pendingCents += cents - coveredCents;
   }
   return {
     settled: settledCents / 100,

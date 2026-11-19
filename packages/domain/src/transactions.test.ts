@@ -721,3 +721,17 @@ test("listing totals count card purchases of a paid invoice as settled", () => {
     { settled: -125, pending: -40, total: -165 },
   );
 });
+
+test("listing totals count an early payment of an open invoice as settled", () => {
+  assert.deepEqual(
+    summarizeListingTotals(
+      [
+        { amount: -600, isSettled: null, invoiceKey: "nubank:2026-12" },
+        { amount: -400, isSettled: null, invoiceKey: "nubank:2026-12" },
+        { amount: -250, isSettled: null, invoiceKey: "c6:2026-12" },
+      ],
+      new Map([["nubank:2026-12", 500]]),
+    ),
+    { settled: -500, pending: -750, total: -1250 },
+  );
+});

@@ -160,7 +160,16 @@ export type TransactionsServiceDependencies = Pick<
   listCardInvoiceDueDates?: (
     userId: string,
     periods: string[],
-  ) => Promise<Array<{ cardId: string; period: string; dueDate: string; isPaid?: boolean }>>;
+  ) => Promise<
+    Array<{
+      cardId: string;
+      period: string;
+      dueDate: string;
+      isPaid?: boolean;
+      /** Already paid on the invoice (early or partial payments). */
+      paidAmount?: number;
+    }>
+  >;
   transitionRecurringRuleForUser: typeof import("../repositories/recurring-transactions.repository").transitionRecurringRuleForUser;
   listTagsByIdsForUser?: (ids: string[], userId: string) => Promise<Array<{ id: string }>>;
   getAccountBalanceSnapshotForUser: (
@@ -1919,7 +1928,16 @@ export function createTransactionsService(
               (entry) =>
                 entry.cardId === item.cardId && entry.period === item.period && entry.isPaid,
             ),
+          invoiceKey:
+            item.paymentMethod === "credit_card" && item.cardId
+              ? `${item.cardId}:${item.period}`
+              : undefined,
         })),
+        new Map(
+          invoiceDueDates.flatMap((entry) =>
+            entry.paidAmount ? [[`${entry.cardId}:${entry.period}`, entry.paidAmount]] : [],
+          ),
+        ),
       ),
       dailySummaries: summarizeTransactionsByDay(
         filtered.map((item) => ({

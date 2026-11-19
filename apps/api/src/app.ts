@@ -230,6 +230,7 @@ const transactionsService = createTransactionsService(
               period,
               dueDate: card.invoiceSummary.dueDate,
               isPaid: card.invoiceSummary.status === "paid",
+              paidAmount: card.invoiceSummary.paidAmount,
             })),
           ),
         )

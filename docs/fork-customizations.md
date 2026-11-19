@@ -81,6 +81,7 @@ para a lista completa.
 
 | Alteração | Arquivos principais | Commit |
 | --- | --- | --- |
+| Compromissos futuros: parcelamento antecipado termina no mês para onde as parcelas foram (não no término original com R$ 0,00) | `packages/domain/src/commitments.ts` (`endingSeries`) | — |
 | Compromissos/Comprometimento do mês contam a parcela do mês das receitas parceladas, batendo com "Suas receitas" | `commitments.repository.ts` (`listSingleEntriesForUser`), `docs/commitments.md` | — |
 | Widgets da Visão geral sem rolagem horizontal com nomes longos (`grid-cols-1` na coluna de texto de cada linha) | `installment-expenses-widget.tsx`, `budgets-widget.tsx`, `goals-widget.tsx`, `invoices-widget.tsx`, `people-widget.tsx`, `category-breakdown-widget.tsx`, `dashboard-monthly-insight.tsx`, `expense-distribution-list.tsx` | — |
 | Logo "Nubank Chroma" renomeada para "Nubank Croma" (só o nome exibido; o arquivo continua `nubank_chroma.png`) | `apps/web/src/lib/logo-catalog.ts` | `6b21c27` |

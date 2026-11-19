@@ -181,15 +181,25 @@ export function calculateCommitments(input: {
 
   const endingSeries = installmentGroups
     .flatMap((group) => {
-      if (group.pendingInstallmentCount === 0 || !group.endPeriod) return [];
-      if (group.endPeriod < input.period || group.endPeriod > lastPeriod) return [];
-      const last = group.installments.find((item) => item.period === group.endPeriod);
+      const pending = group.installments.filter((item) => item.status === "pending");
+      if (pending.length === 0) return [];
+      // Anticipated installments move to an earlier invoice, so the series really ends in the
+      // last month that still holds an installment, not in its original schedule.
+      const endPeriod = pending.reduce(
+        (latest, item) => (item.period > latest ? item.period : latest),
+        pending[0].period,
+      );
+      if (endPeriod < input.period || endPeriod > lastPeriod) return [];
+      // What stops being charged each month: the regular installment, not an anticipated total.
+      const regular = [...group.installments].sort(
+        (left, right) => right.installmentNumber - left.installmentNumber,
+      )[0];
       return [
         {
           seriesId: group.seriesId,
           name: group.name,
-          endPeriod: group.endPeriod,
-          monthlyAmount: last?.amount ?? 0,
+          endPeriod,
+          monthlyAmount: regular?.amount ?? 0,
           remainingAmount: group.pendingAmount,
         },
       ];

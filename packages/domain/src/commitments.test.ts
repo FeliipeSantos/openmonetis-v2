@@ -175,3 +175,35 @@ test("commitment month count is inclusive and handles year boundaries", () => {
   assert.equal(countCommitmentMonths("2026-10", "2027-03"), 6);
   assert.equal(countCommitmentMonths("2026-10", "2026-09"), 0);
 });
+
+test("an anticipated series ends in the month that now holds its installments", () => {
+  // Installments 2 and 3 were anticipated into the October invoice.
+  const report = calculateCommitments({
+    period: "2026-10",
+    months: 6,
+    installmentRows: [
+      installmentRow(1, "2026-10"),
+      installmentRow(2, "2026-10"),
+      installmentRow(3, "2026-10"),
+    ],
+    recurringRules: [],
+    singleEntries: [],
+  });
+
+  assert.deepEqual(report.endingSeries, [
+    { seriesId, name: "Notebook", endPeriod: "2026-10", monthlyAmount: 100, remainingAmount: 300 },
+  ]);
+});
+
+test("a series whose remaining installments were anticipated into a past month is not listed", () => {
+  const paid = { ...installmentRow(1, "2026-09"), isSettled: true };
+  const report = calculateCommitments({
+    period: "2026-10",
+    months: 6,
+    installmentRows: [paid, installmentRow(2, "2026-09"), installmentRow(3, "2026-09")],
+    recurringRules: [],
+    singleEntries: [],
+  });
+
+  assert.deepEqual(report.endingSeries, []);
+});

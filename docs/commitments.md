@@ -27,7 +27,9 @@ percentual da receita (`null` sem receita prevista) e a situação: `healthy` ab
 `attention` de 60% a 85% e `critical` a partir de 85% ou com compromissos e sem receita. Também
 devolve o primeiro mês de alívio (queda de pelo menos 10% sobre o mês anterior, considerando só
 parcelas e recorrentes, já que contas avulsas futuras raramente estão lançadas) e os parcelamentos
-que terminam no horizonte, com o valor mensal liberado.
+que terminam no horizonte, com o valor mensal liberado. O término é o último mês que ainda tem
+parcela em aberto, então parcelas antecipadas contam no mês para onde foram, e o valor liberado é o
+da parcela regular.
 
 Limitações: faturas de cartão não são somadas à parte, para não duplicar as compras que já
 entram por mês de fatura; não há saldo atual

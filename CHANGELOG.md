@@ -156,6 +156,8 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Corrigido
 
+- Compromissos futuros: um parcelamento antecipado passa a terminar no mês para onde as parcelas
+  foram, liberando o valor da parcela regular, em vez de aparecer no término original com R$ 0,00.
 - Comprometimento do mês e Compromissos futuros: a receita prevista passa a contar a parcela do
   mês das receitas parceladas, batendo com "Suas receitas" no Dashboard.
 - Detalhes do lançamento: a data passa a se chamar "Data do recebimento" nas receitas, "Data da

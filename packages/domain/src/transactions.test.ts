@@ -711,3 +711,13 @@ test("listing totals split settled and pending items without float drift", () =>
     { settled: 49.7, pending: -194.34, total: -144.64 },
   );
 });
+
+test("listing totals count card purchases of a paid invoice as settled", () => {
+  assert.deepEqual(
+    summarizeListingTotals([
+      { amount: -125, isSettled: null, invoicePaid: true },
+      { amount: -40, isSettled: null, invoicePaid: false },
+    ]),
+    { settled: -125, pending: -40, total: -165 },
+  );
+});

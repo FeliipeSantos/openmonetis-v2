@@ -142,13 +142,18 @@ export type ListingTotals = {
 
 /** Signed totals of a listing split by settlement, in cents to avoid float drift. */
 export function summarizeListingTotals(
-  items: ReadonlyArray<{ amount: number; isSettled: boolean | null }>,
+  items: ReadonlyArray<{
+    amount: number;
+    isSettled: boolean | null;
+    /** Card purchase on an invoice already paid: it counts as settled with the invoice. */
+    invoicePaid?: boolean;
+  }>,
 ): ListingTotals {
   let settledCents = 0;
   let pendingCents = 0;
   for (const item of items) {
     const cents = Math.round(item.amount * 100);
-    if (item.isSettled === true) settledCents += cents;
+    if (item.isSettled === true || item.invoicePaid === true) settledCents += cents;
     else pendingCents += cents;
   }
   return {

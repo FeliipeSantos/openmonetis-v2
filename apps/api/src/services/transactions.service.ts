@@ -1825,7 +1825,11 @@ export function createTransactionsService(
     const cardDetails = new Map(
       cardPurchases.map((item) => [item.cardId, { name: item.cardName, logo: item.cardLogo }]),
     );
-    const invoicePeriods = [...new Set(cardPurchases.map((item) => item.period))];
+    // Paid status of every listed card invoice: collapsed totals and the footer both use it.
+    const listedCardPurchases = filtered.filter(
+      (item) => item.paymentMethod === "credit_card" && item.cardId !== null,
+    );
+    const invoicePeriods = [...new Set(listedCardPurchases.map((item) => item.period))];
     const invoiceDueDates =
       invoicePeriods.length && dependencies.listCardInvoiceDueDates
         ? await dependencies.listCardInvoiceDueDates(userId, invoicePeriods)
@@ -1909,6 +1913,12 @@ export function createTransactionsService(
         filtered.map((item) => ({
           amount: item.allocation?.amount ?? item.amount,
           isSettled: item.isSettled,
+          invoicePaid:
+            item.paymentMethod === "credit_card" &&
+            invoiceDueDates.some(
+              (entry) =>
+                entry.cardId === item.cardId && entry.period === item.period && entry.isPaid,
+            ),
         })),
       ),
       dailySummaries: summarizeTransactionsByDay(

@@ -1,0 +1,2 @@
+ALTER TABLE "person_settlements" ADD COLUMN "period" varchar(7);--> statement-breakpoint
+ALTER TABLE "person_settlements" ADD CONSTRAINT "person_settlements_period_format_check" CHECK ("person_settlements"."period" IS NULL OR "person_settlements"."period" ~ '^[1-9][0-9]{3}-(0[1-9]|1[0-2])$');

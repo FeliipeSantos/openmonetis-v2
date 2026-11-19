@@ -136,6 +136,7 @@ function dependencies(
         personId,
         amount: 50,
         receivedAt: "2026-10-20",
+        period: "2026-10",
         note: "pix",
         source: "manual",
         createdAt: "2026-10-20T12:00:00.000Z",

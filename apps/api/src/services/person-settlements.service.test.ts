@@ -10,6 +10,25 @@ const personId = "00000000-0000-4000-8000-000000000001";
 const userId = "00000000-0000-4000-8000-000000000002";
 const period = "2026-08";
 
+function entry(kind: "expense" | "refund", amount: string) {
+  return {
+    id: `${kind}-${amount}`,
+    name: kind === "expense" ? "Despesa" : "Estorno",
+    date: "2026-08-10",
+    currentInstallment: null,
+    installmentCount: null,
+    paymentMethod: null,
+    accountName: null,
+    accountLogo: null,
+    cardName: null,
+    cardLogo: null,
+    categoryName: null,
+    categoryIcon: null,
+    kind,
+    amount,
+  };
+}
+
 const settlement: PersonSettlementRecord = {
   id: "00000000-0000-4000-8000-000000000003",
   userId,
@@ -17,6 +36,7 @@ const settlement: PersonSettlementRecord = {
   invoicePaymentAllocationId: null,
   amount: "50.00",
   receivedAt: new Date("2026-08-15T00:00:00.000Z"),
+  period: "2026-08",
   note: null,
   createdAt: new Date("2026-08-15T12:00:00.000Z"),
 };
@@ -33,10 +53,7 @@ test("calculates a person's settlement snapshot only with the requested period",
     listExternalPeopleForUser: async () => [],
     listBalanceEntriesForPerson: async (_personId, _userId, requestedPeriod) => {
       requestedPeriods.push(requestedPeriod);
-      return [
-        { kind: "expense", amount: "120.00" },
-        { kind: "refund", amount: "20.00" },
-      ];
+      return [entry("expense", "120.00"), entry("refund", "20.00")];
     },
     listSettlementsForPerson: async (_personId, _userId, requestedPeriod) => {
       requestedPeriods.push(requestedPeriod);
@@ -95,7 +112,35 @@ test("registers a manual settlement without a financial account", async () => {
 
   assert.equal(created.source, "manual");
   assert.equal(createdInput?.amount, "50.00");
+  // Without a reference month, the repasse settles the month it was received in.
+  assert.equal(createdInput?.period, "2026-08");
   assert.equal(createdInput ? "accountId" in createdInput : true, false);
+});
+
+test("a repasse can settle a later month than the one it was received in", async () => {
+  let createdInput: Parameters<PersonSettlementsRepository["createSettlement"]>[0] | undefined;
+  const repository = {
+    findPersonForUser: async () => ({
+      id: personId,
+      name: "Vitoria",
+      role: "external" as const,
+      status: "active" as const,
+    }),
+    createSettlement: async (
+      input: Parameters<PersonSettlementsRepository["createSettlement"]>[0],
+    ) => {
+      createdInput = input;
+      return { ...settlement, period: input.period };
+    },
+  } as unknown as PersonSettlementsRepository;
+
+  const created = await createPersonSettlementsService(repository).create(
+    { personId, amount: 125, receivedAt: "2026-08-15", period: "2026-09", note: null },
+    userId,
+  );
+
+  assert.equal(createdInput?.period, "2026-09");
+  assert.equal(created.period, "2026-09");
 });
 
 test("includes the person's recurring allocation in the requested period", async () => {
@@ -112,6 +157,13 @@ test("includes the person's recurring allocation in the requested period", async
     listRecurringBalanceRulesForPeriod: async () => [
       {
         id: "00000000-0000-4000-8000-000000000010",
+        name: "Academia",
+        accountName: null,
+        accountLogo: null,
+        cardName: null,
+        cardLogo: null,
+        categoryName: null,
+        categoryIcon: null,
         seriesId: "00000000-0000-4000-8000-000000000011",
         anchorDate: "2026-08-05",
         personId: "00000000-0000-4000-8000-000000000012",
@@ -162,9 +214,7 @@ test("summarizes outstanding balances by person and sorts the largest first", as
       },
     ],
     listBalanceEntriesForPerson: async (requestedPersonId) =>
-      requestedPersonId === personId
-        ? [{ kind: "expense", amount: "100.00" }]
-        : [{ kind: "expense", amount: "40.00" }],
+      requestedPersonId === personId ? [entry("expense", "100.00")] : [entry("expense", "40.00")],
     listSettlementsForPerson: async (requestedPersonId) =>
       requestedPersonId === personId
         ? []
@@ -201,11 +251,18 @@ test("does not assign next month's card recurrence alongside the current invoice
     findPersonForUser: async () => person,
     listExternalPeopleForUser: async () => [person],
     listBalanceEntriesForPerson: async (_personId, _userId, requestedPeriod) =>
-      requestedPeriod === "2026-10" ? [{ kind: "expense", amount: "4270.80" }] : [],
+      requestedPeriod === "2026-10" ? [entry("expense", "4270.80")] : [],
     listSettlementsForPerson: async () => [],
     listRecurringBalanceRulesForPeriod: async () => [
       {
         id: "spotify-rule",
+        name: "Spotify",
+        accountName: null,
+        accountLogo: null,
+        cardName: null,
+        cardLogo: null,
+        categoryName: null,
+        categoryIcon: null,
         seriesId: "spotify-series",
         anchorDate: "2026-10-23",
         personId: "admin",
@@ -262,7 +319,7 @@ test("keeps fully settled people in the summary and skips people without activit
       toPerson(personId, "Camila"),
     ],
     listBalanceEntriesForPerson: async (requestedPersonId) =>
-      requestedPersonId === idlePersonId ? [] : [{ kind: "expense", amount: "100.00" }],
+      requestedPersonId === idlePersonId ? [] : [entry("expense", "100.00")],
     listSettlementsForPerson: async (requestedPersonId) =>
       requestedPersonId === settledPersonId
         ? [{ ...settlement, personId: settledPersonId, amount: "100.00" }]
@@ -285,4 +342,48 @@ test("keeps fully settled people in the summary and skips people without activit
   );
   assert.equal(summary.totalReceivableAmount, 50);
   assert.equal(summary.pendingCount, 1);
+});
+
+test("the snapshot lists each expense of the month with what repasses already cover", async () => {
+  const repository = {
+    findPersonForUser: async () => ({
+      id: personId,
+      name: "Vitoria",
+      role: "external" as const,
+      status: "active" as const,
+    }),
+    listBalanceEntriesForPerson: async () => [
+      { ...entry("expense", "125.00"), id: "single", name: "Tesde despesa credito" },
+      {
+        ...entry("expense", "100.00"),
+        id: "installment",
+        name: "Despesa da Vitoria Parcelada",
+        date: "2026-08-19",
+        currentInstallment: 1,
+        installmentCount: 2,
+      },
+    ],
+    listRecurringBalanceRulesForPeriod: async () => [],
+    listSettlementsForPerson: async () => [{ ...settlement, amount: "125.00" }],
+  } as unknown as PersonSettlementsRepository;
+
+  const snapshot = await createPersonSettlementsService(repository).getSnapshot(
+    personId,
+    userId,
+    period,
+  );
+
+  assert.deepEqual(
+    snapshot.items.map((item) => [
+      item.name,
+      item.currentInstallment,
+      item.installmentCount,
+      item.status,
+      item.remainingAmount,
+    ]),
+    [
+      ["Tesde despesa credito", null, null, "received", 0],
+      ["Despesa da Vitoria Parcelada", 1, 2, "pending", 100],
+    ],
+  );
 });

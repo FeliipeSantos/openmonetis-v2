@@ -137,3 +137,72 @@ export function summarizePersonBalances(balances: PersonBalance[]): PersonBalanc
     pendingCount: balances.filter((balance) => balance.status === "receivable").length,
   };
 }
+
+export type PersonSettlementItemInput = {
+  id: string;
+  name: string;
+  date: string;
+  kind: "expense" | "refund";
+  /** Positive value of the person's share. */
+  amount: number;
+  currentInstallment: number | null;
+  installmentCount: number | null;
+  isRecurring: boolean;
+};
+
+export type PersonSettlementItemStatus = "received" | "partial" | "pending";
+
+export type PersonSettlementItem<T extends PersonSettlementItemInput = PersonSettlementItemInput> =
+  T & {
+    receivedAmount: number;
+    remainingAmount: number;
+    status: PersonSettlementItemStatus;
+  };
+
+/**
+ * Spreads what the person already paid for the month (repasses plus refunds) over the month's
+ * expenses, oldest first, so each expense shows whether it was received. Refunds are listed as
+ * already settled; they only add to what covers the expenses.
+ */
+export function allocatePersonSettlementItems<T extends PersonSettlementItemInput>(
+  items: T[],
+  settledAmount: number,
+): PersonSettlementItem<T>[] {
+  const refundCents = items
+    .filter((item) => item.kind === "refund")
+    .reduce((sum, item) => sum + Math.abs(toCents(item.amount)), 0);
+  let poolCents = Math.max(0, toCents(settledAmount)) + refundCents;
+
+  return [...items]
+    .sort(
+      (left, right) =>
+        left.date.localeCompare(right.date) ||
+        left.name.localeCompare(right.name, "pt-BR") ||
+        left.id.localeCompare(right.id),
+    )
+    .map((item) => {
+      const amountCents = Math.abs(toCents(item.amount));
+      if (item.kind === "refund") {
+        return {
+          ...item,
+          receivedAmount: fromCents(amountCents),
+          remainingAmount: 0,
+          status: "received" as const,
+        };
+      }
+      const coveredCents = Math.min(poolCents, amountCents);
+      poolCents -= coveredCents;
+      const remainingCents = amountCents - coveredCents;
+      return {
+        ...item,
+        receivedAmount: fromCents(coveredCents),
+        remainingAmount: fromCents(remainingCents),
+        status:
+          remainingCents === 0
+            ? ("received" as const)
+            : coveredCents > 0
+              ? ("partial" as const)
+              : ("pending" as const),
+      };
+    });
+}

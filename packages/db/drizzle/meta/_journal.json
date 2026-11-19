@@ -260,6 +260,13 @@
       "when": 1795020389204,
       "tag": "0036_goal_contributions",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1795093921891,
+      "tag": "0037_person_settlement_period",
+      "breakpoints": true
     }
   ]
 }

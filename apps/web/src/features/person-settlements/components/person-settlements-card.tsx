@@ -1,5 +1,9 @@
+import { getCurrentDateInBrazil } from "@openmonetis/shared/date-time";
 import type { PersonOutput } from "@openmonetis/validators/people";
-import type { PersonSettlementOutput } from "@openmonetis/validators/person-settlements";
+import type {
+  PersonSettlementItemOutput,
+  PersonSettlementOutput,
+} from "@openmonetis/validators/person-settlements";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowDownLeft, HandCoins, ReceiptText, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -27,14 +31,20 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatCurrency } from "@/features/accounts/accounts.presentation";
+import { formatPeriod } from "@/lib/period-presentation";
 import {
   useCreatePersonSettlementMutation,
   useDeletePersonSettlementMutation,
 } from "../person-settlements.mutations";
-import { getPersonBalanceAmount, personBalanceLabel } from "../person-settlements.presentation";
+import {
+  formatSettlementItemNote,
+  getPersonBalanceAmount,
+  personBalanceLabel,
+} from "../person-settlements.presentation";
 import { personSettlementQueryOptions } from "../person-settlements.queries";
 import { PersonBalanceIcon } from "./person-balance-icon";
 import { PersonSettlementDialog } from "./person-settlement-dialog";
+import { PersonSettlementItemRow } from "./person-settlement-item-row";
 
 export function PersonSettlementsCard({
   person,
@@ -44,6 +54,7 @@ export function PersonSettlementsCard({
   period: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [settlingItemId, setSettlingItemId] = useState<string | null>(null);
   const [removingSettlement, setRemovingSettlement] = useState<PersonSettlementOutput | null>(null);
   const snapshotQuery = useQuery(personSettlementQueryOptions(person.id, period));
   const createSettlement = useCreatePersonSettlementMutation();
@@ -55,6 +66,25 @@ export function PersonSettlementsCard({
     await createSettlement.mutateAsync(input);
     setOpen(false);
     toast.success("Repasse registrado");
+  }
+
+  /** Records what is left of one expense as received today, in one click. */
+  async function settleItem(item: PersonSettlementItemOutput) {
+    setSettlingItemId(item.id);
+    try {
+      await createSettlement.mutateAsync({
+        personId: person.id,
+        amount: item.remainingAmount,
+        receivedAt: getCurrentDateInBrazil(),
+        period,
+        note: formatSettlementItemNote(item),
+      });
+      toast.success("Repasse registrado", { description: item.name });
+    } catch {
+      toast.error("Não foi possível registrar o repasse");
+    } finally {
+      setSettlingItemId(null);
+    }
   }
 
   async function remove() {
@@ -120,7 +150,26 @@ export function PersonSettlementsCard({
               />
             </div>
           ) : null}
-          {snapshot && !snapshot.settlements.length ? (
+          {snapshot?.items.length ? (
+            <div className="grid gap-2">
+              <p className="font-medium text-sm">Lançamentos de {formatPeriod(period)}</p>
+              <div className="divide-y rounded-md border">
+                {snapshot.items.map((item) => (
+                  <PersonSettlementItemRow
+                    item={item}
+                    key={item.id}
+                    onSettle={
+                      person.status === "active" && item.remainingAmount > 0
+                        ? () => void settleItem(item)
+                        : undefined
+                    }
+                    pending={settlingItemId === item.id}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {snapshot && !snapshot.settlements.length && !snapshot.items.length ? (
             <p className="rounded-md border border-dashed px-3 py-4 text-center text-muted-foreground text-sm">
               Nenhum repasse de {person.name} neste período. Registre aqui os valores que receber.
             </p>
@@ -168,7 +217,9 @@ export function PersonSettlementsCard({
           onSubmit={submit}
           open={open}
           personId={person.id}
+          period={period}
           personName={person.name}
+          suggestedAmount={balance?.receivableAmount}
         />
       </Card>
 

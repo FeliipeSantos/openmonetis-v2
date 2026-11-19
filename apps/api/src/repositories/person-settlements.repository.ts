@@ -1,6 +1,8 @@
 import {
   cards,
+  categories,
   db,
+  financialAccounts,
   invoicePaymentAllocations,
   invoicePayments,
   people,
@@ -12,7 +14,7 @@ import {
 } from "@openmonetis/db";
 import { getPersonRecurringBalanceOccurrencePeriods } from "@openmonetis/domain/person-settlements";
 import { getPeriodEndDate, isExpenseReduction } from "@openmonetis/domain/transactions";
-import { and, asc, desc, eq, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNull, lt, lte, notExists, or, sql } from "drizzle-orm";
 import type { PersonSettlementsRepository } from "../services/person-settlements.service";
 import { effectiveRecurringEndDateSql } from "./recurring-transactions.repository";
 import {
@@ -28,6 +30,7 @@ const settlementColumns = {
   invoicePaymentAllocationId: personSettlements.invoicePaymentAllocationId,
   amount: personSettlements.amount,
   receivedAt: personSettlements.receivedAt,
+  period: personSettlements.period,
   note: personSettlements.note,
   createdAt: personSettlements.createdAt,
 };
@@ -62,7 +65,7 @@ export const personSettlementsRepository: PersonSettlementsRepository = {
       Date.UTC(periodStart.getUTCFullYear(), periodStart.getUTCMonth() + 1, 1),
     );
 
-    return db
+    const recorded = await db
       .select(settlementColumns)
       .from(personSettlements)
       .leftJoin(
@@ -86,6 +89,12 @@ export const personSettlementsRepository: PersonSettlementsRepository = {
           or(
             and(
               isNull(personSettlements.invoicePaymentAllocationId),
+              eq(personSettlements.period, period),
+            ),
+            // Repasses recorded before the reference month existed count by receipt date.
+            and(
+              isNull(personSettlements.invoicePaymentAllocationId),
+              isNull(personSettlements.period),
               gte(personSettlements.receivedAt, periodStart),
               lt(personSettlements.receivedAt, nextPeriodStart),
             ),
@@ -94,11 +103,69 @@ export const personSettlementsRepository: PersonSettlementsRepository = {
         ),
       )
       .orderBy(desc(personSettlements.receivedAt), desc(personSettlements.createdAt));
+
+    // The person's share paid on an invoice of the period settles the period too. Invoice
+    // payments no longer create repasse rows, so they are read straight from the allocations
+    // (skipping any older allocation that still has its own repasse row).
+    const fromInvoicePayments = await db
+      .select({
+        id: invoicePaymentAllocations.id,
+        userId: invoicePaymentAllocations.userId,
+        personId: invoicePaymentAllocations.personId,
+        invoicePaymentAllocationId: invoicePaymentAllocations.id,
+        amount: invoicePaymentAllocations.amount,
+        receivedAt: invoicePayments.paidAt,
+        createdAt: invoicePaymentAllocations.createdAt,
+      })
+      .from(invoicePaymentAllocations)
+      .innerJoin(
+        invoicePayments,
+        and(
+          eq(invoicePayments.id, invoicePaymentAllocations.paymentId),
+          eq(invoicePayments.userId, userId),
+        ),
+      )
+      .where(
+        and(
+          eq(invoicePaymentAllocations.userId, userId),
+          eq(invoicePaymentAllocations.personId, personId),
+          eq(invoicePayments.period, period),
+          notExists(
+            db
+              .select({ id: personSettlements.id })
+              .from(personSettlements)
+              .where(
+                eq(personSettlements.invoicePaymentAllocationId, invoicePaymentAllocations.id),
+              ),
+          ),
+        ),
+      );
+
+    return [
+      ...recorded,
+      ...fromInvoicePayments.map((row) => ({ ...row, period, note: null })),
+    ].sort(
+      (left, right) =>
+        right.receivedAt.getTime() - left.receivedAt.getTime() ||
+        right.createdAt.getTime() - left.createdAt.getTime(),
+    );
   },
 
   async listBalanceEntriesForPerson(personId, userId, period) {
     const rows = await db
       .select({
+        id: transactions.id,
+        name: transactions.name,
+        purchaseDate: transactions.purchaseDate,
+        currentInstallment: transactions.currentInstallment,
+        installmentCount: transactions.installmentCount,
+        paymentMethod: transactions.paymentMethod,
+        accountName: financialAccounts.name,
+        accountLogo: financialAccounts.logo,
+        cardName: cards.name,
+        cardLogo: cards.logo,
+        categoryName: categories.name,
+        categoryIcon: categories.icon,
         kind: transactions.origin,
         type: transactions.type,
         amount: effectiveTransactionAmountSql.as("amount"),
@@ -112,6 +179,15 @@ export const personSettlementsRepository: PersonSettlementsRepository = {
           eq(transactionSplits.userId, userId),
           eq(transactionSplits.personId, personId),
         ),
+      )
+      .leftJoin(
+        financialAccounts,
+        and(eq(financialAccounts.id, transactions.accountId), eq(financialAccounts.userId, userId)),
+      )
+      .leftJoin(cards, and(eq(cards.id, transactions.cardId), eq(cards.userId, userId)))
+      .leftJoin(
+        categories,
+        and(eq(categories.id, transactions.categoryId), eq(categories.userId, userId)),
       )
       .where(
         and(
@@ -127,6 +203,18 @@ export const personSettlementsRepository: PersonSettlementsRepository = {
       );
 
     return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      date: row.purchaseDate.toISOString().slice(0, 10),
+      currentInstallment: row.currentInstallment,
+      installmentCount: row.installmentCount,
+      paymentMethod: row.paymentMethod,
+      accountName: row.accountName,
+      accountLogo: row.accountLogo,
+      cardName: row.cardName,
+      cardLogo: row.cardLogo,
+      categoryName: row.categoryName,
+      categoryIcon: row.categoryIcon,
       kind: isExpenseReduction({ origin: row.kind, type: row.type, amount: row.amount })
         ? ("refund" as const)
         : ("expense" as const),
@@ -141,6 +229,13 @@ export const personSettlementsRepository: PersonSettlementsRepository = {
     const rows = await db
       .select({
         id: recurringTransactionRules.id,
+        name: recurringTransactionRules.name,
+        accountName: financialAccounts.name,
+        accountLogo: financialAccounts.logo,
+        cardName: cards.name,
+        cardLogo: cards.logo,
+        categoryName: categories.name,
+        categoryIcon: categories.icon,
         seriesId: recurringTransactionRules.seriesId,
         personId: recurringTransactionRules.personId,
         amount: recurringTransactionRules.amount,
@@ -174,6 +269,17 @@ export const personSettlementsRepository: PersonSettlementsRepository = {
         and(eq(cards.id, recurringTransactionRules.cardId), eq(cards.userId, userId)),
       )
       .leftJoin(
+        financialAccounts,
+        and(
+          eq(financialAccounts.id, recurringTransactionRules.accountId),
+          eq(financialAccounts.userId, userId),
+        ),
+      )
+      .leftJoin(
+        categories,
+        and(eq(categories.id, recurringTransactionRules.categoryId), eq(categories.userId, userId)),
+      )
+      .leftJoin(
         recurringTransactionSplits,
         and(
           eq(recurringTransactionSplits.recurringRuleId, recurringTransactionRules.id),
@@ -198,6 +304,13 @@ export const personSettlementsRepository: PersonSettlementsRepository = {
       const row = group[0] as (typeof rows)[number];
       return {
         id: row.id,
+        name: row.name,
+        accountName: row.accountName,
+        accountLogo: row.accountLogo,
+        cardName: row.cardName,
+        cardLogo: row.cardLogo,
+        categoryName: row.categoryName,
+        categoryIcon: row.categoryIcon,
         seriesId: row.seriesId,
         personId: row.personId,
         amount: row.amount,
@@ -238,6 +351,7 @@ export const personSettlementsRepository: PersonSettlementsRepository = {
           personId: input.personId,
           amount: input.amount,
           receivedAt: input.receivedAt,
+          period: input.period,
           note: input.note,
         })
         .returning(settlementColumns);

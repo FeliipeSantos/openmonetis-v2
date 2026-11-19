@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  allocatePersonSettlementItems,
   calculatePersonBalance,
   comparePersonBalancePriority,
   hasPersonBalanceActivity,
@@ -215,5 +216,55 @@ test("people without activity in the period are not part of the settlement summa
       ]),
     ),
     true,
+  );
+});
+
+test("repasses cover the month's expenses oldest first and refunds help cover them", () => {
+  const items = allocatePersonSettlementItems(
+    [
+      {
+        id: "b",
+        name: "Despesa da Vitoria Parcelada",
+        date: "2026-11-19",
+        kind: "expense",
+        amount: 100,
+        currentInstallment: 1,
+        installmentCount: 2,
+        isRecurring: false,
+      },
+      {
+        id: "a",
+        name: "Tesde despesa credito",
+        date: "2026-11-10",
+        kind: "expense",
+        amount: 125,
+        currentInstallment: null,
+        installmentCount: null,
+        isRecurring: false,
+      },
+      {
+        id: "c",
+        name: "Estorno",
+        date: "2026-11-20",
+        kind: "refund",
+        amount: 20,
+        currentInstallment: null,
+        installmentCount: null,
+        isRecurring: false,
+      },
+    ],
+    150,
+  );
+  assert.deepEqual(
+    items.map((item) => [item.id, item.status, item.receivedAmount, item.remainingAmount]),
+    [
+      ["a", "received", 125, 0],
+      ["b", "partial", 45, 55],
+      ["c", "received", 20, 0],
+    ],
+  );
+  assert.deepEqual(
+    allocatePersonSettlementItems(items.slice(0, 1), 0).map((item) => item.status),
+    ["pending"],
   );
 });

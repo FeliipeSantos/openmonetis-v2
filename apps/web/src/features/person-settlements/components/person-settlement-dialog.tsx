@@ -20,16 +20,22 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   onSubmit: (input: CreatePersonSettlementInput) => Promise<void>;
   open: boolean;
+  /** Month the repasse settles: the month open on the person's page. */
+  period: string;
   personId: string;
   personName: string;
+  /** What is still to receive in the period; prefills the amount when positive. */
+  suggestedAmount?: number;
 };
 
 export function PersonSettlementDialog({
   onOpenChange,
   onSubmit,
   open,
+  period,
   personId,
   personName,
+  suggestedAmount,
 }: Props) {
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
@@ -45,7 +51,9 @@ export function PersonSettlementDialog({
           key={`${personId}:${open ? "open" : "closed"}`}
           onCancel={() => onOpenChange(false)}
           onSubmit={onSubmit}
+          period={period}
           personId={personId}
+          suggestedAmount={suggestedAmount}
         />
       </DialogContent>
     </Dialog>
@@ -55,13 +63,15 @@ export function PersonSettlementDialog({
 function PersonSettlementForm({
   onCancel,
   onSubmit,
+  period,
   personId,
+  suggestedAmount,
 }: Omit<Props, "onOpenChange" | "open" | "personName"> & { onCancel: () => void }) {
   const id = useId();
   const [error, setError] = useState<string | null>(null);
   const form = useForm({
     defaultValues: {
-      amount: "",
+      amount: suggestedAmount && suggestedAmount > 0 ? suggestedAmount.toFixed(2) : "",
       receivedAt: getCurrentDateInBrazil(),
       note: "",
     },
@@ -71,6 +81,7 @@ function PersonSettlementForm({
         personId,
         amount: parseCurrencyInput(value.amount),
         receivedAt: value.receivedAt,
+        period,
         note: value.note.trim() || null,
       });
       if (!parsed.success) {

@@ -1974,6 +1974,11 @@ export const personSettlements = pgTable(
     ),
     amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
     receivedAt: date("received_at", { mode: "date" }).notNull(),
+    /**
+     * Month the repasse settles (`YYYY-MM`). Null for older rows, which count in the month they
+     * were received; a repasse can pay a later invoice before its month starts.
+     */
+    period: varchar("period", { length: 7 }),
     note: text("note"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at")
@@ -2002,6 +2007,10 @@ export const personSettlements = pgTable(
       foreignColumns: [invoicePaymentAllocations.id, invoicePaymentAllocations.userId],
     }).onDelete("cascade"),
     check("person_settlements_amount_positive_check", sql`${table.amount} > 0`),
+    check(
+      "person_settlements_period_format_check",
+      sql`${table.period} IS NULL OR ${table.period} ~ '^[1-9][0-9]{3}-(0[1-9]|1[0-2])$'`,
+    ),
     check(
       "person_settlements_note_not_blank_check",
       sql`${table.note} IS NULL OR btrim(${table.note}) <> ''`,

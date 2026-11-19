@@ -22,3 +22,29 @@ export function getSettlementProgressPercentage(coveredAmount: number, dueAmount
 export function formatPendingPeopleCount(count: number) {
   return `${count} ${count === 1 ? "pendente" : "pendentes"}`;
 }
+
+/** "1 de 2" for an installment, null otherwise. */
+export function formatSettlementItemInstallment(item: {
+  currentInstallment: number | null;
+  installmentCount: number | null;
+}) {
+  return item.currentInstallment && item.installmentCount
+    ? `${item.currentInstallment} de ${item.installmentCount}`
+    : null;
+}
+
+/** Note saved with a one-click repasse: the expense and, for installments, which one. */
+export function formatSettlementItemNote(item: {
+  name: string;
+  currentInstallment: number | null;
+  installmentCount: number | null;
+}) {
+  const installment = formatSettlementItemInstallment(item);
+  return (installment ? `${item.name} (${installment})` : item.name).slice(0, 500);
+}
+
+/** "19/11" from "2026-11-19". */
+export function formatSettlementItemDate(value: string) {
+  const [, month, day] = value.split("-");
+  return `${day}/${month}`;
+}

@@ -1,4 +1,5 @@
 import {
+  allocatePersonSettlementItems,
   calculatePersonBalance,
   comparePersonBalancePriority,
   hasPersonBalanceActivity,
@@ -7,6 +8,7 @@ import {
   projectPersonRecurringBalanceAllocations,
   summarizePersonBalances,
 } from "@openmonetis/domain/person-settlements";
+import type { PaymentMethod } from "@openmonetis/domain/transactions";
 import { getCurrentDateInBrazil } from "@openmonetis/shared/date-time";
 import type {
   CreatePersonSettlementInput,
@@ -24,11 +26,27 @@ export type PersonSettlementRecord = {
   invoicePaymentAllocationId: string | null;
   amount: string;
   receivedAt: Date;
+  period: string | null;
   note: string | null;
   createdAt: Date;
 };
 
-type PersonBalanceEntryRecord = {
+type PersonSettlementItemDetails = {
+  accountName: string | null;
+  accountLogo: string | null;
+  cardName: string | null;
+  cardLogo: string | null;
+  categoryName: string | null;
+  categoryIcon: string | null;
+};
+
+type PersonBalanceEntryRecord = PersonSettlementItemDetails & {
+  id: string;
+  name: string;
+  date: string;
+  currentInstallment: number | null;
+  installmentCount: number | null;
+  paymentMethod: PaymentMethod | null;
   kind: "expense" | "refund";
   amount: string;
 };
@@ -60,12 +78,13 @@ export type PersonSettlementsRepository = {
   listRecurringBalanceRulesForPeriod(
     userId: string,
     period: string,
-  ): Promise<PersonRecurringBalanceRule[]>;
+  ): Promise<Array<PersonRecurringBalanceRule & PersonSettlementItemDetails & { name: string }>>;
   createSettlement(input: {
     userId: string;
     personId: string;
     amount: string;
     receivedAt: Date;
+    period: string;
     note: string | null;
   }): Promise<PersonSettlementRecord | null>;
   deleteSettlementForUser(id: string, userId: string): Promise<PersonSettlementRecord | null>;
@@ -77,6 +96,7 @@ function toOutput(record: PersonSettlementRecord): PersonSettlementOutput {
     personId: record.personId,
     amount: Number(record.amount),
     receivedAt: record.receivedAt.toISOString().slice(0, 10),
+    period: record.period,
     note: record.note,
     source: record.invoicePaymentAllocationId ? "invoicePayment" : "manual",
     createdAt: record.createdAt.toISOString(),
@@ -84,7 +104,7 @@ function toOutput(record: PersonSettlementRecord): PersonSettlementOutput {
 }
 
 function toBalanceOutput(
-  entries: PersonBalanceEntryRecord[],
+  entries: Array<Pick<PersonBalanceEntryRecord, "kind" | "amount">>,
   settlements: PersonSettlementRecord[],
 ): PersonBalanceOutput {
   const balance = calculatePersonBalance([
@@ -171,18 +191,45 @@ export function createPersonSettlementsService(repository: PersonSettlementsRepo
         repository.listRecurringBalanceRulesForPeriod(userId, period),
         repository.listSettlementsForPerson(personId, userId, period),
       ]);
+      const rulesById = new Map(recurringRules.map((rule) => [rule.id, rule]));
       const recurringEntries = projectPersonRecurringBalanceAllocations({
         period,
         rules: recurringRules,
       }).flatMap((allocation) =>
         allocation.personId === personId
-          ? [{ kind: "expense" as const, amount: String(allocation.amount) }]
+          ? [
+              {
+                id: `${allocation.ruleId}:${allocation.occurrenceDate}`,
+                name: rulesById.get(allocation.ruleId)?.name ?? "",
+                date: allocation.occurrenceDate,
+                currentInstallment: null,
+                installmentCount: null,
+                paymentMethod: rulesById.get(allocation.ruleId)?.paymentMethod ?? null,
+                accountName: rulesById.get(allocation.ruleId)?.accountName ?? null,
+                accountLogo: rulesById.get(allocation.ruleId)?.accountLogo ?? null,
+                cardName: rulesById.get(allocation.ruleId)?.cardName ?? null,
+                cardLogo: rulesById.get(allocation.ruleId)?.cardLogo ?? null,
+                categoryName: rulesById.get(allocation.ruleId)?.categoryName ?? null,
+                categoryIcon: rulesById.get(allocation.ruleId)?.categoryIcon ?? null,
+                kind: "expense" as const,
+                amount: String(allocation.amount),
+              },
+            ]
           : [],
+      );
+      const balance = toBalanceOutput([...entries, ...recurringEntries], settlements);
+      const items = allocatePersonSettlementItems(
+        [
+          ...entries.map((entry) => ({ ...entry, isRecurring: false })),
+          ...recurringEntries.map((entry) => ({ ...entry, isRecurring: true })),
+        ].map((entry) => ({ ...entry, amount: Math.abs(Number(entry.amount)) })),
+        balance.settledAmount,
       );
       return {
         personId,
         period,
-        balance: toBalanceOutput([...entries, ...recurringEntries], settlements),
+        balance,
+        items,
         settlements: settlements.map(toOutput),
       };
     },
@@ -213,6 +260,7 @@ export function createPersonSettlementsService(repository: PersonSettlementsRepo
         personId: person.id,
         amount: input.amount.toFixed(2),
         receivedAt,
+        period: input.period ?? input.receivedAt.slice(0, 7),
         note: input.note?.trim() || null,
       });
       if (!record) throw notFound("Person not found", "PERSON_NOT_FOUND");

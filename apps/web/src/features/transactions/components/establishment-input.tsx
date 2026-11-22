@@ -41,6 +41,9 @@ const suggestionKey = (suggestion: TransactionSuggestion) =>
  * Description field that suggests past incomes or expenses while typing. Picking one fills the
  * rest of the form from its latest use; the typed text is kept when nothing is picked.
  */
+/** Matches shown inline on phones while typing; the search sheet lists the rest. */
+const INLINE_SUGGESTION_LIMIT = 5;
+
 export function EstablishmentInput({
   value,
   type,
@@ -59,6 +62,9 @@ export function EstablishmentInput({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [highlighted, setHighlighted] = useState("");
+  // On phones the matches of what is typed show inline under the field; the sheet stays for the
+  // search button, so the keyboard is never covered while typing.
+  const [inlineOpen, setInlineOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const available = useMemo(
     () => suggestions.some((suggestion) => suggestion.type === type),
@@ -84,7 +90,11 @@ export function EstablishmentInput({
     onSelectSuggestion(suggestion);
     setQuery("");
     setOpen(false);
+    setInlineOpen(false);
   }
+
+  const inlineMatches =
+    mobile && inlineOpen && query.trim() ? visible.slice(0, INLINE_SUGGESTION_LIMIT) : [];
 
   function moveHighlight(step: number) {
     if (!visible.length) return;
@@ -119,11 +129,15 @@ export function EstablishmentInput({
             const nextValue = event.target.value;
             onChange(nextValue);
             setQuery(nextValue);
-            if (!mobile) show(nextValue);
+            if (mobile) setInlineOpen(true);
+            else show(nextValue);
           }}
           onClick={mobile ? undefined : () => show(query)}
           onKeyDown={(event) => {
-            if (mobile) return;
+            if (mobile) {
+              if (event.key === "Escape") setInlineOpen(false);
+              return;
+            }
             if (event.key === "ArrowDown" || event.key === "ArrowUp") {
               event.preventDefault();
               if (!open) show(query);
@@ -176,6 +190,38 @@ export function EstablishmentInput({
           </PopoverTrigger>
         ) : null}
       </div>
+      {inlineMatches.length ? (
+        <ul
+          aria-label="Lançamentos anteriores"
+          className="mt-1 grid overflow-hidden rounded-lg border bg-popover shadow-sm"
+        >
+          {inlineMatches.map((suggestion) => {
+            const detail = describe(suggestion);
+            return (
+              <li className="border-b last:border-b-0" key={suggestionKey(suggestion)}>
+                <button
+                  className="flex min-h-11 w-full items-start gap-2 px-3 py-2 text-left hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
+                  // Keeps the field focused so the tap is not lost to the blur.
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => select(suggestion)}
+                  type="button"
+                >
+                  <History
+                    aria-hidden="true"
+                    className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                  />
+                  <span className="grid min-w-0 flex-1">
+                    <span className="truncate text-sm">{suggestion.name}</span>
+                    {detail ? (
+                      <span className="truncate text-muted-foreground text-xs">{detail}</span>
+                    ) : null}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
 
       <PopoverContent
         title="Lançamentos anteriores"

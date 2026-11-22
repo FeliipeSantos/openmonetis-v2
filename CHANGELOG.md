@@ -169,6 +169,8 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Corrigido
 
+- Celular: ao digitar a descrição de um lançamento, as sugestões de lançamentos anteriores aparecem
+  logo abaixo do campo (até 5), como no computador; a lupa continua abrindo a busca completa.
 - Acertos e Extrato da pessoa: a parte dela registrada no pagamento da fatura ("Registrar parte
   da pessoa" ou a divisão da fatura inteira) volta a contar como repasse recebido no mês da fatura.
 - Soma da lista de lançamentos: compras no cartão de uma fatura já paga passam a contar em

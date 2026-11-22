@@ -54,6 +54,7 @@ para a lista completa.
 
 | Alteração | Arquivos principais | Commit |
 | --- | --- | --- |
+| No celular, sugestões de lançamentos anteriores aparecem abaixo da descrição enquanto se digita (até 5) | `establishment-input.tsx` (`inlineMatches`) | — |
 | Campos Categoria e Subcategoria lado a lado | `transaction-basic-fields.tsx`, `subcategory-picker.tsx`, `category-picker.tsx` | `8ef5e24` |
 | Sugestões de lançamentos anteriores ao digitar a descrição, preenchendo o formulário (despesa, receita e transferência, inclusive recorrências) | `establishment-input.tsx`, `useTransactionForm.ts`, `GET /transactions/suggestions`, `components/ui/popover.tsx` (prop `anchor`) | `8ef5e24`, `49038df`, `4319e72` |
 | Subcategoria obrigatória quando a categoria tem subcategorias; categorias sem subcategorias (ex.: Ajuste de saldo) ficam liberadas, com campo cinza e aviso | `transaction-form.validation.ts`, `categories.presentation.ts` (`getCategorySelectionError`) | `7d3811f` |

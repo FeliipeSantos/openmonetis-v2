@@ -31,7 +31,7 @@ import {
 import { MobileSelect as Select } from "@/components/forms/mobile-select";
 import { MobileSelectContent as SelectContent } from "@/components/forms/mobile-select-content";
 import { MoneyValue } from "@/components/money-value";
-import { Navbar } from "@/components/navigation/navbar";
+import { AppShell } from "@/components/navigation/app-shell";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,15 +52,13 @@ import { DueDateIndicator } from "@/features/due-date-rules/components/due-date-
 import { AdjustInvoiceDialog } from "@/features/invoices/components/adjust-invoice-dialog";
 import { InvoiceDatesDialog } from "@/features/invoices/components/invoice-dates-dialog";
 import { InvoicePaymentDialog } from "@/features/invoices/components/invoice-payment-dialog";
+import { getInvoiceOwnShare } from "@/features/invoices/invoice-own-share";
 import {
   useAdjustInvoiceMutation,
   useReopenInvoiceMutation,
   useUndoInvoicePaymentMutation,
 } from "@/features/invoices/invoices.mutations";
-import {
-  formatInvoicePaymentOption,
-  getInvoiceOwnShare,
-} from "@/features/invoices/invoices.presentation";
+import { formatInvoicePaymentOption } from "@/features/invoices/invoices.presentation";
 import { invoicesQueryOptions } from "@/features/invoices/invoices.queries";
 import { peopleQueryOptions } from "@/features/people/people.queries";
 import { TransactionsContainer } from "@/features/transactions/components/transactions-container";
@@ -136,8 +134,7 @@ export function CardInvoicesPage({ cardId, search, onSearchChange }: CardInvoice
 
   return (
     <ProtectedRoute>
-      <main className="min-h-svh bg-background">
-        <Navbar />
+      <AppShell>
         {cardQuery.isLoading ? <FinancialDetailLoading message="Carregando fatura" /> : null}
         {cardQuery.isError && !cardQuery.data ? (
           <EntityLoadError
@@ -215,7 +212,7 @@ export function CardInvoicesPage({ cardId, search, onSearchChange }: CardInvoice
           open={paymentOpen && Boolean(invoice)}
           onOpenChange={setPaymentOpen}
         />
-      </main>
+      </AppShell>
     </ProtectedRoute>
   );
 }

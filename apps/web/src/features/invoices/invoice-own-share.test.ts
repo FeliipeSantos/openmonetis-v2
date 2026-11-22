@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getInvoiceOwnShare } from "./invoices.presentation";
+import { getInvoiceOwnShare } from "./invoice-own-share";
 
 test("own share separates the other people's purchases from the invoice total", () => {
   assert.deepEqual(

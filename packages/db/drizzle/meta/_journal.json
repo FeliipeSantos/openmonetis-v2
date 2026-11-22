@@ -267,6 +267,20 @@
       "when": 1795093921891,
       "tag": "0037_person_settlement_period",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1795388483046,
+      "tag": "0038_note_attachments",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1795388487882,
+      "tag": "0039_user_palettes",
+      "breakpoints": true
     }
   ]
 }

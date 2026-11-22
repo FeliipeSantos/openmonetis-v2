@@ -9,7 +9,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { MobileCollectionLoading } from "@/components/mobile-collection-loading";
-import { Navbar } from "@/components/navigation/navbar";
+import { AppShell } from "@/components/navigation/app-shell";
 import { PageHeader } from "@/components/page-header";
 import {
   AlertDialog,
@@ -65,10 +65,10 @@ export function PeoplePage() {
   const inactivePeople = people.filter((person) => person.status === "inactive");
   return (
     <ProtectedRoute>
-      <main className="min-h-svh bg-background">
-        <Navbar />
+      <AppShell>
         <section className="app-page project-container">
           <PageHeader
+            mobileFloatingAction
             actions={
               <Button onClick={() => setOpen(true)}>
                 <Plus className="size-4" />
@@ -85,7 +85,7 @@ export function PeoplePage() {
             icon={<Users aria-hidden="true" className="size-5" />}
             title="Pessoas"
           />
-          {query.isLoading ? <MobileCollectionLoading message="Carregando pessoas..." /> : null}
+          {query.isLoading ? <MobileCollectionLoading message="Carregando pessoas…" /> : null}
           {query.isError ? (
             <p className="text-destructive text-sm">Não foi possível carregar.</p>
           ) : null}
@@ -120,7 +120,7 @@ export function PeoplePage() {
             </Tabs>
           ) : null}
         </section>
-      </main>
+      </AppShell>
       <PersonDialog person={editing} onOpenChange={changeOpen} onSubmit={save} open={open} />
       <AlertDialog
         onOpenChange={(next) => {

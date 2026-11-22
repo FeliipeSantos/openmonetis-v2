@@ -568,6 +568,10 @@ export const userPreferences = pgTable(
       .primaryKey()
       .references(() => user.id, { onDelete: "cascade" }),
     theme: applicationTheme("theme").notNull().default("system"),
+    // Palettes are plain text, not enums: the domain owns the list, so adding or retiring a palette
+    // needs no migration, and a retired palette reads back as the default.
+    lightPalette: text("light_palette").notNull().default("openmonetis"),
+    darkPalette: text("dark_palette").notNull().default("openmonetis"),
     hideValuesOnStart: boolean("hide_values_on_start").notNull().default(false),
     defaultPaymentMethod: paymentMethod("default_payment_method").notNull().default("credit_card"),
     defaultAccountId: uuid("default_account_id").references(() => financialAccounts.id, {
@@ -2331,6 +2335,33 @@ export const noteItems = pgTable(
   ],
 );
 
+export const noteAttachments = pgTable(
+  "note_attachments",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    noteId: uuid("note_id").notNull(),
+    attachmentId: uuid("attachment_id").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.noteId, table.attachmentId] }),
+    index("note_attachments_user_id_idx").on(table.userId),
+    index("note_attachments_attachment_id_idx").on(table.attachmentId),
+    foreignKey({
+      name: "note_attachments_note_user_fk",
+      columns: [table.noteId, table.userId],
+      foreignColumns: [notes.id, notes.userId],
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "note_attachments_attachment_user_fk",
+      columns: [table.attachmentId, table.userId],
+      foreignColumns: [attachments.id, attachments.userId],
+    }).onDelete("cascade"),
+  ],
+);
+
 export const userRelations = relations(user, ({ many, one }) => ({
   sessions: many(session),
   authAccounts: many(account),
@@ -2616,6 +2647,7 @@ export const recurringTransactionSplitsRelations = relations(
 export const attachmentsRelations = relations(attachments, ({ one, many }) => ({
   user: one(user, { fields: [attachments.userId], references: [user.id] }),
   transactions: many(transactionAttachments),
+  notes: many(noteAttachments),
 }));
 
 export const transactionAttachmentsRelations = relations(transactionAttachments, ({ one }) => ({
@@ -2669,6 +2701,7 @@ export const notesRelations = relations(notes, ({ one, many }) => ({
     references: [user.id],
   }),
   items: many(noteItems),
+  attachments: many(noteAttachments),
 }));
 
 export const noteItemsRelations = relations(noteItems, ({ one }) => ({
@@ -2679,6 +2712,17 @@ export const noteItemsRelations = relations(noteItems, ({ one }) => ({
   note: one(notes, {
     fields: [noteItems.noteId],
     references: [notes.id],
+  }),
+}));
+
+export const noteAttachmentsRelations = relations(noteAttachments, ({ one }) => ({
+  note: one(notes, {
+    fields: [noteAttachments.noteId],
+    references: [notes.id],
+  }),
+  attachment: one(attachments, {
+    fields: [noteAttachments.attachmentId],
+    references: [attachments.id],
   }),
 }));
 

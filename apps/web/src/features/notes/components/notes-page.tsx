@@ -4,7 +4,7 @@ import { Eye, EyeOff, FileSearch, ListChecks, NotebookPen, Plus, RefreshCw } fro
 import { useDeferredValue, useState } from "react";
 import { toast } from "sonner";
 import { ProtectedRoute } from "@/components/auth/protected-route";
-import { Navbar } from "@/components/navigation/navbar";
+import { AppShell } from "@/components/navigation/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { SearchInput } from "@/components/search-input";
 import {
@@ -90,13 +90,15 @@ export function NotesPage() {
     setDialogOpen(true);
   }
 
-  async function save(input: CreateNoteInput | ReplaceNoteInput) {
+  async function save(input: CreateNoteInput | ReplaceNoteInput, files: File[]) {
     if (editingNote) {
       await replaceMutation.mutateAsync({ id: editingNote.id, input: input as ReplaceNoteInput });
-    } else {
-      await createMutation.mutateAsync(input as CreateNoteInput);
+      changeDialog(false);
+      return undefined;
     }
+    const created = await createMutation.mutateAsync({ input: input as CreateNoteInput, files });
     changeDialog(false);
+    return created;
   }
 
   async function setArchived(note: NoteOutput, isArchived: boolean) {
@@ -163,10 +165,10 @@ export function NotesPage() {
 
   return (
     <ProtectedRoute>
-      <main className="min-h-svh bg-background">
-        <Navbar />
+      <AppShell>
         <section className="app-page project-container">
           <PageHeader
+            mobileFloatingAction
             actions={
               <Button onClick={openCreate} type="button">
                 <Plus aria-hidden="true" />
@@ -332,7 +334,7 @@ export function NotesPage() {
                         type="button"
                         variant="outline"
                       >
-                        {query.isFetchingNextPage ? "Carregando..." : "Carregar mais"}
+                        {query.isFetchingNextPage ? "Carregando…" : "Carregar mais"}
                       </Button>
                     </div>
                   ) : null}
@@ -390,12 +392,12 @@ export function NotesPage() {
                 onClick={() => void removeNote()}
                 variant="destructive"
               >
-                {deleteMutation.isPending ? "Excluindo..." : "Excluir"}
+                {deleteMutation.isPending ? "Excluindo…" : "Excluir"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </main>
+      </AppShell>
     </ProtectedRoute>
   );
 }
@@ -469,7 +471,7 @@ function NotesSkeleton() {
           <Skeleton className="h-32" />
         </Card>
       ))}
-      <span className="sr-only">Carregando...</span>
+      <span className="sr-only">Carregando…</span>
     </div>
   );
 }

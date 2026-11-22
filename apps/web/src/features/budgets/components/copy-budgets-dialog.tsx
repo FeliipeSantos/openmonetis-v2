@@ -247,7 +247,7 @@ function CopyBudgetSelection({
           type="button"
         >
           {pending
-            ? "Copiando..."
+            ? "Copiando…"
             : selectedIds.length === 1
               ? "Copiar 1 orçamento"
               : `Copiar ${selectedIds.length} orçamentos`}
@@ -263,7 +263,7 @@ function CopyBudgetsLoading() {
       <Skeleton className="h-16" />
       <Skeleton className="h-16" />
       <Skeleton className="h-16" />
-      <span className="sr-only">Carregando...</span>
+      <span className="sr-only">Carregando…</span>
     </div>
   );
 }

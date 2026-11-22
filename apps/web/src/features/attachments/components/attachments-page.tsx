@@ -9,7 +9,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { MonthNavigation } from "@/components/month-navigation";
-import { Navbar } from "@/components/navigation/navbar";
+import { AppShell } from "@/components/navigation/app-shell";
 import { PageHeader } from "@/components/page-header";
 import {
   AlertDialog,
@@ -79,8 +79,7 @@ export function AttachmentsPage({ search, onSearchChange }: AttachmentsPageProps
 
   return (
     <ProtectedRoute>
-      <main className="min-h-svh bg-background">
-        <Navbar />
+      <AppShell>
         <section className="app-page project-container">
           <PageHeader
             breadcrumbs={[
@@ -218,7 +217,7 @@ export function AttachmentsPage({ search, onSearchChange }: AttachmentsPageProps
             </section>
           ) : null}
         </section>
-      </main>
+      </AppShell>
 
       {data && previewIndex >= 0 ? (
         <AttachmentPreviewDialog
@@ -262,7 +261,7 @@ export function AttachmentsPage({ search, onSearchChange }: AttachmentsPageProps
               onClick={() => void removeAttachment()}
               variant="destructive"
             >
-              {remove.isPending ? "Excluindo..." : "Excluir anexo"}
+              {remove.isPending ? "Excluindo…" : "Excluir anexo"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -320,7 +319,7 @@ function AttachmentsSkeleton() {
           <Skeleton className="aspect-4/3 rounded-xl" key={key} />
         ))}
       </div>
-      <span className="sr-only">Carregando...</span>
+      <span className="sr-only">Carregando…</span>
     </div>
   );
 }

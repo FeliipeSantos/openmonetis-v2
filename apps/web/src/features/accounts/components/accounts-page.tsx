@@ -10,7 +10,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { MobileCollectionLoading } from "@/components/mobile-collection-loading";
-import { Navbar } from "@/components/navigation/navbar";
+import { AppShell } from "@/components/navigation/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -93,10 +93,10 @@ export function AccountsPage() {
 
   return (
     <ProtectedRoute>
-      <main className="min-h-svh bg-background">
-        <Navbar />
+      <AppShell>
         <section className="app-page project-container">
           <PageHeader
+            mobileFloatingAction
             actions={
               <Button onClick={openCreate} type="button">
                 <Plus aria-hidden="true" className="size-4" />
@@ -133,7 +133,7 @@ export function AccountsPage() {
             </Card>
           ) : null}
           {accountsQuery.isLoading ? (
-            <MobileCollectionLoading message="Carregando contas..." />
+            <MobileCollectionLoading message="Carregando contas…" />
           ) : null}
           {accountsQuery.isError ? (
             <p className="text-destructive text-sm" role="alert">
@@ -176,7 +176,7 @@ export function AccountsPage() {
             </Tabs>
           ) : null}
         </section>
-      </main>
+      </AppShell>
 
       {editingAccount ? (
         <AccountDialog

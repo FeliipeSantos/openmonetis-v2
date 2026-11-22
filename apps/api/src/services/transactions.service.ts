@@ -49,8 +49,10 @@ import {
   deriveTransactionPostingPeriod,
   getPeriodEndDate,
   getPeriodFromDate,
+  getTransferLeg,
   InsufficientTransferBalanceError,
   listRecurrenceDatesInPeriod,
+  mergeTransferLegs,
   normalizeImportedAmount,
   normalizeImportedDescriptionKey,
   normalizeImportedType,
@@ -544,6 +546,7 @@ export function createTransactionsService(
       destinationAccountId: transaction.destinationAccountId,
       destinationAccountName: transaction.destinationAccountName,
       destinationAccountLogo: transaction.destinationAccountLogo,
+      transferLeg: transaction.type === "transfer" ? getTransferLeg(transaction) : null,
       dueDate: transaction.dueDate ? toDateString(transaction.dueDate) : null,
       originalDueDate: transaction.dueDate ? toDateString(transaction.dueDate) : null,
       dueDateRuleExcluded: transaction.dueDateRuleExcluded ?? false,
@@ -637,6 +640,7 @@ export function createTransactionsService(
       destinationAccountId: rule.destinationAccountId,
       destinationAccountName: rule.destinationAccountName,
       destinationAccountLogo: rule.destinationAccountLogo,
+      transferLeg: null,
       dueDate,
       originalDueDate: dueDate,
       dueDateRuleExcluded: actual?.dueDateRuleExcluded ?? rule.dueDateRuleExcluded ?? false,
@@ -1466,7 +1470,21 @@ export function createTransactionsService(
     );
   }
 
-  async function listTransactions(userId: string, query: ListTransactionsQuery, paginate = true) {
+  // Lists each persisted posting; internal readers rely on the signed transfer legs.
+  function listTransactions(userId: string, query: ListTransactionsQuery, paginate = true) {
+    return queryTransactions(userId, query, { paginate, mergeTransfers: false });
+  }
+
+  // Lists entries for people to read: both legs of a transfer appear as a single entry.
+  function listTransactionEntries(userId: string, query: ListTransactionsQuery) {
+    return queryTransactions(userId, query, { paginate: true, mergeTransfers: true });
+  }
+
+  async function queryTransactions(
+    userId: string,
+    query: ListTransactionsQuery,
+    { paginate, mergeTransfers }: { paginate: boolean; mergeTransfers: boolean },
+  ) {
     if (query.categoryIds.length)
       query = {
         ...query,
@@ -1869,7 +1887,14 @@ export function createTransactionsService(
 
     // Paginate purchases/occurrences, keeping every matching allocation together.
     const groups = new Map<string, TransactionOutput[]>();
-    for (const item of listed) {
+    // Both legs of a transfer read as one entry (upstream v0.19.0); filters by account keep them apart.
+    const transferIdsByRecordId = new Map(
+      transactions.map((transaction) => [transaction.id, transaction.transferId]),
+    );
+    const listedEntries = mergeTransfers
+      ? mergeTransferLegs(listed, (item) => transferIdsByRecordId.get(item.recordId ?? ""))
+      : listed;
+    for (const item of listedEntries) {
       const key = getPurchaseKey(item);
       const group = groups.get(key);
       if (group) group.push(item);
@@ -3204,6 +3229,7 @@ export function createTransactionsService(
     listRecentEstablishments,
     listTransactionSuggestions,
     listTransactions,
+    listTransactionEntries,
     previewTransactionImport,
     renameTransactions,
     settleRecurringOccurrence,

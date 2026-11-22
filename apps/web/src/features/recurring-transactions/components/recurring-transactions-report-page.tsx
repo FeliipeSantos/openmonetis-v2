@@ -6,7 +6,7 @@ import { useState } from "react";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { MoneyValue } from "@/components/money-value";
 import { MonthlyOutlookChart } from "@/components/monthly-outlook-chart";
-import { Navbar } from "@/components/navigation/navbar";
+import { AppShell } from "@/components/navigation/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
@@ -62,10 +62,10 @@ export function RecurringTransactionsReportPage({
 
   return (
     <ProtectedRoute>
-      <main className="min-h-svh bg-background">
-        <Navbar />
+      <AppShell>
         <section className="app-page project-container min-w-0">
           <PageHeader
+            mobileFloatingAction
             title="Lançamentos recorrentes"
             description="Tudo o que se repete: quanto custa por mês, o que vem pela frente e quando cada série termina."
             icon={<RefreshCw aria-hidden="true" className="size-5" />}
@@ -245,7 +245,7 @@ export function RecurringTransactionsReportPage({
             </div>
           ) : null}
         </section>
-      </main>
+      </AppShell>
       {creating ? (
         <TransactionDialog
           key={search.type}

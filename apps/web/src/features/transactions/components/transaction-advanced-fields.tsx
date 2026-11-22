@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { useTransactionForm } from "../useTransactionForm";
 import { TransactionAttachmentsField } from "./transaction-attachments-field";
-import { FieldShell } from "./transaction-field-shell";
+import { FieldShell, FieldShellControl } from "./transaction-field-shell";
 import type { TransactionFormProps } from "./transaction-form.types";
 import {
   getTransactionFormErrorMessage,
@@ -95,15 +95,17 @@ export function TransactionAdvancedFields({
               error={getTransactionFormErrorMessage("note", field.state.meta.errors)}
               label="Observação"
             >
-              <Textarea
-                aria-invalid={field.state.meta.errors.length > 0}
-                disabled={isSubmitting}
-                maxLength={1000}
-                onChange={(event) => field.handleChange(event.target.value)}
-                placeholder="Adicione observações sobre o lançamento"
-                rows={1}
-                value={field.state.value}
-              />
+              <FieldShellControl>
+                <Textarea
+                  aria-invalid={field.state.meta.errors.length > 0}
+                  disabled={isSubmitting}
+                  maxLength={1000}
+                  onChange={(event) => field.handleChange(event.target.value)}
+                  placeholder="Adicione observações sobre o lançamento"
+                  rows={1}
+                  value={field.state.value}
+                />
+              </FieldShellControl>
             </FieldShell>
           )}
         </form.Field>
@@ -115,6 +117,7 @@ export function TransactionAdvancedFields({
           mode={mode}
           values={values}
           isSubmitting={isSubmitting}
+          onAttachmentAdded={() => setIsAdvancedOpen(true)}
         />
       </div>
     </details>

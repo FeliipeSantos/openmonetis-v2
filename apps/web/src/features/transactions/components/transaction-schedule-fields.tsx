@@ -22,7 +22,7 @@ import { installmentOptionsQueryOptions } from "../transactions.queries";
 import type { useTransactionForm } from "../useTransactionForm";
 import { RecurrenceOccurrenceCountPicker } from "./recurrence-occurrence-count-picker";
 import { TransactionConditionOption } from "./transaction-condition-option";
-import { FieldShell } from "./transaction-field-shell";
+import { FieldShell, FieldShellControl } from "./transaction-field-shell";
 import type { TransactionFormProps } from "./transaction-form.types";
 import {
   getTransactionFormErrorMessage,
@@ -106,14 +106,16 @@ export function TransactionScheduleFields({
                   }}
                   value={field.state.value}
                 >
-                  <SelectTrigger
-                    className="w-full"
-                    aria-invalid={field.state.meta.errors.length > 0}
-                  >
-                    <SelectValue placeholder="Selecione">
-                      <TransactionConditionOption condition={field.state.value} />
-                    </SelectValue>
-                  </SelectTrigger>
+                  <FieldShellControl>
+                    <SelectTrigger
+                      className="w-full"
+                      aria-invalid={field.state.meta.errors.length > 0}
+                    >
+                      <SelectValue placeholder="Selecione">
+                        <TransactionConditionOption condition={field.state.value} />
+                      </SelectValue>
+                    </SelectTrigger>
+                  </FieldShellControl>
                   <SelectContent>
                     {Object.entries(transactionConditionLabels)
                       .filter(
@@ -158,14 +160,16 @@ export function TransactionScheduleFields({
                     }}
                     value={field.state.value}
                   >
-                    <SelectTrigger
-                      className="w-full"
-                      aria-invalid={field.state.meta.errors.length > 0}
-                    >
-                      <SelectValue placeholder="Selecione">
-                        {getInstallmentLabel(Number(field.state.value))}
-                      </SelectValue>
-                    </SelectTrigger>
+                    <FieldShellControl>
+                      <SelectTrigger
+                        className="w-full"
+                        aria-invalid={field.state.meta.errors.length > 0}
+                      >
+                        <SelectValue placeholder="Selecione">
+                          {getInstallmentLabel(Number(field.state.value))}
+                        </SelectValue>
+                      </SelectTrigger>
+                    </FieldShellControl>
                     <SelectContent
                       align="end"
                       className="w-max min-w-(--anchor-width) max-w-[calc(100vw-2rem)]"
@@ -207,16 +211,18 @@ export function TransactionScheduleFields({
                     }}
                     value={field.state.value}
                   >
-                    <SelectTrigger
-                      className="w-full"
-                      aria-invalid={field.state.meta.errors.length > 0}
-                    >
-                      <SelectValue placeholder="Selecione">
-                        <RecurrenceFrequencyLabel
-                          label={recurrenceFrequencyOptionLabels[field.state.value]}
-                        />
-                      </SelectValue>
-                    </SelectTrigger>
+                    <FieldShellControl>
+                      <SelectTrigger
+                        className="w-full"
+                        aria-invalid={field.state.meta.errors.length > 0}
+                      >
+                        <SelectValue placeholder="Selecione">
+                          <RecurrenceFrequencyLabel
+                            label={recurrenceFrequencyOptionLabels[field.state.value]}
+                          />
+                        </SelectValue>
+                      </SelectTrigger>
+                    </FieldShellControl>
                     <SelectContent>
                       {Object.entries(recurrenceFrequencyOptionLabels).map(([value, label]) => (
                         <SelectItem key={value} value={value}>
@@ -240,14 +246,16 @@ export function TransactionScheduleFields({
             >
               <div className="flex items-center gap-1">
                 <div className="min-w-0 flex-1">
-                  <MobileDatePicker
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    min={values.purchaseDate}
-                    placeholder="Sem data final"
-                    disabled={isSubmitting}
-                    aria-invalid={field.state.meta.errors.length > 0}
-                  />
+                  <FieldShellControl withOwnText>
+                    <MobileDatePicker
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      min={values.purchaseDate}
+                      placeholder="Sem data final"
+                      disabled={isSubmitting}
+                      aria-invalid={field.state.meta.errors.length > 0}
+                    />
+                  </FieldShellControl>
                 </div>
                 {field.state.value ? (
                   <Tooltip>

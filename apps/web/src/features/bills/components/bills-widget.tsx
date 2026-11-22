@@ -1,8 +1,9 @@
 import type { DashboardBill } from "@openmonetis/validators/bills";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, CheckCircle2, ReceiptText, RefreshCw } from "lucide-react";
+import { ArrowRight, CheckCircle2, ReceiptText, RefreshCw, Users } from "lucide-react";
 import { useState } from "react";
+import { InfoTip } from "@/components/info-tip";
 import { MoneyValue } from "@/components/money-value";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -129,8 +130,11 @@ function BillRow({ bill, onSettle }: { bill: DashboardBill; onSettle: () => void
   return (
     // Name, method and due date may wrap on narrow widgets, so the row grows instead of clipping.
     <DashboardWidgetRow className="h-auto min-h-16 py-2.5">
+      {/* Same destination as the name link beside it, so it stays out of the tab order. */}
       <Link
+        aria-hidden="true"
         className="shrink-0"
+        tabIndex={-1}
         to="/transactions"
         search={{
           period: bill.period,
@@ -219,45 +223,62 @@ function BillRow({ bill, onSettle }: { bill: DashboardBill; onSettle: () => void
 }
 
 function BillName({ bill }: { bill: DashboardBill }) {
+  const breakdown = (
+    <>
+      <p className="font-medium">Valores por pessoa</p>
+      <div className="mt-3 grid gap-3">
+        {bill.people.map((person) => (
+          <div key={person.personId} className="flex items-center gap-3">
+            <Avatar>
+              <AvatarImage alt="" src={person.personAvatarUrl ?? undefined} />
+              <AvatarFallback>
+                {person.personName.slice(0, 1).toLocaleUpperCase("pt-BR")}
+              </AvatarFallback>
+            </Avatar>
+            <span className="min-w-0 flex-1 truncate font-medium text-sm">{person.personName}</span>
+            <MoneyValue amount={person.amount} className="shrink-0 font-medium text-sm" />
+          </div>
+        ))}
+      </div>
+    </>
+  );
   return (
-    <HoverCard>
-      <HoverCardTrigger
-        render={
-          <Link
-            to="/transactions"
-            search={{
-              period: bill.period,
-              payables: true,
-              paymentMethod: bill.paymentMethod,
-              q: bill.name,
-            }}
-            className="group inline-flex min-w-0 items-center gap-1 rounded-sm font-medium text-sm transition-transform duration-200 ease-out hover:translate-x-1 focus-visible:translate-x-1 focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:transition-none"
-          />
-        }
-      >
-        <span className="truncate">{bill.name}</span>
-        <DashboardItemLinkArrow />
-      </HoverCardTrigger>
-      <HoverCardContent align="start" className="w-72">
-        <p className="font-medium">Valores por pessoa</p>
-        <div className="mt-3 grid gap-3">
-          {bill.people.map((person) => (
-            <div key={person.personId} className="flex items-center gap-3">
-              <Avatar>
-                <AvatarImage alt="" src={person.personAvatarUrl ?? undefined} />
-                <AvatarFallback>
-                  {person.personName.slice(0, 1).toLocaleUpperCase("pt-BR")}
-                </AvatarFallback>
-              </Avatar>
-              <span className="min-w-0 flex-1 truncate font-medium text-sm">
-                {person.personName}
-              </span>
-              <MoneyValue amount={person.amount} className="shrink-0 font-medium text-sm" />
-            </div>
-          ))}
-        </div>
-      </HoverCardContent>
-    </HoverCard>
+    <>
+      <HoverCard>
+        <HoverCardTrigger
+          render={
+            <Link
+              to="/transactions"
+              search={{
+                period: bill.period,
+                payables: true,
+                paymentMethod: bill.paymentMethod,
+                q: bill.name,
+              }}
+              className="group inline-flex min-w-0 items-center gap-1 rounded-sm font-medium text-sm transition-transform duration-200 ease-out hover:translate-x-1 focus-visible:translate-x-1 focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:transition-none"
+            />
+          }
+        >
+          <span className="truncate">{bill.name}</span>
+          <DashboardItemLinkArrow />
+        </HoverCardTrigger>
+        <HoverCardContent align="start" className="w-72">
+          {breakdown}
+        </HoverCardContent>
+      </HoverCard>
+      {/* Hover cards do not open on touch: phones get the same breakdown behind a tap. */}
+      {bill.people.length > 0 ? (
+        <InfoTip
+          align="start"
+          className="hidden pointer-coarse:inline-grid"
+          contentClassName="w-72 max-w-[calc(100vw-2rem)] gap-0"
+          label={`Valores por pessoa em ${bill.name}`}
+          trigger={<Users aria-hidden="true" className="size-3.5" />}
+        >
+          {breakdown}
+        </InfoTip>
+      ) : null}
+    </>
   );
 }
 

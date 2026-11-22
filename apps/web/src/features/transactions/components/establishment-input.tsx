@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { findTransactionSuggestions } from "../transactions.presentation";
+import { FieldShellControl } from "./transaction-field-shell";
 
 type EstablishmentInputProps = {
   value: string;
@@ -116,46 +117,48 @@ export function EstablishmentInput({
       open={open}
     >
       <div className="relative" ref={containerRef}>
-        <Input
-          aria-autocomplete={mobile ? undefined : "list"}
-          aria-expanded={mobile ? undefined : open}
-          aria-invalid={invalid}
-          autoComplete="off"
-          className={available || loading ? "pr-9 text-left" : "text-left"}
-          disabled={disabled}
-          maxLength={maxLength}
-          onBlur={onBlur}
-          onChange={(event) => {
-            const nextValue = event.target.value;
-            onChange(nextValue);
-            setQuery(nextValue);
-            if (mobile) setInlineOpen(true);
-            else show(nextValue);
-          }}
-          onClick={mobile ? undefined : () => show(query)}
-          onKeyDown={(event) => {
-            if (mobile) {
-              if (event.key === "Escape") setInlineOpen(false);
-              return;
-            }
-            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-              event.preventDefault();
-              if (!open) show(query);
-              else moveHighlight(event.key === "ArrowDown" ? 1 : -1);
-              return;
-            }
-            if (event.key === "Enter" && open) {
-              const suggestion = visible.find((item) => suggestionKey(item) === highlighted);
-              if (!suggestion) return;
-              event.preventDefault();
-              select(suggestion);
-            }
-          }}
-          placeholder={placeholder}
-          required
-          role={mobile ? undefined : "combobox"}
-          value={value}
-        />
+        <FieldShellControl>
+          <Input
+            aria-autocomplete={mobile ? undefined : "list"}
+            aria-expanded={mobile ? undefined : open}
+            aria-invalid={invalid}
+            autoComplete="off"
+            className={available || loading ? "pr-9 text-left" : "text-left"}
+            disabled={disabled}
+            maxLength={maxLength}
+            onBlur={onBlur}
+            onChange={(event) => {
+              const nextValue = event.target.value;
+              onChange(nextValue);
+              setQuery(nextValue);
+              if (mobile) setInlineOpen(true);
+              else show(nextValue);
+            }}
+            onClick={mobile ? undefined : () => show(query)}
+            onKeyDown={(event) => {
+              if (mobile) {
+                if (event.key === "Escape") setInlineOpen(false);
+                return;
+              }
+              if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                event.preventDefault();
+                if (!open) show(query);
+                else moveHighlight(event.key === "ArrowDown" ? 1 : -1);
+                return;
+              }
+              if (event.key === "Enter" && open) {
+                const suggestion = visible.find((item) => suggestionKey(item) === highlighted);
+                if (!suggestion) return;
+                event.preventDefault();
+                select(suggestion);
+              }
+            }}
+            placeholder={placeholder}
+            required
+            role={mobile ? undefined : "combobox"}
+            value={value}
+          />
+        </FieldShellControl>
         {loading ? (
           <LoaderCircle
             aria-label="Carregando lançamentos anteriores"

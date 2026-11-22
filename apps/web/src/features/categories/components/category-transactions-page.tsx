@@ -8,7 +8,7 @@ import { FinancialSummaryHeader } from "@/components/financial-summary-header";
 import { MobileSelect as Select } from "@/components/forms/mobile-select";
 import { MobileSelectContent as SelectContent } from "@/components/forms/mobile-select-content";
 import { MoneyValue } from "@/components/money-value";
-import { Navbar } from "@/components/navigation/navbar";
+import { AppShell } from "@/components/navigation/app-shell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -41,8 +41,7 @@ export function CategoryTransactionsPage({
 
   return (
     <ProtectedRoute>
-      <main className="min-h-svh bg-background">
-        <Navbar />
+      <AppShell>
         {categoryQuery.isLoading ? <CategoryTransactionsLoading /> : null}
         {categoryQuery.isError ? (
           <EntityLoadError
@@ -70,7 +69,7 @@ export function CategoryTransactionsPage({
             search={search}
           />
         ) : null}
-      </main>
+      </AppShell>
     </ProtectedRoute>
   );
 }
@@ -210,7 +209,7 @@ function CategoryTransactionsSummary({
           icon: <ChartNoAxesCombined aria-hidden="true" />,
           label: "Comparado ao mês anterior",
           value: trendsQuery.isLoading
-            ? "Carregando..."
+            ? "Carregando…"
             : trendsQuery.isError || !periodTrend
               ? "Indisponível"
               : formatTrendPercentage(periodTrend.changePercentage, periodTrend.changeKind),
@@ -243,7 +242,7 @@ function CategoryTransactionsSummary({
 function CategoryTransactionsLoading() {
   return (
     <section className="app-page project-container">
-      <p className="text-muted-foreground text-sm">Carregando histórico da categoria...</p>
+      <p className="text-muted-foreground text-sm">Carregando histórico da categoria…</p>
     </section>
   );
 }

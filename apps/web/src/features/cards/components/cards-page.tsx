@@ -5,7 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { MobileCollectionLoading } from "@/components/mobile-collection-loading";
-import { Navbar } from "@/components/navigation/navbar";
+import { AppShell } from "@/components/navigation/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -75,10 +75,10 @@ export function CardsPage() {
 
   return (
     <ProtectedRoute>
-      <main className="min-h-svh bg-background">
-        <Navbar />
+      <AppShell>
         <section className="app-page project-container">
           <PageHeader
+            mobileFloatingAction
             actions={
               <Button
                 disabled={activeAccounts.length === 0}
@@ -101,7 +101,7 @@ export function CardsPage() {
             icon={<CreditCard aria-hidden="true" className="size-5" />}
             title="Cartões"
           />
-          {loading ? <MobileCollectionLoading message="Carregando cartões..." /> : null}
+          {loading ? <MobileCollectionLoading message="Carregando cartões…" /> : null}
           {failed ? (
             <p className="text-destructive text-sm" role="alert">
               Não foi possível carregar.
@@ -140,7 +140,7 @@ export function CardsPage() {
             </Tabs>
           ) : null}
         </section>
-      </main>
+      </AppShell>
       <CardDialog
         accounts={activeAccounts}
         card={editingCard}

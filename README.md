@@ -18,7 +18,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/licen%C3%A7a-Sustainable%20Use%201.0-f97316" alt="Licença Sustainable Use 1.0" /></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-0.18.0-f97316" alt="Versão 0.18.0" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-0.19.0-f97316" alt="Versão 0.19.0" /></a>
   <img src="https://img.shields.io/badge/Docker-self--hosted-2496ED?logo=docker&logoColor=white" alt="Aplicação self-hosted com Docker" />
 </p>
 
@@ -158,6 +158,7 @@ detalhes e as convenções no [`guia de arquitetura`](docs/architecture.md).
 - [`docs/budgets.md`](docs/budgets.md): limites do mês, orçamentos recorrentes e ajustes mensais;
 - [`docs/person-reports.md`](docs/person-reports.md): extrato mensal de cada pessoa externa;
 - [`docs/due-date-rules.md`](docs/due-date-rules.md): calendário compartilhado, ajustes e exceções de vencimento;
+- [`docs/themes.md`](docs/themes.md): modo, temas de cada modo, como adicionar um tema e regras de contraste;
 - [`docs/ai-diagnoses.md`](docs/ai-diagnoses.md): assistente de IA, permissões de dados, serviço
   `openmonetis-ai` e atualização das CLIs;
 - [`docs/companion-api.md`](docs/companion-api.md): contrato do Companion;

@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, LockKeyhole, Pencil, Plus, Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { CardActionsMenu } from "@/components/card-actions-menu";
+import { InfoTip } from "@/components/info-tip";
 import { MoneyValue } from "@/components/money-value";
 import {
   AlertDialog,
@@ -18,7 +19,6 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   budgetProgressStyles,
   formatBudgetPercentage,
@@ -311,17 +311,14 @@ function CategoryActions({
 }) {
   if (category.isSystem)
     return (
-      <Tooltip>
-        <TooltipTrigger
-          aria-label={`Por que ${category.name} é automática?`}
-          render={<Button variant="ghost" size="icon" />}
-        >
-          <LockKeyhole aria-hidden="true" className="size-4 text-muted-foreground" />
-        </TooltipTrigger>
-        <TooltipContent>
-          Criada pelo sistema. Esta categoria não pode ser editada ou removida.
-        </TooltipContent>
-      </Tooltip>
+      <InfoTip
+        align="end"
+        label={`Por que ${category.name} é automática?`}
+        render={<Button variant="ghost" size="icon" />}
+        trigger={<LockKeyhole aria-hidden="true" className="size-4 text-muted-foreground" />}
+      >
+        Criada pelo sistema. Esta categoria não pode ser editada ou removida.
+      </InfoTip>
     );
   return <EditableCategoryActions {...{ category, onEdit, onRemove, pending }} />;
 }

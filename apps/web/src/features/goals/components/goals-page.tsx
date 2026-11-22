@@ -5,7 +5,7 @@ import { CircleCheck, Flag, Goal, Plus, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ProtectedRoute } from "@/components/auth/protected-route";
-import { Navbar } from "@/components/navigation/navbar";
+import { AppShell } from "@/components/navigation/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
@@ -83,10 +83,10 @@ export function GoalsPage() {
 
   return (
     <ProtectedRoute>
-      <main className="min-h-svh bg-background">
-        <Navbar />
+      <AppShell>
         <section className="app-page project-container">
           <PageHeader
+            mobileFloatingAction
             actions={
               <Button
                 onClick={() => {
@@ -154,7 +154,11 @@ export function GoalsPage() {
                 }}
                 value={filter}
               >
-                <TabsList aria-label="Filtrar metas" className="overflow-x-auto" variant="line">
+                <TabsList
+                  aria-label="Filtrar metas"
+                  className="scroll-fade-x snap-x scroll-px-2 overflow-x-auto scrollbar-none [&>[data-slot=tabs-trigger]]:snap-start"
+                  variant="line"
+                >
                   {filters.map((item) => (
                     <TabsTrigger key={item.value} value={item.value}>
                       {item.label}
@@ -252,7 +256,7 @@ export function GoalsPage() {
             open
           />
         ) : null}
-      </main>
+      </AppShell>
     </ProtectedRoute>
   );
 }

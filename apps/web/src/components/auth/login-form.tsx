@@ -130,6 +130,7 @@ export function LoginForm() {
             <Input
               aria-invalid={field.state.meta.errors.length > 0}
               autoComplete="username webauthn"
+              enterKeyHint="next"
               id={`${id}-email`}
               onBlur={field.handleBlur}
               onChange={(event) => field.handleChange(event.target.value)}
@@ -157,6 +158,7 @@ export function LoginForm() {
             <PasswordInput
               aria-invalid={field.state.meta.errors.length > 0}
               autoComplete="current-password"
+              enterKeyHint="go"
               id={`${id}-password`}
               onBlur={field.handleBlur}
               onChange={(event) => field.handleChange(event.target.value)}
@@ -212,7 +214,7 @@ export function LoginForm() {
               variant="outline"
             >
               <Fingerprint aria-hidden="true" className="size-4" />
-              {isPasskeySubmitting ? "Confirmando..." : "Entrar com chave de acesso"}
+              {isPasskeySubmitting ? "Confirmando…" : "Entrar com chave de acesso"}
             </Button>
           )}
         </form.Subscribe>

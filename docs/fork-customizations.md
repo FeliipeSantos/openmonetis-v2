@@ -19,7 +19,7 @@ novas versões do original sem perder essas mudanças:
 | Branch de trabalho | `custom` (é dele que a VPS constrói as imagens) |
 | Remote `origin` | `https://github.com/FeliipeSantos/openmonetis-v2` |
 | Remote `upstream` | `https://github.com/felipegcoutinho/openmonetis-v2`, somente leitura (o push aponta para um endereço inválido de propósito) |
-| Base atual | `v0.18.0` do upstream (sem os orçamentos recorrentes dela; ver seção 8) |
+| Base atual | `v0.19.0` do upstream (sem os orçamentos recorrentes da v0.18.0; ver seção 8) |
 | Imagens | `compose.override.yml` constrói `api`, `web` e `migrator` a partir deste código; o serviço opcional `ai` continua com a imagem oficial |
 | Atualização da VPS | `sudo /home/ubuntu/openmonetis-update.sh` (backup, atualização do código, build e `up -d`; o `migrator` aplica as migrações) |
 
@@ -67,7 +67,7 @@ para a lista completa.
 | Rodapé de Lançamentos conta compras de fatura paga em Efetivadas, e o valor já pago de uma fatura em aberto (pagamento antecipado/parcial) também | `summarizeListingTotals` (`invoicePaid`, `invoicePaidAmounts`), `transactions.service.ts`, `app.ts` (`paidAmount`) | `287b025` |
 | Lançamento novo numa fatura já paga abre o aviso "Essa fatura já está paga": salvar como paga (paga o valor novo pela última conta usada) ou como pendente (reabre a fatura, o pagamento vira parcial); importação e cópia reabrem direto; estorno continua bloqueado | domain `invoices.ts` (`paidInvoiceChargeActions`, `buildInvoiceRemainderAllocations`, `selectInvoicePeriodsReopenedByCharge`), `reopenPaidInvoicesForUser`, `invoicesService.payRemainder`, `transactions.service.ts` (`paidInvoiceAction`), `transaction-paid-invoice-dialog.tsx`, `useTransactionFormSubmission.ts` | — |
 | Linha do cartão em Lançamentos mostra "Fatura" com o valor que falta pagar quando há pagamento parcial | `transaction-card-invoice-total.tsx` (`CardInvoiceAmount`) | — |
-| Fatura mostra o total, "Sua parte" e "Outras pessoas" (cabeçalho do cartão e modal) | `getInvoiceOwnShare` (`invoices.presentation.ts`), `card-invoices-page.tsx`, `transaction-card-invoice-statement-dialog.tsx` | — |
+| Fatura mostra o total, "Sua parte" e "Outras pessoas" (cabeçalho do cartão e modal) | `getInvoiceOwnShare` (`invoice-own-share.ts`), `card-invoices-page.tsx`, `transaction-card-invoice-statement-dialog.tsx` | — |
 | Clicar no cartão em Lançamentos abre o extrato da fatura num modal (linha do tempo por dia, Saídas/Fatura, troca de mês, fechamento e vencimento) | `transaction-card-invoice-statement-dialog.tsx`, `transaction-card-invoice-total.tsx` | — |
 | Busca em Lançamentos mostra as compras do cartão uma a uma, sem a linha consolidada da fatura | `collapseCardPurchases` (`!query.q`) em `transactions.service.ts` | — |
 | Busca, filtros e paginação não levam a tela de volta ao topo (`resetScroll: false`; resultados com altura mínima de uma tela durante a busca) | `routes/transactions.tsx`, `routes/cards_.$cardId.tsx`, `routes/accounts_.$accountId.tsx`, `routes/people_.$personId.tsx`, `transactions-screen.tsx` | — |
@@ -101,10 +101,12 @@ para a lista completa.
 | `0035_transaction_purchase_time` | Coluna opcional `purchase_time` (`time`) em `transactions` |
 | `0036_goal_contributions` | Do upstream (era a `0032` da v0.18.0, renumerada): tabela `goal_contributions` e o saldo atual das metas manuais como primeiro movimento |
 | `0037_person_settlement_period` | Coluna opcional `period` em `person_settlements` (mês que o repasse acerta); nula nos repasses antigos |
+| `0038_note_attachments` | Do upstream (era a `0034` da v0.19.0, renumerada): tabela `note_attachments` |
+| `0039_user_palettes` | Do upstream (era a `0035` da v0.19.0, renumerada): colunas `light_palette` e `dark_palette` em `user_preferences` |
 
-Essas migrações **já foram aplicadas na VPS** (a `0035`, a `0036` e a `0037` entram no próximo deploy). Por isso:
+Essas migrações **já foram aplicadas na VPS** (da `0035` à `0039` entram no próximo deploy). Por isso:
 
-- **nunca renomeie, renumere nem altere** `0032` a `0037`;
+- **nunca renomeie, renumere nem altere** `0032` a `0039`;
 - o `drizzle-kit migrate` aplica só as migrações com `when` (no `_journal.json`) **maior** que a
   última aplicada. Uma migração com data anterior seria **ignorada em silêncio**.
 
@@ -326,3 +328,4 @@ em `~/openmonetis/backups`, porque o código antigo pode não funcionar com o ba
 | --- | --- | --- | --- |
 | 2026-11-12 | v0.16.0 → v0.17.1 | `CHANGELOG.md`, `budget-card.tsx`, `categories-page.tsx`, `categories-table.tsx` (apagada no fork), `categories.presentation.test.ts`, `transactions.presentation.test.ts` | Sem migrações novas no upstream. O gasto do mês da tabela antiga foi levado aos dois painéis. O cartão de orçamento adotou o novo layout, mantendo o título da subcategoria e a recorrência. Testes: typecheck, 843 testes unitários e roteiro manual sem falhas. Revisão de segurança (feita depois, em 2026-11-13): só mudanças de versão nos `package.json`, avatares SVG, URLs de teste e um link para o GitHub original; nada suspeito. |
 | 2026-11-18 | v0.17.1 → v0.18.0 | `CHANGELOG.md`, `apps/web/package.json`, `pnpm-lock.yaml`, `_journal.json` e snapshots `0032`/`0033`, `categories.repository.ts` e todos os arquivos de orçamento | **Orçamentos recorrentes do upstream não entraram**: o fork mantém o próprio orçamento "Mensal" (`0034`), por subcategoria e com Ignorar nos orçamentos; todos os arquivos de `budgets` ficaram iguais ao `custom`, e a tabela `budget_rules` (migração `0033_budget_rules` do upstream) foi retirada do schema e das migrações. A `0032_goal_contributions` do upstream virou `0036`, com `when` depois da `0035`. Entraram calendário, busca Ctrl K, aportes nas metas, comparação da fatura por pessoa, filtros e formulários padronizados e dependências novas. Revisão de segurança: só versões novas de dependências já usadas, sem pacotes, scripts de instalação ou endereços externos novos. |
+| 2026-11-22 | v0.18.0 → v0.19.0 | `CHANGELOG.md`, `transactions.service.ts` (listagem), `routes/transactions.ts`, `transactions-mobile-list.tsx`, `transaction-basic-fields.tsx`, `transaction-amount-field.tsx`, `establishment-input.tsx`, `dashboard-metrics.tsx`, `invoices-widget.tsx`, `categories-page.tsx`, `categories-table.tsx` (apagada no fork), `budget-card.tsx`, `copy-budgets-dialog.tsx`, snapshots `0034`/`0035`, `transactions.test.ts` | A transferência como lançamento único (`mergeTransferLegs`) foi aplicada depois de separar as compras do cartão consolidadas. A lista do celular usa o novo cartão por dia com "Hoje/Ontem" e mantém fatura consolidada e resumo do dia. O formulário mantém o layout do fork (data, horário e valor juntos) com os nomes acessíveis (`FieldShellControl`). Dashboard: novo `StatCard` com o atalho sem filtro de pessoa. Categorias: sem o botão "Nova categoria" no topo (o fork cria por painel), com o cadeado usando `InfoTip`. Orçamentos seguem iguais ao `custom`, só com reticências e o novo `AppShell`. As migrações `0034_note_attachments` e `0035_user_palettes` viraram `0038` e `0039`. Revisão de segurança: nenhuma dependência nova; o service worker só guarda arquivos estáticos do próprio domínio e nunca páginas ou API. |

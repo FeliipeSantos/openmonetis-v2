@@ -36,12 +36,14 @@ import { AttachmentPreviewDialog } from "./attachment-preview-dialog";
 type TransactionAttachmentsProps = {
   transactionId: string;
   onBusyChange?: (busy: boolean) => void;
+  onUploadStart?: () => void;
   readOnly?: boolean;
 };
 
 export function TransactionAttachments({
   transactionId,
   onBusyChange,
+  onUploadStart,
   readOnly = false,
 }: TransactionAttachmentsProps) {
   const query = useQuery(transactionAttachmentsQueryOptions(transactionId));
@@ -53,6 +55,7 @@ export function TransactionAttachments({
   const previewIndex = query.data?.findIndex((attachment) => attachment.id === previewId) ?? -1;
 
   async function select(file: File) {
+    onUploadStart?.();
     beginOperation();
     try {
       await upload.mutateAsync(file);
@@ -95,7 +98,7 @@ export function TransactionAttachments({
       {query.isLoading ? (
         <div aria-label="Carregando anexos" className="grid gap-2" role="status">
           <Skeleton className="h-11 w-full" />
-          <span className="sr-only">Carregando...</span>
+          <span className="sr-only">Carregando…</span>
         </div>
       ) : null}
 
@@ -155,7 +158,11 @@ export function TransactionAttachments({
 
       {!readOnly ? (
         <>
-          <AttachmentFilePicker disabled={upload.isPending} onAdd={(file) => void select(file)} />
+          <AttachmentFilePicker
+            captureDocumentPaste
+            disabled={upload.isPending}
+            onAdd={(file) => void select(file)}
+          />
           <p className="text-muted-foreground text-xs">
             Envios e remoções de anexos são salvos imediatamente.
           </p>
@@ -203,7 +210,7 @@ export function TransactionAttachments({
               onClick={() => void remove()}
               variant="destructive"
             >
-              {detach.isPending ? "Removendo..." : "Remover anexo"}
+              {detach.isPending ? "Removendo…" : "Remover anexo"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

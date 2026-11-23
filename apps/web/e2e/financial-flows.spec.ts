@@ -69,6 +69,9 @@ async function expenseForm(page: Page, name: string) {
   await field(page, "Valor").getByRole("textbox").fill("25,50");
   await field(page, "Categoria").getByRole("combobox").click();
   await page.getByRole("option", { name: /^Outras despesas/ }).click();
+  // Fork: expenses require a subcategory (docs/fork-customizations.md).
+  await field(page, "Subcategoria").getByRole("combobox").click();
+  await page.getByRole("option", { name: /^Despesas diversas/ }).click();
 }
 
 test("login rejects incorrect credentials and then opens the authenticated dashboard", async ({

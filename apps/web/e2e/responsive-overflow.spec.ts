@@ -55,10 +55,22 @@ async function seedFinancialData(page: Page) {
   }
 
   const people = await data<Array<{ id: string; role: string }>>("/people");
-  const categories = await data<Array<{ id: string; name: string; type: string }>>("/categories");
+  const categories =
+    await data<Array<{ id: string; name: string; type: string; parentId?: string | null }>>(
+      "/categories",
+    );
   const personId = people.find((person) => person.role === "admin")?.id;
-  const categoryId = (name: string, type: "income" | "expense") =>
-    categories.find((item) => item.name === name && item.type === type)?.id ?? null;
+  // Fork: default categories are grouped and expenses need a subcategory, so a group resolves to
+  // its first subcategory and a name the fork doesn't have falls back to "Despesas diversas".
+  const categoryId = (name: string, type: "income" | "expense") => {
+    const match = categories.find((item) => item.name === name && item.type === type);
+    const child = match && categories.find((item) => item.parentId === match.id);
+    const fallback =
+      type === "expense"
+        ? categories.find((item) => item.name === "Despesas diversas" && item.type === type)
+        : undefined;
+    return child?.id ?? match?.id ?? fallback?.id ?? null;
+  };
   const account = await data<{ id: string }>("/accounts", {
     name: "Conta com um nome bem longo para testar quebras",
     type: "checking",

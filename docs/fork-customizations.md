@@ -277,6 +277,10 @@ Testes de integração do upstream adaptados ao fork (revise-os em cada merge, m
 - `apps/api/src/ownership.integration.test.ts`: o teste de orçamentos recorrentes usa o modelo do
   fork (`isRecurring`, `PATCH`/`DELETE` em `/budgets/{id}`), e não as regras `budget_rules` do
   upstream.
+- `apps/web/e2e/financial-flows.spec.ts`: o formulário de despesa escolhe também a subcategoria
+  **"Despesas diversas"**, obrigatória no fork;
+- `apps/web/e2e/responsive-overflow.spec.ts`: os dados de exemplo usam a primeira subcategoria de
+  cada grupo padrão do fork, ou "Despesas diversas" quando o nome não existe no fork.
 
 > Os testes de integração do upstream usam caminhos no formato do Linux e falham no Windows com
 > espaços no caminho; eles rodam no CI. O `test:fork:integration` funciona nos dois.

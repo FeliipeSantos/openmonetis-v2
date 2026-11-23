@@ -83,8 +83,7 @@ export function CategoryIconPicker({
                       aria-label={option.label}
                       className={cn(
                         "grid size-11 place-items-center rounded-md border border-input bg-field text-muted-foreground transition-[color,border-color,box-shadow] hover:border-input-hover hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-                        option.value === value &&
-                          "border-brand-strong bg-accent text-brand-strong",
+                        option.value === value && "border-brand-strong bg-accent text-brand-strong",
                       )}
                       key={option.value}
                       onClick={() => {

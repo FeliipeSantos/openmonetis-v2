@@ -242,6 +242,12 @@ use `npx -y pnpm@11.25.0` no lugar de `pnpm`.
 | Testes unitários | `pnpm test` | `fail 0` |
 | Formatação | `pnpm exec biome check <arquivos alterados>` | Sem erros |
 | Migrações | `pnpm db:migrate` | Aplica só as migrações novas |
+| Consultas do fork no banco | `pnpm test:fork:integration` (Docker com o PostgreSQL ligado) | `fail 0` |
+
+**CI no GitHub:** o workflow `CI` roda em todo push no `custom` (além da `main` e de pull
+requests): formatação, tipos, testes unitários, build, todas as suítes de integração com
+PostgreSQL (inclusive `test:fork:integration`) e os testes no navegador. Depois de enviar um merge,
+confira a aba **Actions** do fork antes de atualizar a VPS.
 
 Os testes do fork que precisam continuar passando:
 
@@ -251,7 +257,20 @@ Os testes do fork que precisam continuar passando:
 - `apps/web/src/features/categories/categories.presentation.test.ts`: subcategoria obrigatória,
   arraste e valores do mês;
 - `apps/web/src/features/budgets/budgets.presentation.test.ts`;
-- `apps/web/src/features/transactions/components/transaction-form.validation.test.ts`.
+- `apps/web/src/features/transactions/components/transaction-form.validation.test.ts`;
+- `apps/api/src/services/transactions.service.test.ts`: consolidado do cartão, rodapé
+  Efetivadas/Pendentes (fatura paga e pagamento antecipado), busca só com os itens, horário,
+  parcela por valor da parcela e lançamento em fatura já paga (aviso, pagar ou reabrir);
+- `packages/domain/src/transactions.test.ts`, `invoices.test.ts`, `commitments.test.ts` e
+  `person-settlements.test.ts`: resumo por dia, totais, reabertura de fatura, parcelamento
+  antecipado e repasses cobrindo os lançamentos mais antigos;
+- `apps/api/src/services/invoices.service.test.ts` e `person-settlements.service.test.ts`: pagar o
+  restante pela última conta, repasse no mês da tela e lista de lançamentos dos Acertos;
+- `apps/api/src/fork-customizations.integration.test.ts` (`pnpm test:fork:integration`): receitas
+  parceladas no Comprometimento e a parte da pessoa paga na fatura contando como repasse.
+
+> Os testes de integração do upstream usam caminhos no formato do Linux e falham no Windows com
+> espaços no caminho; eles rodam no CI. O `test:fork:integration` funciona nos dois.
 
 > Os testes de `apps/ai` dependem de `sh` e `tar` e falham no Windows; rode-os só no Linux.
 
@@ -299,6 +318,16 @@ seus dados. Uma conta nova já confere a lista padrão de categorias.
 | 21 | Visão geral | Abrir | Carrega sem erros e mostra o aviso da versão nova |
 | 21a | Visão geral | Despesa parcelada com nome bem longo | Widget Despesas parceladas corta o nome com reticências, sem barra de rolagem horizontal |
 | 22 | Novidades do upstream | Abrir as telas da versão nova | Carregam sem erros no console |
+| 23 | Lançamentos | Abas Despesas, Receitas e Transferências | O botão de criar fica na linha das abas e segue a aba aberta |
+| 24 | Lançamentos | Clicar no nome de um cartão consolidado | Abre o modal da fatura: linha do tempo por dia, Saídas/Fatura, troca de mês, Fecha/Vence, "Sua parte / Outras pessoas" e avatar nas compras de outra pessoa |
+| 25 | Lançamentos | Rolar e digitar na busca | A tela não volta ao topo; só as compras que batem aparecem, sem a linha do cartão |
+| 26 | Lançamentos | Fatura com pagamento antecipado | Linha do cartão mostra "Fatura" com o restante; rodapé põe o valor pago em Efetivadas |
+| 27 | Lançamentos | Nova despesa no cartão numa fatura já paga | Aviso "Essa fatura já está paga" com Salvar como paga/pendente |
+| 28 | Lançamentos (celular) | Digitar a descrição | Sugestões aparecem logo abaixo do campo |
+| 29 | Fatura do cartão / Extrato da conta | Ver os botões da lista | "Exportar" ao lado de "Selecionar" |
+| 30 | Pessoas › painel de uma pessoa externa | Mês com despesas dela | Acertos lista cada lançamento (categoria, forma, conta/cartão, parcela) com Efetivar; a parte paga na fatura aparece como Recebido |
+| 31 | Relatórios › Compromissos futuros | Mês com receita parcelada e parcelamento antecipado | Receita prevista inclui a parcela; o antecipado termina no mês para onde as parcelas foram |
+| 32 | Visão geral | Setas de "Suas receitas"/"Suas despesas" | Abrem a aba certa de Lançamentos sem filtrar por pessoa |
 
 Para os números da massa de teste, também é possível conferir pela API (logado):
 `GET /budgets?period=2026-11` e `GET /dashboard/category-breakdown?period=2026-11`.

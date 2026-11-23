@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+      # Fork branch: every push checks that upstream merges did not break the customizations.
+      - custom
   pull_request:
   workflow_dispatch:
   workflow_call:
@@ -85,6 +87,7 @@ jobs:
           pnpm test:settlements:integration
           pnpm test:transactions:integration
           pnpm test:financial-integrity:integration
+          pnpm test:fork:integration
           pnpm test:connections:integration
           pnpm test:imports:integration
           pnpm test:settings:integration

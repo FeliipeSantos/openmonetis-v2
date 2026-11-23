@@ -784,7 +784,9 @@ test("assembled API protects financial endpoints and persists transfers and refu
         const [leisure] = await db
           .select()
           .from(schema.categories)
-          .where(and(eq(schema.categories.userId, owner.id), eq(schema.categories.name, "Viagem")));
+          .where(
+            and(eq(schema.categories.userId, owner.id), eq(schema.categories.name, "Viagens")),
+          );
         assert.ok(leisure);
 
         await error(

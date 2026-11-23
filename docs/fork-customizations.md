@@ -269,6 +269,15 @@ Os testes do fork que precisam continuar passando:
 - `apps/api/src/fork-customizations.integration.test.ts` (`pnpm test:fork:integration`): receitas
   parceladas no Comprometimento e a parte da pessoa paga na fatura contando como repasse.
 
+Testes de integração do upstream adaptados ao fork (revise-os em cada merge, mantendo a versão do
+`custom` se o upstream mexer neles):
+
+- `apps/api/src/transactions.integration.test.ts`: as ações em lote usam a categoria padrão
+  **"Viagens"** do fork (no upstream é "Viagem");
+- `apps/api/src/ownership.integration.test.ts`: o teste de orçamentos recorrentes usa o modelo do
+  fork (`isRecurring`, `PATCH`/`DELETE` em `/budgets/{id}`), e não as regras `budget_rules` do
+  upstream.
+
 > Os testes de integração do upstream usam caminhos no formato do Linux e falham no Windows com
 > espaços no caminho; eles rodam no CI. O `test:fork:integration` funciona nos dois.
 

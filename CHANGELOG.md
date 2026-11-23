@@ -190,6 +190,35 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 - Subcategorias passam a exibir o próprio ícone na lista de categorias e nas tendências por
   categoria, usando o ícone da categoria principal só quando não têm um ícone definido.
 
+## [0.20.1] - 2026-11-23
+
+O aplicativo instalado pelo Firefox para Android volta a abrir como aplicativo, com o manifesto
+estático e os atalhos no ícone, e a barra de status passa a usar a cor principal do tema. O tema
+salvo é aplicado antes da primeira pintura mesmo em conexões lentas, e a Caixa de entrada e a
+Distribuição financeira recebem ajustes visuais.
+
+### Alterado
+
+- Caixa de entrada: em **Por origem**, cartões e contas ficam direto no card, alinhados ao
+  cabeçalho, em vez de numa caixa interna, com o logo ou o ícone num círculo e textos em cinza
+  neutro.
+
+### Corrigido
+
+- Distribuição financeira: o valor de **Taxa de poupança** tem o mesmo tamanho dos demais
+  indicadores, em vez do tamanho de legenda.
+- Aparência: ao abrir ou recarregar uma página, o tema salvo é aplicado antes de qualquer parte da
+  tela aparecer. Em conexões lentas, o primeiro quadro podia surgir sem o tema e piscar o padrão
+  antes de trocar.
+- Celular: o aplicativo instalado volta a abrir sozinho, como um aplicativo, e não como atalho do
+  navegador. O manifesto voltou a ser o arquivo estático da 0.19.0, com os atalhos no ícone, agora
+  com a cor laranja do OpenMonetis, e o link é enviado com as credenciais de login. Quem instalou o
+  aplicativo pela 0.20.0 precisa remover o atalho e instalar de novo.
+- Celular: a barra de status passa a usar a cor principal do tema escolhido no Chrome, no
+  navegador e no aplicativo instalado. O Firefox para Android e o aplicativo instalado no iPhone
+  não seguem o tema: no aplicativo instalado pelo Firefox, a barra fica na cor laranja do
+  OpenMonetis.
+
 ## [0.20.0] - 2026-11-22
 
 O tema claro padrão fica branco sobre o fundo areia e todos os campos de formulário passam a ter o
@@ -1888,7 +1917,8 @@ API-first, com cliente web em PT-BR, domínio financeiro isolado e implantação
 - Backup e restauração definidos como operações de infraestrutura, cobrindo PostgreSQL, objetos do
   storage e segredos da implantação.
 
-[Unreleased]: https://github.com/felipegcoutinho/openmonetis-v2/compare/v0.20.0...HEAD
+[Unreleased]: https://github.com/felipegcoutinho/openmonetis-v2/compare/v0.20.1...HEAD
+[0.20.1]: https://github.com/felipegcoutinho/openmonetis-v2/compare/v0.20.0...v0.20.1
 [0.20.0]: https://github.com/felipegcoutinho/openmonetis-v2/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/felipegcoutinho/openmonetis-v2/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/felipegcoutinho/openmonetis-v2/compare/v0.17.1...v0.18.0

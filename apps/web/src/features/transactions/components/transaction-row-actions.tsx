@@ -1,5 +1,5 @@
 import { CalendarX2, Copy, Eye, MoreHorizontal, Pause, Pencil, Trash2 } from "lucide-react";
-import type { Dispatch, SetStateAction } from "react";
+import type { Dispatch, ReactElement, ReactNode, SetStateAction } from "react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { TransactionActionsMenu } from "./transaction-actions-menu";
@@ -21,6 +21,8 @@ export function TransactionRowActions({
   setDeleteOpen,
   setInstallmentDeleteOpen,
   setRecurringAction,
+  trigger,
+  triggerLabel,
 }: {
   transaction: TransactionRowProps["transaction"];
   pending: TransactionRowProps["pending"];
@@ -38,19 +40,24 @@ export function TransactionRowActions({
   setDeleteOpen: Dispatch<SetStateAction<boolean>>;
   setInstallmentDeleteOpen: Dispatch<SetStateAction<boolean>>;
   setRecurringAction: Dispatch<SetStateAction<"pause" | "stop" | "skip" | null>>;
+  /** Replaces the "⋯" button, e.g. to open the menu by clicking the whole item. */
+  trigger?: ReactElement;
+  triggerLabel?: ReactNode;
 }) {
   return (
     <TransactionActionsMenu
       transaction={transaction}
       trigger={
-        <Button
-          aria-label={`Ações de ${transaction.name}`}
-          disabled={pending}
-          size="icon"
-          variant="ghost"
-        />
+        trigger ?? (
+          <Button
+            aria-label={`Ações de ${transaction.name}`}
+            disabled={pending}
+            size="icon"
+            variant="ghost"
+          />
+        )
       }
-      triggerLabel={<MoreHorizontal aria-hidden="true" />}
+      triggerLabel={trigger ? triggerLabel : <MoreHorizontal aria-hidden="true" />}
       leadingItems={
         <DropdownMenuItem onClick={() => onView(transaction)}>
           <Eye />

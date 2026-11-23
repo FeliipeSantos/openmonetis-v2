@@ -98,6 +98,17 @@ export function TransactionsTable({
       .filter((invoice) => invoice.beforeTransactionId === beforeTransactionId)
       .map((invoice) => (
         <CardInvoiceTotalRow
+          actions={{
+            pendingTransactionId,
+            onEdit,
+            onView,
+            onDelete,
+            onCopy,
+            onAnticipate,
+            onUndoAnticipation,
+            onRefund,
+            onRecurringAction,
+          }}
           invoice={invoice}
           key={`${invoice.cardId}:${invoice.period}`}
           selectionMode={selectionMode}

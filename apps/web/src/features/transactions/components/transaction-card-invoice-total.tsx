@@ -28,6 +28,7 @@ import { invoicesQueryOptions } from "@/features/invoices/invoices.queries";
 import { cn } from "@/lib/utils";
 import { formatCardInvoiceTotalDetail, formatCompactDate } from "../transactions.presentation";
 import { CardInvoiceStatementDialog } from "./transaction-card-invoice-statement-dialog";
+import type { TransactionItemActionHandlers } from "./transaction-item-actions";
 
 function CardInvoiceLogo({ invoice }: { invoice: CardInvoiceTotalOutput }) {
   return invoice.cardLogo ? (
@@ -281,9 +282,11 @@ function CardInvoiceLink({
 
 /** One desktop row standing for every purchase on a card invoice. */
 export function CardInvoiceTotalRow({
+  actions,
   invoice,
   selectionMode,
 }: {
+  actions: TransactionItemActionHandlers;
   invoice: CardInvoiceTotalOutput;
   selectionMode: boolean;
 }) {
@@ -311,6 +314,7 @@ export function CardInvoiceTotalRow({
           </span>
         </button>
         <CardInvoiceStatementDialog
+          actions={actions}
           invoice={invoice}
           onOpenChange={setStatementOpen}
           open={statementOpen}

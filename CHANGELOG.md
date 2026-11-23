@@ -9,6 +9,9 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Adicionado
 
+- Extrato da fatura em modal: clicar em um lançamento abre as mesmas ações da listagem (Ver
+  detalhes, Editar, Copiar, Registrar reembolso, Remover etc.); o visual segue a tabela de
+  lançamentos, com a data do dia em faixa cinza e linhas separando cada compra.
 - Fatura do cartão com compras de outras pessoas: o cabeçalho da fatura e o extrato em modal
   mostram, junto do total, **Sua parte** e **Outras pessoas**, usando a divisão por pessoa da
   fatura (inclusive compras divididas).

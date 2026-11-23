@@ -26,12 +26,17 @@ import { peopleQueryOptions } from "@/features/people/people.queries";
 import { formatPeriod } from "@/lib/period-presentation";
 import { cn } from "@/lib/utils";
 import {
+  formatCompactDate,
   formatTransactionDayLabel,
   getTransactionDaySummaryLines,
   groupTransactionsByDay,
   type TransactionDaySummaryLine,
 } from "../transactions.presentation";
 import { transactionsQueryOptions } from "../transactions.queries";
+import {
+  type TransactionItemActionHandlers,
+  TransactionItemActions,
+} from "./transaction-item-actions";
 import { TransactionPeople } from "./transaction-people";
 
 /** Largest page the listing API serves; bigger invoices point to the full card page. */
@@ -57,7 +62,7 @@ function CardLogo({ logo }: { logo: string | null }) {
       width={40}
     />
   ) : (
-    <span className="grid size-10 shrink-0 place-items-center rounded-full bg-muted">
+    <span className="grid size-10 shrink-0 place-items-center rounded-full bg-foreground/10">
       <CreditCard aria-hidden="true" className="size-5" />
     </span>
   );
@@ -86,13 +91,15 @@ const summaryAmountClassNames: Record<TransactionDaySummaryLine["tone"], string>
   running: "font-semibold text-foreground",
 };
 
-/** One day as a timeline: purchases and the day's totals hang from the same vertical line. */
+/** One day as in the listing table: gray heading, purchases split by lines, then the day's totals. */
 function StatementDay({
+  actions,
   adminPersonId,
   date,
   items,
   summaryLines,
 }: {
+  actions?: TransactionItemActionHandlers;
   /** The user's own person: their purchases show no avatar, like in the listing. */
   adminPersonId: string | null;
   date: string;
@@ -100,87 +107,97 @@ function StatementDay({
   summaryLines: TransactionDaySummaryLine[];
 }) {
   return (
-    <section aria-label={formatTransactionDayLabel(date)} className="grid gap-1">
-      <h3 className="rounded-full bg-muted px-4 py-2 font-semibold text-sm">
+    <section aria-label={formatTransactionDayLabel(date)} className="border-b last:border-b-0">
+      <h3 className="border-b bg-foreground/5 px-3 py-2 font-semibold text-sm">
         {formatTransactionDayLabel(date)}
       </h3>
-      <div className="relative">
-        <span
-          aria-hidden="true"
-          className="absolute top-0 bottom-0 left-[1.875rem] w-px -translate-x-1/2 bg-border"
-        />
-        <ul>
-          {items.map((item) => {
-            const amount = item.allocation?.amount ?? item.amount;
-            return (
-              <li className="relative flex items-center gap-3 px-3 py-2.5" key={item.id}>
-                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
+      <ul className="divide-y">
+        {items.map((item) => {
+          const amount = item.allocation?.amount ?? item.amount;
+          const installment =
+            item.installmentCount && item.currentInstallment
+              ? `${item.currentInstallment} de ${item.installmentCount}`
+              : null;
+          return (
+            <li className="relative" key={item.id}>
+              {actions ? <TransactionItemActions actions={actions} transaction={item} /> : null}
+              <div className="pointer-events-none relative flex items-center gap-3 px-3 py-2.5">
+                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-foreground/10 text-muted-foreground">
                   <CategoryIcon className="size-4" name={item.categoryIcon} />
                 </span>
-                <span className="grid min-w-0 flex-1">
+                <span className="grid min-w-0 flex-1 gap-0.5">
                   <span className="flex min-w-0 items-center gap-2">
                     <span className="truncate font-medium text-sm">{item.name}</span>
+                    {installment ? (
+                      <span className="shrink-0 rounded-md border px-1.5 py-0.5 text-muted-foreground text-xs tabular-nums">
+                        {installment}
+                      </span>
+                    ) : null}
                     {item.allocation !== null ||
                     item.isDivided ||
                     (adminPersonId !== null && item.personId !== adminPersonId) ? (
-                      <span className="shrink-0">
+                      <span className="pointer-events-auto shrink-0">
                         <TransactionPeople transaction={item} />
                       </span>
                     ) : null}
                   </span>
-                  <span className="truncate text-muted-foreground text-xs">
-                    {[
-                      item.categoryName,
-                      item.installmentCount && item.currentInstallment
-                        ? `${item.currentInstallment} de ${item.installmentCount}`
-                        : null,
-                      item.purchaseTime,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
+                  <span className="flex min-w-0 items-center gap-1.5 whitespace-nowrap text-muted-foreground text-xs">
+                    <span>{formatCompactDate(item.purchaseDate)}</span>
+                    {item.purchaseTime ? (
+                      <span className="tabular-nums">{item.purchaseTime}</span>
+                    ) : null}
+                    {item.categoryName ? (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        <CategoryIcon className="size-3.5 shrink-0" name={item.categoryIcon} />
+                        <span className="truncate">{item.categoryName}</span>
+                      </>
+                    ) : null}
                   </span>
                 </span>
                 <MoneyValue
                   amount={amount}
-                  className={cn(
-                    "shrink-0 font-medium text-sm",
-                    amount < 0 ? "text-destructive" : "text-success",
-                  )}
+                  className={cn("shrink-0 font-semibold text-sm", amount > 0 && "text-success")}
                 />
-              </li>
-            );
-          })}
-        </ul>
-        {summaryLines.length ? (
-          <dl>
-            {summaryLines.map((line) => (
-              <div className="relative flex items-center gap-3 px-3 py-2" key={line.key}>
-                <span aria-hidden="true" className="grid w-9 shrink-0 place-items-center">
-                  <span
-                    className={cn(
-                      "size-3 rounded-full ring-4 ring-popover",
-                      summaryDotClassNames[line.tone],
-                    )}
-                  />
-                </span>
-                <dt className="flex-1 text-sm">{line.label}</dt>
-                <dd>
-                  <MoneyValue
-                    amount={line.amount}
-                    className={cn("text-sm", summaryAmountClassNames[line.tone])}
-                  />
-                </dd>
               </div>
-            ))}
-          </dl>
-        ) : null}
-      </div>
+            </li>
+          );
+        })}
+      </ul>
+      {summaryLines.length ? (
+        <dl className="grid gap-1 border-t px-3 py-2">
+          {summaryLines.map((line) => (
+            <div className="flex items-center justify-between gap-3" key={line.key}>
+              <dt className="inline-flex items-center gap-2 text-muted-foreground text-sm">
+                <span
+                  aria-hidden="true"
+                  className={cn("size-2 rounded-full", summaryDotClassNames[line.tone])}
+                />
+                {line.label}
+              </dt>
+              <dd>
+                <MoneyValue
+                  amount={line.amount}
+                  className={cn("text-sm", summaryAmountClassNames[line.tone])}
+                  showPositiveSign={line.tone === "income"}
+                />
+              </dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
     </section>
   );
 }
 
 /** Body mounted per opening, so the month always starts at the invoice that was clicked. */
-function StatementBody({ invoice }: { invoice: CardInvoiceTotalOutput }) {
+function StatementBody({
+  actions,
+  invoice,
+}: {
+  actions?: TransactionItemActionHandlers;
+  invoice: CardInvoiceTotalOutput;
+}) {
   const [period, setPeriod] = useState(invoice.period);
   const cardsQuery = useQuery(cardsQueryOptions(period));
   const peopleQuery = useQuery(peopleQueryOptions());
@@ -212,7 +229,7 @@ function StatementBody({ invoice }: { invoice: CardInvoiceTotalOutput }) {
   return (
     <>
       <div className="grid gap-3">
-        <div className="flex items-center justify-center gap-2 rounded-lg bg-muted/50 p-1">
+        <div className="flex items-center justify-center gap-2 rounded-lg bg-foreground/5 p-1">
           <Button
             aria-label="Fatura anterior"
             onClick={() => setPeriod(addMonthsToPeriod(period, -1))}
@@ -259,12 +276,12 @@ function StatementBody({ invoice }: { invoice: CardInvoiceTotalOutput }) {
 
       <div
         className={cn(
-          "min-h-40 flex-1 overflow-y-auto pr-3 transition-opacity [scrollbar-color:var(--border)_transparent] [scrollbar-gutter:stable] [scrollbar-width:thin]",
+          "min-h-40 flex-1 overflow-y-auto rounded-lg border transition-opacity [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin]",
           query.isPlaceholderData && "opacity-60",
         )}
       >
         {query.isPending ? (
-          <div aria-label="Carregando fatura" className="grid gap-2" role="status">
+          <div aria-label="Carregando fatura" className="grid gap-2 p-3" role="status">
             <Skeleton className="h-10" />
             <Skeleton className="h-10" />
             <Skeleton className="h-10" />
@@ -284,9 +301,10 @@ function StatementBody({ invoice }: { invoice: CardInvoiceTotalOutput }) {
           </p>
         ) : null}
         {items.length > 0 ? (
-          <div className="grid gap-3">
+          <div>
             {days.map((day) => (
               <StatementDay
+                actions={actions}
                 adminPersonId={adminPersonId}
                 date={day.date}
                 items={day.items}
@@ -297,7 +315,7 @@ function StatementBody({ invoice }: { invoice: CardInvoiceTotalOutput }) {
           </div>
         ) : null}
         {hasMore ? (
-          <p className="mt-2 text-center text-muted-foreground text-xs">
+          <p className="border-t px-3 py-2 text-center text-muted-foreground text-xs">
             Exibindo {items.length} de {query.data?.total} lançamentos. Veja todos na fatura
             completa.
           </p>
@@ -315,12 +333,15 @@ function StatementBody({ invoice }: { invoice: CardInvoiceTotalOutput }) {
   );
 }
 
-/** The purchases of one card invoice, read-only, without leaving the listing. */
+/** The purchases of one card invoice, without leaving the listing. */
 export function CardInvoiceStatementDialog({
+  actions,
   invoice,
   onOpenChange,
   open,
 }: {
+  /** The listing's row actions; without them the statement is read-only. */
+  actions?: TransactionItemActionHandlers;
   invoice: CardInvoiceTotalOutput;
   onOpenChange: (open: boolean) => void;
   open: boolean;
@@ -332,7 +353,7 @@ export function CardInvoiceStatementDialog({
           <DialogTitle>Fatura {invoice.cardName}</DialogTitle>
           <DialogDescription>Lançamentos da fatura, dia a dia.</DialogDescription>
         </DialogHeader>
-        {open ? <StatementBody invoice={invoice} /> : null}
+        {open ? <StatementBody actions={actions} invoice={invoice} /> : null}
       </DialogContent>
     </Dialog>
   );

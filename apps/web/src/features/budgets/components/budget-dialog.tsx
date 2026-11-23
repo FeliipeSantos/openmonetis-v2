@@ -129,7 +129,7 @@ export function BudgetDialog({
             {(field) =>
               editing && budget ? (
                 <div className="grid gap-1.5">
-                  <Label className="font-mono" htmlFor={`${id}-category`}>
+                  <Label htmlFor={`${id}-category`}>
                     Categoria de despesa
                   </Label>
                   <output
@@ -182,7 +182,7 @@ export function BudgetDialog({
           <form.Field name="period">
             {(field) => (
               <div className="grid gap-1.5">
-                <Label className="font-mono" htmlFor={`${id}-period`}>
+                <Label htmlFor={`${id}-period`}>
                   Mês do orçamento
                 </Label>
                 {inherited ? (
@@ -219,7 +219,7 @@ export function BudgetDialog({
           >
             {(field) => (
               <div className="grid gap-1.5">
-                <Label className="font-mono" htmlFor={`${id}-amount`}>
+                <Label htmlFor={`${id}-amount`}>
                   Limite mensal
                 </Label>
                 <CurrencyInput

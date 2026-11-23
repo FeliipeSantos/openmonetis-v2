@@ -1,6 +1,6 @@
 {
   "name": "@openmonetis/api",
-  "version": "0.19.0",
+  "version": "0.20.0",
   "type": "module",
   "private": true,
   "files": [
@@ -11,6 +11,7 @@
     "build": "tsc --noEmit",
     "db:seed": "DOTENV_CONFIG_PATH=../../.env tsx --import dotenv/config src/scripts/mock-data.ts",
     "db:sync-categories": "DOTENV_CONFIG_PATH=../../.env tsx --import dotenv/config src/scripts/sync-default-categories.ts",
+    "db:test-user": "DOTENV_CONFIG_PATH=../../.env tsx --import dotenv/config src/scripts/test-user.ts",
     "worker:recurring-external-expenses": "DOTENV_CONFIG_PATH=../../.env tsx --import dotenv/config src/scripts/recurring-external-expenses.worker.ts",
     "typecheck": "tsc --noEmit"
   },

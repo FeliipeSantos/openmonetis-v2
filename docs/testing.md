@@ -3,6 +3,28 @@
 Os testes usam `node:test`, `node:assert/strict` e `tsx`. A suíte web usa Chromium via Playwright; os testes sem banco não iniciam navegador. As suítes sem banco, PostgreSQL, S3Mock e Chromium são executadas pela CI. Os testes de provedores reais são optativos e separados. Lint, tipos e build são verificações
 complementares, sem substituir os testes de comportamento.
 
+## Usuário de teste local
+
+Para conferir telas no ambiente de desenvolvimento (`pnpm dev`), use sempre o mesmo usuário,
+Pumita Rodriguez:
+
+| E-mail                    | Senha               |
+| ------------------------- | ------------------- |
+| `teste@openmonetis.local` | `openmonetis-teste` |
+
+```bash
+pnpm db:test-user
+```
+
+O comando apaga o usuário e tudo o que é dele, cadastra-o de novo e preenche seis meses, até o mês
+atual, com o seed de dados demonstrativos (`pnpm db:seed`): contas, cartões, faturas, parcelas,
+recorrências, divisões entre pessoas, orçamentos, anotações e itens da Caixa de entrada. Rode-o
+sempre que os dados ficarem bagunçados por testes manuais. Ele só funciona fora de produção e com o
+banco local (`localhost`); com `EXTERNAL_DATABASE_URL` apontando para outro servidor, ele se recusa a
+rodar. O usuário recebe o avatar `/avatars/4825015.png` do catálogo do app. Os testes de navegador
+(`pnpm test:e2e`) não usam esse usuário: sobem servidores próprios
+com um banco temporário.
+
 ## Suíte sem banco
 
 ```bash
@@ -178,6 +200,7 @@ rateios, valores efetivos e contas excluídas, incluindo a conta de baixa das re
 Os seletores responsivos também são verificados ao alternar entre desktop e celular com a lista
 aberta, sem perder o estado nem emitir avisos de controle do componente.
 
+A barra inferior do celular mantém o botão de novo lançamento no centro da tela de 320 a 430 px.
 A aparência verifica o salvamento do modo e do tema na conta, o tema aplicado desde a primeira
 pintura ao recarregar, a volta ao tema salvo quando a gravação falha e a troca de modo ao escolher
 um tema pela busca. O contraste de todos os temas é medido com as cores resolvidas pelo navegador;

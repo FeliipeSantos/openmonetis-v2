@@ -170,7 +170,7 @@ function CopyBudgetSelection({
               return (
                 <div
                   className={cn(
-                    "flex items-center gap-3 rounded-lg border p-3",
+                    "flex items-center gap-3 rounded-lg border border-input bg-field p-3",
                     alreadyExists && "bg-muted/30 opacity-70",
                   )}
                   key={budget.id}

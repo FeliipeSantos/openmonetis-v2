@@ -19,6 +19,7 @@ import {
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { browserThemeColors } from "@/lib/browser-theme-colors";
 import { prefersReducedMotion } from "@/lib/pwa";
+import { getThemedFaviconScript, paintFavicon } from "@/lib/themed-favicon";
 
 /** What the app looks like: the mode, and the palette used in each mode. */
 export type Appearance = {
@@ -77,7 +78,7 @@ function readStoredAppearance(): Appearance {
  * palette. It belongs in the document head: from the body, a slow stream can paint a frame first.
  */
 export function AppearanceScript() {
-  return <ScriptOnce>{getAppearanceScript()}</ScriptOnce>;
+  return <ScriptOnce>{getAppearanceScript() + getThemedFaviconScript()}</ScriptOnce>;
 }
 
 function getAppearanceScript() {
@@ -112,6 +113,7 @@ function applyAppearance(appearance: Appearance) {
       ? browserThemeColors.dark[appearance.darkPalette]
       : browserThemeColors.light[appearance.lightPalette],
   );
+  paintFavicon(palette, mode);
 }
 
 /**

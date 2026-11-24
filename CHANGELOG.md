@@ -9,6 +9,12 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Adicionado
 
+- O ícone da aba do navegador (favicon) passa a ser o mesmo símbolo do cabeçalho, com a cor do
+  tema: coral no tema OpenMonetis, branco nos outros temas escuros e preto nos claros. O ícone do
+  aplicativo instalado no celular continua fixo.
+- Regras da Caixa de entrada: a sugestão de categoria ganha o campo **Subcategoria**, com os
+  mesmos seletores do formulário de lançamento; a regra passa a preencher categoria e subcategoria
+  do lançamento.
 - Extrato da fatura em modal: clicar em um lançamento abre as mesmas ações da listagem (Ver
   detalhes, Editar, Copiar, Registrar reembolso, Remover etc.); o visual segue a tabela de
   lançamentos, com a data do dia em faixa cinza e linhas separando cada compra.

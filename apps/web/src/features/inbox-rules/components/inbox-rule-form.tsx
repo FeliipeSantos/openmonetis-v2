@@ -29,8 +29,8 @@ import { Label } from "@/components/ui/label";
 import { SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { getCategoryLabel } from "@/features/categories/categories.presentation";
-import { CategoryIcon } from "@/features/categories/category-icons";
+import { CategoryPicker } from "@/features/categories/components/category-picker";
+import { SubcategoryPicker } from "@/features/categories/components/subcategory-picker";
 import { PersonOption } from "@/features/people/components/person-option";
 import { showInvalidFormToast } from "@/lib/form-feedback";
 import {
@@ -62,6 +62,7 @@ export function InboxRuleForm({
   onSubmit: (input: CreateInboxRuleInput | ReplaceInboxRuleInput) => Promise<void>;
 }) {
   const id = useId();
+  const expenseCategories = categories.filter((category) => category.type === "expense");
   const [error, setError] = useState<string | null>(null);
   const form = useForm({
     defaultValues: {
@@ -75,7 +76,7 @@ export function InboxRuleForm({
         operator: condition.operator,
         value: String(condition.value),
       })) ?? [createEmptyCondition()]) as EditableCondition[],
-      categoryId: rule?.category?.id ?? "none",
+      categoryId: rule?.category?.id ?? "",
       personId: rule?.person?.id ?? "none",
     },
     onSubmitInvalid: showInvalidFormToast,
@@ -99,7 +100,7 @@ export function InboxRuleForm({
                 value: condition.value,
               },
         ),
-        categoryId: value.categoryId === "none" ? null : value.categoryId,
+        categoryId: value.categoryId || null,
         personId: value.personId === "none" ? null : value.personId,
         ...(rule ? { expectedVersion: rule.version } : {}),
       };
@@ -386,38 +387,32 @@ export function InboxRuleForm({
         <div className="grid gap-4 sm:grid-cols-2">
           <form.Field name="categoryId">
             {(field) => (
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${id}-category`}>Categoria</Label>
-                <Select
-                  onValueChange={(value) => value && field.handleChange(value)}
-                  value={field.state.value}
-                >
-                  <SelectTrigger className="w-full" id={`${id}-category`}>
-                    <SelectValue>
-                      <CategoryOption
-                        category={categories.find((category) => category.id === field.state.value)}
-                      />
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">
-                      <CategoryOption />
-                    </SelectItem>
-                    {categories
-                      .filter((category) => category.type === "expense")
-                      .map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          <CategoryOption category={category} />
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <>
+                <fieldset className="grid min-w-0 gap-1.5">
+                  <legend className="mb-1.5 font-medium text-sm">Categoria</legend>
+                  <CategoryPicker
+                    allowEmpty
+                    categories={expenseCategories}
+                    onChange={field.handleChange}
+                    placeholder="Não preencher"
+                    rootsOnly
+                    value={field.state.value}
+                  />
+                </fieldset>
+                <fieldset className="grid min-w-0 gap-1.5">
+                  <legend className="mb-1.5 font-medium text-sm">Subcategoria</legend>
+                  <SubcategoryPicker
+                    categories={expenseCategories}
+                    onChange={field.handleChange}
+                    value={field.state.value}
+                  />
+                </fieldset>
+              </>
             )}
           </form.Field>
           <form.Field name="personId">
             {(field) => (
-              <div className="grid gap-1.5">
+              <div className="grid gap-1.5 sm:col-span-2">
                 <Label htmlFor={`${id}-person`}>Pessoa</Label>
                 <Select
                   onValueChange={(value) => value && field.handleChange(value)}
@@ -510,21 +505,6 @@ function NotFilledOption() {
         <CircleOff aria-hidden="true" className="size-3.5" />
       </span>
       <span>Não preencher</span>
-    </span>
-  );
-}
-
-function CategoryOption({ category }: { category?: CategoryOutput }) {
-  return (
-    <span className="flex min-w-0 items-center gap-2">
-      <span className="grid size-6 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
-        {category ? (
-          <CategoryIcon className="size-3.5" name={category.icon} />
-        ) : (
-          <CircleOff aria-hidden="true" className="size-3.5" />
-        )}
-      </span>
-      <span className="truncate">{category ? getCategoryLabel(category) : "Não preencher"}</span>
     </span>
   );
 }

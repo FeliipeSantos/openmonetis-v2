@@ -154,6 +154,10 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Alterado
 
+- Extrato da fatura em modal: a janela ficou maior e o quadro do cartão e a lista de lançamentos
+  perderam as bordas laterais.
+- Caixa de entrada: o menu e a página passam a falar em "capturas das integrações", e não só do
+  Companion.
 - Orçamentos por categoria e subcategoria: o formulário de novo orçamento ganha os campos
   **Categoria** e **Subcategoria**. Escolhendo só a categoria (Todas as subcategorias), o orçamento
   soma os lançamentos dela e de todas as suas subcategorias; escolhendo também a subcategoria, soma

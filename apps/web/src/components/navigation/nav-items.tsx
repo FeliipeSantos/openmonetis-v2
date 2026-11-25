@@ -56,7 +56,7 @@ export const navSections: NavSection[] = [
       {
         href: "/inbox",
         label: "Caixa de entrada",
-        description: "Revise as capturas do Companion",
+        description: "Revise as capturas das integrações",
         icon: <Inbox className="size-4" aria-hidden="true" />,
       },
       {

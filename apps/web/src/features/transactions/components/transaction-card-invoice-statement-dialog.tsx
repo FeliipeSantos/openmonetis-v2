@@ -253,7 +253,7 @@ function StatementBody({
           </Button>
         </div>
 
-        <div className="flex items-center gap-3 rounded-lg border px-4 py-3">
+        <div className="flex items-center gap-3 border-y px-4 py-3">
           <CardLogo logo={card?.logo ?? invoice.cardLogo} />
           <div className="grid min-w-0 flex-1">
             <span className="truncate font-medium">{card?.name ?? invoice.cardName}</span>
@@ -276,7 +276,7 @@ function StatementBody({
 
       <div
         className={cn(
-          "min-h-40 flex-1 overflow-y-auto rounded-lg border transition-opacity [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin]",
+          "min-h-40 flex-1 overflow-y-auto border-y transition-opacity [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin]",
           query.isPlaceholderData && "opacity-60",
         )}
       >
@@ -348,7 +348,7 @@ export function CardInvoiceStatementDialog({
 }) {
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent className="flex max-h-[min(90vh,52rem)] flex-col gap-4 sm:max-w-2xl">
+      <DialogContent className="flex max-h-[min(94vh,64rem)] flex-col gap-4 sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Fatura {invoice.cardName}</DialogTitle>
           <DialogDescription>Lançamentos da fatura, dia a dia.</DialogDescription>

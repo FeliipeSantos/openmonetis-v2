@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { formatCardInvoiceTotalDetail, formatCompactDate } from "../transactions.presentation";
 import { CardInvoiceStatementDialog } from "./transaction-card-invoice-statement-dialog";
 import type { TransactionItemActionHandlers } from "./transaction-item-actions";
+import { stickyActionsColumnClassName } from "./transactions-table.types";
 
 function CardInvoiceLogo({ invoice }: { invoice: CardInvoiceTotalOutput }) {
   return invoice.cardLogo ? (
@@ -344,7 +345,7 @@ export function CardInvoiceTotalRow({
       <TableCell className="whitespace-nowrap text-sm">
         <CardInvoiceStatusAction invoice={invoice} payable={payable} status={summary?.status} />
       </TableCell>
-      <TableCell className="text-right">
+      <TableCell className={cn("text-right", stickyActionsColumnClassName)}>
         <Button asChild size="icon-sm" variant="ghost">
           <CardInvoiceLink
             aria-label={`Abrir fatura completa ${invoice.cardName}`}

@@ -6,6 +6,12 @@ import type {
 } from "@openmonetis/validators/transactions";
 import type { TransactionDayGrouping } from "./transaction-day-summary";
 
+/**
+ * Fork: keeps the actions column pinned to the right edge while the table scrolls sideways, so
+ * the menu never hides off screen. The opaque card background covers the cells sliding under it.
+ */
+export const stickyActionsColumnClassName = "sticky right-0 z-10 bg-card";
+
 export type TransactionsTableProps = {
   accountStatement?: boolean;
   adminPersonId: string | null;

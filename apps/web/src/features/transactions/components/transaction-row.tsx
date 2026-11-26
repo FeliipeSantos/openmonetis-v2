@@ -26,7 +26,7 @@ import { TransactionActionDialogs } from "./transaction-action-dialogs";
 import { TransactionRelation } from "./transaction-relation";
 import { TransactionRowActions } from "./transaction-row-actions";
 import { TransactionRowDescription } from "./transaction-row-description";
-import { stickyActionsColumnClassName, type TransactionRowProps } from "./transactions-table.types";
+import type { TransactionRowProps } from "./transactions-table.types";
 
 export function TransactionRow({
   period,
@@ -279,7 +279,7 @@ export function TransactionRow({
           </Tooltip>
         )}
       </TableCell>
-      <TableCell className={stickyActionsColumnClassName}>
+      <TableCell>
         <div className="flex items-center justify-end gap-1">
           <TransactionRowActions
             transaction={transaction}

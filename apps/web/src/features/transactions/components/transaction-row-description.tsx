@@ -37,7 +37,7 @@ export function TransactionRowDescription({
   categoryLabel: string | null;
 }) {
   return (
-    <TableCell>
+    <TableCell className="w-full max-w-0">
       <div className="relative isolate flex min-w-64 items-center gap-2.5">
         {splitConnector && splitConnector !== "end" ? (
           <span
@@ -141,7 +141,7 @@ export function TransactionRowDescription({
               </span>
             ) : null}
           </span>
-          <span className="flex h-4 items-center gap-1.5 whitespace-nowrap text-muted-foreground text-xs">
+          <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 whitespace-nowrap text-muted-foreground text-xs">
             {showPurchaseDate
               ? formatCompactDate(
                   accountStatement

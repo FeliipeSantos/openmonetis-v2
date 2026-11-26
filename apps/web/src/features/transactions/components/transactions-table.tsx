@@ -4,7 +4,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
 import {
   getTransactionListingDate,
   groupTransactionRows,
@@ -16,10 +15,7 @@ import { CardInvoiceTotalRow } from "./transaction-card-invoice-total";
 import { TransactionDayHeaderRow, TransactionDaySummaryRows } from "./transaction-day-summary";
 import { TransactionRow } from "./transaction-row";
 import { TransactionsPagination } from "./transactions-pagination";
-import {
-  stickyActionsColumnClassName,
-  type TransactionsTableProps,
-} from "./transactions-table.types";
+import type { TransactionsTableProps } from "./transactions-table.types";
 
 /** Columns after "Valor": Condição, Forma, Conta/Cartão, Situação, Ações. */
 const TRAILING_COLUMNS = 5;
@@ -147,11 +143,7 @@ export function TransactionsTable({
                         <TableHead className="font-mono">Forma</TableHead>
                         <TableHead className="font-mono">Conta/Cartão</TableHead>
                         <TableHead className="font-mono">Situação</TableHead>
-                        <TableHead
-                          className={cn("font-mono w-14 text-right", stickyActionsColumnClassName)}
-                        >
-                          Ações
-                        </TableHead>
+                        <TableHead className="font-mono w-14 text-right">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

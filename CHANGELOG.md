@@ -154,8 +154,9 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Alterado
 
-- Lançamentos: a coluna **Ações** fica fixa na borda direita da tabela, sempre visível mesmo
-  quando a tabela rola para os lados.
+- Lançamentos: a tabela cabe na largura da tela, sem rolagem lateral. A descrição usa o espaço que
+  as outras colunas deixam, e a linha de detalhes (data, categoria, vencimento) passa para uma
+  segunda linha quando não cabe, sem esconder nenhuma informação.
 - Extrato da fatura em modal: a janela ficou maior e o quadro do cartão e a lista de lançamentos
   perderam as bordas laterais.
 - Caixa de entrada: o menu e a página passam a falar em "capturas das integrações", e não só do
